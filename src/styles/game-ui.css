@@ -1,0 +1,356 @@
+/* =========================================================
+   ApuLab Station · Game UI Standard
+   Basado en Misión 01 V50/V51: bloque sólido + borde oscuro + sombra desplazada.
+   ========================================================= */
+
+/* ---------- BOTONES ---------- */
+.btn {
+  position:relative;
+  min-height:44px;
+  padding:0 16px 0 34px;
+  border:var(--game-border);
+  border-radius:var(--game-radius);
+  background:var(--ui-utility-dark);
+  color:var(--ui-white);
+  box-shadow:5px 5px 0 var(--ui-border-purple);
+  font-family:var(--font-game);
+  font-style:normal;
+  font-size:13px;
+  font-weight:700;
+  letter-spacing:0;
+  text-shadow:none;
+  cursor:pointer;
+  overflow:visible;
+  transition:background-color 120ms ease,box-shadow 120ms ease,transform 80ms ease;
+}
+
+.btn::before {
+  content:"";
+  position:absolute;
+  left:12px;
+  top:50%;
+  width:0;
+  height:0;
+  border-top:6px solid transparent;
+  border-bottom:6px solid transparent;
+  border-left:9px solid currentColor;
+  transform:translateY(-50%);
+  pointer-events:none;
+}
+
+.btn:hover,
+.btn:focus-visible {
+  background:var(--ui-utility-dark-hover);
+  outline:none;
+  filter:none;
+  transform:none;
+}
+
+.btn:active {
+  transform:translate(3px,3px);
+  background:var(--ui-utility-dark-pressed);
+  box-shadow:2px 2px 0 var(--ui-border-purple);
+  filter:none;
+}
+
+.btn.primary {
+  background:var(--ui-yellow);
+  border-color:var(--ui-text-dark);
+  color:var(--ui-text-dark);
+  box-shadow:var(--game-shadow-yellow);
+}
+
+.btn.primary:hover,
+.btn.primary:focus-visible {
+  background:var(--ui-yellow-hover);
+  border-color:var(--ui-text-dark);
+}
+
+.btn.primary:active {
+  background:var(--ui-yellow-pressed);
+  box-shadow:2px 2px 0 var(--ui-yellow-shadow);
+}
+
+.btn.utility-light {
+  background:var(--ui-utility-light);
+  box-shadow:5px 5px 0 var(--ui-utility-dark-pressed);
+}
+
+.btn.utility-light:hover,
+.btn.utility-light:focus-visible {
+  background:var(--ui-utility-light-hover);
+}
+
+.btn.utility-light:active {
+  background:var(--ui-utility-light-pressed);
+  box-shadow:2px 2px 0 var(--ui-utility-dark-pressed);
+}
+
+.btn:disabled {
+  opacity:.52;
+  filter:saturate(.7);
+  cursor:not-allowed;
+  transform:none;
+}
+
+/* Menú principal: misma geometría, solo mayor escala. */
+.menu-actions {
+  width:min(360px,58%);
+  gap:14px;
+}
+
+.menu-actions .btn {
+  width:100%;
+  min-height:52px;
+  padding-left:42px;
+  font-size:15px;
+  box-shadow:6px 6px 0 var(--ui-border-purple);
+}
+
+.menu-actions .btn.primary {
+  box-shadow:6px 6px 0 var(--ui-yellow-shadow);
+}
+
+.menu-actions .btn::before {
+  left:16px;
+  border-top-width:7px;
+  border-bottom-width:7px;
+  border-left-width:10px;
+}
+
+.menu-actions .btn:active {
+  box-shadow:2px 2px 0 var(--ui-border-purple);
+}
+
+.menu-actions .btn.primary:active {
+  box-shadow:2px 2px 0 var(--ui-yellow-shadow);
+}
+
+/* ---------- CAJAS / PANELES ---------- */
+.game-panel,
+.access-card,
+.nickname-card,
+.intro-dialogue,
+.intro-beat {
+  border:var(--game-border);
+  border-radius:var(--game-radius);
+  background:var(--ui-raised);
+  color:var(--ui-white);
+  box-shadow:var(--game-shadow-purple);
+}
+
+/* Modal de acceso: ya no usa tarjeta redonda flotante. */
+.access-overlay {
+  background:rgba(11,14,38,.64);
+  backdrop-filter:blur(4px);
+}
+
+.access-card {
+  width:min(610px,78%);
+  padding:28px 30px 30px;
+  border:var(--game-border);
+  border-radius:var(--game-radius);
+  background:var(--ui-raised);
+  color:var(--ui-white);
+  box-shadow:8px 8px 0 var(--ui-utility-dark);
+}
+
+.access-card h2 {
+  position:static;
+  transform:none;
+  margin:0 48px 22px 0;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  color:var(--ui-white);
+  box-shadow:none;
+  white-space:normal;
+  font-family:var(--font-game);
+  font-size:31px;
+  font-weight:800;
+  line-height:1.1;
+  letter-spacing:-.01em;
+  text-align:left;
+}
+
+.access-card label {
+  display:grid;
+  gap:7px;
+  margin:16px 0;
+  color:var(--ui-white);
+  font-family:var(--font-game);
+  font-size:14px;
+  font-weight:700;
+}
+
+.access-card input,
+.nickname-input {
+  width:100%;
+  min-height:46px;
+  padding:0 14px;
+  border:2px solid var(--ui-text-dark);
+  border-radius:var(--game-radius);
+  background:var(--popup-bg);
+  color:var(--ui-text-dark);
+  box-shadow:4px 4px 0 var(--popup-shadow);
+  font-family:var(--font-game);
+  font-style:normal;
+  outline:none;
+}
+
+.access-card input::placeholder,
+.nickname-input::placeholder {
+  color:#8D86A9;
+}
+
+.access-card input:focus,
+.nickname-input:focus {
+  border-color:var(--ui-text-dark);
+  box-shadow:4px 4px 0 var(--ui-cyan-shadow),0 0 0 2px var(--ui-cyan-light);
+}
+
+.access-card .close {
+  position:absolute;
+  top:14px;
+  right:14px;
+  width:32px;
+  height:32px;
+  border:var(--game-border);
+  border-radius:var(--game-radius);
+  background:var(--ui-utility-dark);
+  color:var(--ui-white);
+  box-shadow:3px 3px 0 var(--ui-border-purple);
+  font-family:var(--font-game);
+  font-size:18px;
+  font-weight:800;
+  line-height:1;
+}
+
+.access-card .close:active {
+  transform:translate(2px,2px);
+  box-shadow:1px 1px 0 var(--ui-border-purple);
+}
+
+.access-card .continue,
+.access-card .demo {
+  min-width:230px;
+  min-height:48px;
+}
+
+.access-card .support {
+  margin:18px 0 12px;
+  color:var(--ui-white-soft);
+  font-size:13px;
+  font-weight:500;
+  text-align:center;
+}
+
+.access-card .error {
+  min-height:22px;
+  margin:6px 0 10px;
+  color:var(--ui-error);
+  font-weight:700;
+}
+
+/* Diálogo de intro: caja rectangular estándar, sin blur/sombra difusa. */
+.intro-dialogue {
+  border:var(--game-border);
+  border-radius:var(--game-radius);
+  background:var(--ui-raised);
+  box-shadow:6px 6px 0 var(--ui-utility-dark);
+  backdrop-filter:none;
+}
+
+.intro-speaker {
+  color:var(--ui-cyan-light);
+}
+
+.intro-dialogue-text {
+  color:var(--ui-white-soft);
+}
+
+.intro-beat {
+  border:var(--game-border);
+  border-radius:var(--game-radius);
+  background:var(--ui-panel);
+  color:var(--ui-cyan-light);
+  box-shadow:5px 5px 0 var(--ui-border-purple);
+}
+
+/* Apodo: misma caja de juego, no tarjeta web. */
+.nickname-card {
+  width:min(560px,74%);
+  padding:26px 28px 28px;
+  border:var(--game-border);
+  border-radius:var(--game-radius);
+  background:var(--ui-raised);
+  box-shadow:7px 7px 0 var(--ui-utility-dark);
+}
+
+.nickname-title {
+  color:var(--ui-white);
+}
+
+.nickname-copy {
+  color:var(--ui-white-soft);
+}
+
+.nickname-continue {
+  position:relative;
+  min-width:230px;
+  min-height:48px;
+  padding:0 18px 0 36px;
+  border:var(--game-border);
+  border-radius:var(--game-radius);
+  background:var(--ui-yellow);
+  color:var(--ui-text-dark);
+  box-shadow:5px 5px 0 var(--ui-yellow-shadow);
+  font-family:var(--font-game);
+  font-weight:700;
+  cursor:pointer;
+}
+
+.nickname-continue::before {
+  content:"";
+  position:absolute;
+  left:13px;
+  top:50%;
+  width:0;
+  height:0;
+  border-top:6px solid transparent;
+  border-bottom:6px solid transparent;
+  border-left:9px solid var(--ui-text-dark);
+  transform:translateY(-50%);
+}
+
+.nickname-continue:hover,
+.nickname-continue:focus-visible {
+  background:var(--ui-yellow-hover);
+  outline:none;
+}
+
+.nickname-continue:active {
+  transform:translate(3px,3px);
+  background:var(--ui-yellow-pressed);
+  box-shadow:2px 2px 0 var(--ui-yellow-shadow);
+}
+
+/* OMITIR INTRO conserva discreción pero adopta geometría del sistema. */
+.intro-skip {
+  border:2px solid var(--ui-text-dark);
+  border-radius:var(--game-radius);
+  background:var(--ui-deep);
+  color:var(--ui-white-soft);
+  box-shadow:3px 3px 0 var(--ui-border-purple);
+  backdrop-filter:none;
+}
+
+.intro-skip:hover {
+  background:var(--ui-panel);
+}
+
+.intro-skip:active {
+  transform:translate(2px,2px);
+  box-shadow:1px 1px 0 var(--ui-border-purple);
+}
