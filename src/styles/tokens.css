@@ -1,0 +1,48 @@
+:root {
+  --ui-night:#0B0E26;
+  --ui-deep:#141938;
+  --ui-panel:#2D2654;
+  --ui-raised:#3B326B;
+  --ui-border-purple:#4D4288;
+  --ui-lavender:#8E7DCE;
+
+  --ui-cyan:#49C9D7;
+  --ui-cyan-hover:#5FD3DF;
+  --ui-cyan-shadow:#269AAA;
+  --ui-cyan-light:#A8EDF1;
+
+  --ui-yellow:#F4C75E;
+  --ui-yellow-hover:#F7D06F;
+  --ui-yellow-pressed:#DDB047;
+  --ui-yellow-border:#FFE5A3;
+  --ui-yellow-shadow:#D5A43D;
+  --ui-yellow-highlight:#FFF3C8;
+
+  --ui-utility-dark:#6960B8;
+  --ui-utility-dark-hover:#776EC4;
+  --ui-utility-dark-pressed:#5A51A7;
+  --ui-utility-light:#9284D2;
+  --ui-utility-light-hover:#9F92DB;
+  --ui-utility-light-pressed:#8072C4;
+
+  --ui-white:#FFFFFF;
+  --ui-white-soft:#F8F9FA;
+  --ui-muted:#B8C2CC;
+  --ui-text-dark:#17133A;
+  --ui-success:#74D99F;
+  --ui-warning:#FFD166;
+  --ui-error:#FF7B6E;
+  --ui-cream:#FFF7E8;
+
+  --popup-bg:#F4EEFF;
+  --popup-highlight:#FFFDFB;
+  --popup-border:#8E7DCE;
+  --popup-inner:#EEE7FF;
+  --popup-shadow:#4E478F;
+
+  --game-radius:4px;
+  --game-border:2px solid var(--ui-text-dark);
+  --game-shadow-purple:6px 6px 0 var(--ui-utility-dark);
+  --game-shadow-yellow:5px 5px 0 var(--ui-yellow-shadow);
+  --font-game:"Poppins",sans-serif;
+}
