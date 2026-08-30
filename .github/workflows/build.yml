@@ -1,0 +1,47 @@
+name: Build and verify Mission 01
+
+on:
+  push:
+    branches:
+      - main
+      - mission01-levels-1-3
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build and verify
+        run: npm run build
+
+      - name: Verify generated Mission 01 assets
+        shell: bash
+        run: |
+          test -f public/missions/mission01/level1.html
+          test -f public/missions/mission01/level2.html
+          test -f public/missions/mission01/level3.html
+          test -f public/missions/mission01/manifest.json
+          grep -Fq '1 / 8' public/missions/mission01/level1.html
+          grep -Fq '2 / 8' public/missions/mission01/level2.html
+          grep -Fq '3 / 8' public/missions/mission01/level3.html
+          grep -Fq 'NIVEL 4 · PRÓXIMAMENTE' public/missions/mission01/level3.html
+          grep -Fq '"totalLevels": 8' public/missions/mission01/manifest.json
+          grep -Fq '"availableLevels"' public/missions/mission01/manifest.json

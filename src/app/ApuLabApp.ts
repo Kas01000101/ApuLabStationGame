@@ -1,5 +1,6 @@
 import { MenuScreen } from '../ui/MenuScreen';
 import { AccessModal } from '../ui/AccessModal';
+import { Mission01Screen } from '../ui/Mission01Screen';
 import { ThreeEngine } from '../three/ThreeEngine';
 import { SessionService } from '../systems/SessionService';
 import { GameState } from '../systems/GameState';
@@ -10,6 +11,7 @@ export type AppState = 'menu' | 'intro' | 'mission01' | 'final';
 export class ApuLabApp {
   private readonly engine: ThreeEngine;
   private readonly menu: MenuScreen;
+  private readonly mission01: Mission01Screen;
   private readonly sessions = new SessionService();
   private state: AppState = 'menu';
   private intro?: IntroController;
@@ -20,6 +22,11 @@ export class ApuLabApp {
       onStart: () => this.openAccess(),
       onSettings: () => window.alert('Ajustes próximamente.'),
       onCredits: () => window.alert('ApuLab Station · Three.js'),
+    });
+    this.mission01 = new Mission01Screen(roots.uiRoot, {
+      onUnavailableLevel: (level) => {
+        if (level >= 4) window.alert(`Nivel ${level} próximamente.`);
+      },
     });
   }
 
@@ -53,12 +60,22 @@ export class ApuLabApp {
     GameState.getInstance().setScene(
       state === 'menu' ? 'main-menu' : state === 'intro' ? 'intro' : state,
     );
+
     this.menu.setVisible(state === 'menu');
+    this.mission01.setVisible(state === 'mission01');
+    this.roots.threeRoot.style.visibility = state === 'mission01' ? 'hidden' : 'visible';
 
     if (state === 'intro') {
       this.intro?.destroy();
-      this.intro = new IntroController(this.engine, this.roots.uiRoot);
+      this.intro = new IntroController(this.engine, this.roots.uiRoot, {
+        onComplete: () => this.goTo('mission01'),
+      });
       this.intro.start();
+      return;
+    }
+
+    if (state === 'mission01') {
+      this.mission01.start(1);
     }
   }
 
