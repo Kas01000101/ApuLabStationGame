@@ -44,6 +44,11 @@ function peruFlagTexture():THREE.CanvasTexture{
 export class Ruth{
   readonly group=new THREE.Group();readonly headRoot=new THREE.Group();readonly rightShoulder=new THREE.Group();readonly leftShoulder=new THREE.Group();
   private readonly rightForearm=new THREE.Group();private readonly leftForearm=new THREE.Group();private idleTime=0;
+  private presentationEnergy=0;
+  private readonly presentationHaloMat=new THREE.MeshBasicMaterial({color:0x8e7dce,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide});
+  private readonly presentationHalo=new THREE.Mesh(new THREE.RingGeometry(.32,1.35,36),this.presentationHaloMat);
+  private readonly presentationFill=new THREE.PointLight(0x9284d2,0,5.5,2);
+  private readonly presentationRim=new THREE.PointLight(0x49c9d7,0,4.5,2);
 
   constructor(){
     this.group.name='Ruth Manzanares Grados';this.group.position.set(5.85,.02,.45);this.group.rotation.set(0,-.08,0);
@@ -58,16 +63,50 @@ export class Ruth{
     const tag=new THREE.Mesh(new THREE.PlaneGeometry(px(4.35),px(1.95)),new THREE.MeshBasicMaterial({map:nameTagTexture(),side:THREE.DoubleSide,transparent:true}));tag.position.set(0,px(9.75),px(2.36));torsoRoot.add(tag);
     this.buildArm(this.leftShoulder,this.leftForearm,-1);this.buildArm(this.rightShoulder,this.rightForearm,1);this.leftShoulder.position.set(-px(5.5),px(24),0);this.rightShoulder.position.set(px(5.5),px(24),0);this.group.add(this.leftShoulder,this.rightShoulder);
     const us=new THREE.Mesh(new THREE.PlaneGeometry(px(2.55),px(1.55)),new THREE.MeshBasicMaterial({map:usFlagTexture(),side:THREE.DoubleSide}));us.position.set(0,-px(2.35),px(2.08));this.rightShoulder.add(us);const pe=new THREE.Mesh(new THREE.PlaneGeometry(px(2.55),px(1.55)),new THREE.MeshBasicMaterial({map:peruFlagTexture(),side:THREE.DoubleSide}));pe.position.set(0,-px(4.20),px(2.08));this.rightShoulder.add(pe);
-    this.headRoot.position.set(0,px(24),0);this.group.add(this.headRoot);this.buildHead();this.resetPose();
+    this.headRoot.position.set(0,px(24),0);this.group.add(this.headRoot);this.buildHead();
+
+    // Halo y luces de presentación; siguen a Ruth sin alterar su geometría.
+    this.presentationHalo.rotation.x=-Math.PI/2;this.presentationHalo.position.set(0,.018,0);this.group.add(this.presentationHalo);
+    this.presentationFill.position.set(.15,2.9,1.0);this.presentationRim.position.set(-.55,2.1,-1.0);this.group.add(this.presentationFill,this.presentationRim);
+    this.resetPose();
   }
 
-  resetPose():void{this.leftShoulder.rotation.set(0,0,0);this.rightShoulder.rotation.set(0,0,0);this.leftForearm.rotation.set(0,0,0);this.rightForearm.rotation.set(0,0,0);this.headRoot.rotation.set(0,0,0);this.group.rotation.y=-.08;}
-  updateIdle(dt:number):void{this.idleTime+=dt;this.group.rotation.y=-.08+Math.sin(this.idleTime*.70)*.018;this.headRoot.rotation.y=Math.sin(this.idleTime*.95)*.022;}
-  greeting(elapsed:number):void{const up=this.smooth(elapsed/.42),down=this.smooth((elapsed-1.02)/.32),hold=up*(1-down);this.rightShoulder.rotation.z=1.72*hold+Math.sin(elapsed*11)*.10*hold;this.rightShoulder.rotation.x=-.16*hold+Math.sin(elapsed*8)*.025*hold;this.leftShoulder.rotation.z=-.08*hold;this.headRoot.rotation.y=-.05+Math.sin(elapsed*3.2)*.018;}
+  resetPose():void{this.leftShoulder.rotation.set(0,0,0);this.rightShoulder.rotation.set(0,0,0);this.leftForearm.rotation.set(0,0,0);this.rightForearm.rotation.set(0,0,0);this.headRoot.rotation.set(0,0,0);this.group.rotation.y=-.08;this.presentationEnergy=0;this.updatePresentationLight(0);}
+  updateIdle(dt:number):void{this.idleTime+=dt;this.group.rotation.y=-.08+Math.sin(this.idleTime*.70)*.018;this.headRoot.rotation.y=Math.sin(this.idleTime*.95)*.022;this.presentationEnergy=Math.max(0,this.presentationEnergy-dt*1.35);this.updatePresentationLight(this.idleTime);}
+
+  greeting(elapsed:number):void{
+    const up=this.smooth(elapsed/.34),down=this.smooth((elapsed-1.08)/.30),hold=up*(1-down);
+    const wave=Math.sin(elapsed*12.5)*.10*hold;
+    // Saludo con AMBOS brazos levantados.
+    this.rightShoulder.rotation.z=1.58*hold+wave;
+    this.leftShoulder.rotation.z=-1.58*hold-wave;
+    this.rightShoulder.rotation.x=-.12*hold+Math.sin(elapsed*8)*.025*hold;
+    this.leftShoulder.rotation.x=-.12*hold-Math.sin(elapsed*8)*.025*hold;
+    this.headRoot.rotation.y=-.04+Math.sin(elapsed*3.2)*.028;
+    this.headRoot.rotation.x=-.035*hold;
+
+    // Saltito corto de bienvenida. moveBetween() fija la base en cada frame,
+    // así que este offset no se acumula.
+    const jump=Math.sin(Math.PI*THREE.MathUtils.clamp((elapsed-.18)/.72,0,1))*.14;
+    this.group.position.y+=jump;
+    this.presentationHalo.position.y=.018-jump;
+
+    this.presentationEnergy=Math.max(this.presentationEnergy,hold,.55*Math.sin(Math.PI*THREE.MathUtils.clamp(elapsed/1.35,0,1)));
+    this.updatePresentationLight(elapsed);
+  }
+
   lookAtMonitor(amount:number):void{const p=this.smooth(amount);this.group.rotation.y=THREE.MathUtils.lerp(-.08,-.42,p);this.headRoot.rotation.y=THREE.MathUtils.lerp(-.03,-.30,p);}
   openTeamPose(amount:number):void{const p=this.smooth(amount);this.group.rotation.y=THREE.MathUtils.lerp(-.16,-.02,p);this.leftShoulder.rotation.z=THREE.MathUtils.lerp(0,-.34,p);this.rightShoulder.rotation.z=THREE.MathUtils.lerp(0,.28,p);this.headRoot.rotation.y=THREE.MathUtils.lerp(-.08,.02,p);}
   lookUp(amount:number):void{const p=this.smooth(amount);this.headRoot.rotation.x=-.17*p;this.headRoot.rotation.y=-.34*p;}
   moveBetween(from:THREE.Vector3,to:THREE.Vector3,amount:number):void{this.group.position.copy(from).lerp(to,this.smooth(amount));}
+
+  private updatePresentationLight(elapsed:number):void{
+    const p=THREE.MathUtils.clamp(this.presentationEnergy,0,1),breath=.86+.14*Math.sin(elapsed*4.1);
+    this.presentationHaloMat.opacity=.20*p*breath;
+    this.presentationHalo.scale.setScalar(.94+.08*Math.sin(elapsed*2.4));
+    this.presentationFill.intensity=2.15*p*breath;
+    this.presentationRim.intensity=1.15*p;
+  }
 
   private createLeg(side:-1|1):void{const root=new THREE.Group();root.position.set(side*px(2),0,0);this.group.add(root);const leg=voxelBox(4,12,4,M.suit,root);leg.position.y=px(6);const bootUpper=voxelBox(4.15,3.8,4.45,M.white,root);bootUpper.position.set(0,px(2),px(.22));const bootToe=voxelBox(4.2,2,1.15,M.suitDark,root,false);bootToe.position.set(0,px(2.3),px(2.35));const sole=voxelBox(4.3,.75,4.6,M.dark,root);sole.position.set(0,px(.38),px(.20));const yellowToe=voxelBox(4,.55,.75,M.yellow,root,false);yellowToe.position.set(0,px(.72),px(2.55));const cyanBand=voxelBox(4.10,.75,4.10,M.cyan,root,false);cyanBand.position.y=px(4.75);const knee=voxelBox(3.25,2.25,.52,M.dark,root,false);knee.position.set(0,px(7.2),px(2.24));const light=voxelBox(1.25,.42,.28,M.cyan,root,false);light.position.set(0,px(7.75),px(2.53));const pocket=voxelBox(2.7,2.6,.55,M.suitDark,root,false);pocket.position.set(side*px(1.15),px(9.35),px(2.15));const tool=voxelBox(.65,1.65,.30,M.yellow,root,false);tool.position.set(side*px(1.15),px(9),px(2.48));}
   private buildArm(shoulder:THREE.Group,forearm:THREE.Group,side:-1|1):void{const arm=voxelBox(3,12,4,M.suit,shoulder);arm.position.y=-px(6);const pad=voxelBox(3.15,2,4.15,M.suitLight,shoulder,false);pad.position.y=-px(1);const wrist=voxelBox(3.10,.75,4.08,M.cyan,shoulder,false);wrist.position.y=-px(8.65);const glove=voxelBox(3.20,3,4.18,M.dark,shoulder);glove.position.y=-px(10.5);const gl=voxelBox(1.45,.45,.28,M.cyan,shoulder,false);gl.position.set(0,-px(10.1),px(2.22));forearm.position.set(0,-px(7),0);shoulder.add(forearm);forearm.visible=false;shoulder.rotation.z=side*0;}
