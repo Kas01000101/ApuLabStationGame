@@ -1,4 +1,6 @@
 import './styles/main.css';
+import './styles/tokens.css';
+import './styles/game-ui.css';
 import { ApuLabApp } from './app/ApuLabApp';
 
 const threeRoot = document.querySelector<HTMLDivElement>('#three-root');
