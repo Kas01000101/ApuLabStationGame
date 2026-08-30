@@ -5,6 +5,10 @@ import { Rover } from './Rover';
 export class Ayni extends Rover {
   private idleTime = 0;
   private readonly solarMaterials: THREE.MeshStandardMaterial[] = [];
+  private readonly auraHaloMat = new THREE.MeshBasicMaterial({ color:0x49c9d7, transparent:true, opacity:0, depthWrite:false, side:THREE.DoubleSide });
+  private readonly auraHalo = new THREE.Mesh(new THREE.RingGeometry(.38,1.72,36),this.auraHaloMat);
+  private readonly auraFill = new THREE.PointLight(0x49c9d7,0,5.8,2);
+  private readonly auraWarm = new THREE.PointLight(0xf4c75e,0,4.2,2);
 
   constructor() {
     super({ name: 'AYNI' });
@@ -16,12 +20,18 @@ export class Ayni extends Rover {
       const materials = Array.isArray(object.material) ? object.material : [object.material];
       materials.forEach((material) => {
         if (!(material instanceof THREE.MeshStandardMaterial)) return;
-        // Los paneles canónicos son los materiales texturizados del deck.
         if (!material.map || seen.has(material)) return;
         seen.add(material);
         this.solarMaterials.push(material);
       });
     });
+
+    // La zona bajo AYNI responde a su presentación sin alterar el escenario.
+    this.auraHalo.rotation.x=-Math.PI/2;
+    this.auraHalo.position.set(0,-1.77,0);
+    this.auraFill.position.set(0,.95,1.05);
+    this.auraWarm.position.set(0,-.45,-.95);
+    this.group.add(this.auraHalo,this.auraFill,this.auraWarm);
   }
 
   update(dt: number): void {
@@ -69,7 +79,7 @@ export class Ayni extends Rover {
     // Las ruedas acompañan apenas el baile; no parece que esté conduciendo.
     this.animateWheels(0.13 * dance + 0.18 * (1 - approach), 1 / 60);
 
-    // Ojos y paneles responden a la emoción de la presentación.
+    // Ojos, paneles y el piso responden a la emoción de la presentación.
     const glow = THREE.MathUtils.clamp(0.36 + 0.55 * dance + 0.38 * hello + 0.50 * codeBeat, 0, 1);
     this.setCelebrationGlow(glow, elapsed);
   }
@@ -86,6 +96,12 @@ export class Ayni extends Rover {
     this.powerMaterials.forEach((material, index) => {
       material.emissiveIntensity = 1.45 + p * (1.0 + 0.35 * Math.sin(elapsed * 8 + index));
     });
+
+    this.auraHaloMat.opacity=.23*p*shimmer;
+    this.auraHalo.position.y=-1.77-(this.group.position.y-1.8);
+    this.auraHalo.scale.setScalar(.94+.09*Math.sin(elapsed*5.1));
+    this.auraFill.intensity=2.15*p*shimmer;
+    this.auraWarm.intensity=.72*p;
   }
 
   settleAtTeamPosition(): void {
