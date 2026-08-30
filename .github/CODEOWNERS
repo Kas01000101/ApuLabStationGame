@@ -1,0 +1,18 @@
+# Default repository owner
+* @Kas01000101
+
+# Licensing and legal scope
+/LICENSE @Kas01000101
+/NOTICE.md @Kas01000101
+/CONTENT-LICENSE.md @Kas01000101
+/BRAND_POLICY.md @Kas01000101
+/THIRD_PARTY_NOTICES.md @Kas01000101
+/CONTRIBUTING.md @Kas01000101
+
+# Original project assets and mission content
+/public/assets/ @Kas01000101
+/src/missions/ @Kas01000101
+
+# Security and CI
+/.github/ @Kas01000101
+/docs/SECURITY.md @Kas01000101
