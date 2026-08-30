@@ -50,6 +50,15 @@ export class ApuLabApp {
     });
   }
 
+  /**
+   * Única salida válida de la introducción.
+   * Se usa tanto al finalizarla normalmente como al pulsar OMITIR INTRO,
+   * para garantizar que ambos caminos abran el Nivel 1 de Misión 01.
+   */
+  private readonly enterMission01 = (): void => {
+    this.goTo('mission01');
+  };
+
   private goTo(state: AppState): void {
     if (this.state === 'intro' && state !== 'intro') {
       this.intro?.destroy();
@@ -68,7 +77,7 @@ export class ApuLabApp {
     if (state === 'intro') {
       this.intro?.destroy();
       this.intro = new IntroController(this.engine, this.roots.uiRoot, {
-        onComplete: () => this.goTo('mission01'),
+        onComplete: this.enterMission01,
       });
       this.intro.start();
       return;
