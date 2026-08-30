@@ -12,6 +12,15 @@ export class CanonicalStationFx {
   private readonly monitorPulseMat = new THREE.MeshBasicMaterial({ color:0xbff8ff, transparent:true, opacity:0, depthWrite:false });
   private readonly peekMaterial = new THREE.MeshStandardMaterial({ color:0x39cfe5, emissive:0x16889b, emissiveIntensity:2, roughness:.42, metalness:.08, flatShading:true });
 
+  private readonly ruthHaloMat = new THREE.MeshBasicMaterial({ color:0x8e7dce, transparent:true, opacity:0, depthWrite:false, side:THREE.DoubleSide });
+  private readonly ayniHaloMat = new THREE.MeshBasicMaterial({ color:0x49c9d7, transparent:true, opacity:0, depthWrite:false, side:THREE.DoubleSide });
+  private readonly ruthHalo: THREE.Mesh;
+  private readonly ayniHalo: THREE.Mesh;
+  private readonly ruthFill = new THREE.PointLight(0x9284d2,0,6.5,2);
+  private readonly ruthRim = new THREE.PointLight(0x49c9d7,0,5.0,2);
+  private readonly ayniFill = new THREE.PointLight(0x49c9d7,0,6.0,2);
+  private readonly ayniWarm = new THREE.PointLight(0xf4c75e,0,4.5,2);
+
   constructor(parent: THREE.Object3D) {
     this.group.name='CanonicalStationFx';
 
@@ -26,6 +35,16 @@ export class CanonicalStationFx {
     this.group.add(hemi,key,fill);
     parent.add(this.group);
 
+    // Zonas de presentación: no iluminan todo el laboratorio, solo el lugar
+    // donde Ruth/Ayni están hablando, como un pequeño escenario técnico.
+    this.ruthHalo=new THREE.Mesh(new THREE.RingGeometry(.30,1.55,40),this.ruthHaloMat);
+    this.ruthHalo.rotation.x=-Math.PI/2;this.ruthHalo.position.y=.025;this.group.add(this.ruthHalo);
+    this.ruthFill.position.set(0,2.7,1.2);this.ruthRim.position.set(0,1.8,-1.25);this.group.add(this.ruthFill,this.ruthRim);
+
+    this.ayniHalo=new THREE.Mesh(new THREE.RingGeometry(.38,1.85,40),this.ayniHaloMat);
+    this.ayniHalo.rotation.x=-Math.PI/2;this.ayniHalo.position.y=.028;this.group.add(this.ayniHalo);
+    this.ayniFill.position.set(0,2.5,1.1);this.ayniWarm.position.set(0,1.15,-1.05);this.group.add(this.ayniFill,this.ayniWarm);
+
     this.monitorCanvas.width=1024;this.monitorCanvas.height=560;this.monitorTexture=new THREE.CanvasTexture(this.monitorCanvas);this.monitorTexture.colorSpace=THREE.SRGBColorSpace;this.monitorTexture.minFilter=THREE.LinearFilter;this.monitorTexture.magFilter=THREE.LinearFilter;
     const shell=new THREE.Mesh(new THREE.BoxGeometry(5.05,3.15,.25),new THREE.MeshStandardMaterial({color:0x5b566f,roughness:.72,metalness:.18,flatShading:true}));shell.position.set(3.10,4.45,-10.48);this.group.add(shell);
     const screen=new THREE.Mesh(new THREE.PlaneGeometry(4.65,2.72),new THREE.MeshBasicMaterial({map:this.monitorTexture}));screen.position.set(3.10,4.45,-10.33);this.group.add(screen);
@@ -38,9 +57,40 @@ export class CanonicalStationFx {
   }
 
   applySceneEnvironment(scene:THREE.Scene):void{scene.background=new THREE.Color(0x3a354d);scene.fog=new THREE.Fog(0x3a354d,21,39);}
-  reset():void{this.setMonitorPulse(0,.45);this.setAyniPeek(false);this.setStemOpacity(0);this.drawMonitor('APULAB STATION',['BAHÍA DE SISTEMAS ROBÓTICOS','SISTEMA EN ESPERA']);}
+
+  reset():void{
+    this.setMonitorPulse(0,.45);this.setAyniPeek(false);this.setStemOpacity(0);
+    this.setRuthPresentation(0,new THREE.Vector3());
+    this.setAyniCelebration(0,new THREE.Vector3());
+    this.drawMonitor('APULAB STATION',['BAHÍA DE SISTEMAS ROBÓTICOS','SISTEMA EN ESPERA']);
+  }
+
   drawMonitor(title:string,rows:string[]=[],mode:'cyan'|'amber'='cyan'):void{const ctx=this.monitorCanvas.getContext('2d');if(!ctx)return;ctx.clearRect(0,0,1024,560);ctx.fillStyle='#211D31';ctx.fillRect(0,0,1024,560);ctx.strokeStyle=mode==='amber'?'#EFA73A':'#39CFE5';ctx.lineWidth=8;ctx.strokeRect(24,24,976,512);ctx.fillStyle='#D8D9E3';ctx.font='700 48px Poppins, Arial';ctx.fillText(title,64,92);ctx.font='600 34px Poppins, Arial';let y=178;rows.forEach((row)=>{ctx.fillStyle=row.includes('DETENIDO')?'#EFA73A':'#BFC7D8';ctx.fillText(row,66,y);y+=72;});this.monitorTexture.needsUpdate=true;}
   setMonitorPulse(amount:number,scale=.45):void{const p=THREE.MathUtils.clamp(amount,0,1);this.monitorPulse.visible=p>.01;this.monitorPulseMat.opacity=p*.95;this.monitorPulse.scale.setScalar(scale);}
   setAyniPeek(visible:boolean,bob=0):void{this.ayniPeek.visible=visible;if(visible)this.ayniPeek.position.y=8.78+Math.sin(bob*5.5)*.035;}
   setStemOpacity(amount:number,elapsed=0):void{const p=THREE.MathUtils.clamp(amount,0,1);this.stemMaterials.forEach((material,index)=>{material.opacity=p>0?Math.max(0,p+.05*Math.sin(elapsed*2+index)):0;});}
+
+  setRuthPresentation(amount:number,position:THREE.Vector3,elapsed=0):void{
+    const p=THREE.MathUtils.clamp(amount,0,1);
+    const breath=.88+.12*Math.sin(elapsed*3.2);
+    this.ruthHalo.position.set(position.x,.028,position.z);
+    this.ruthHaloMat.opacity=.22*p*breath;
+    this.ruthHalo.scale.setScalar(.92+.08*Math.sin(elapsed*2.1));
+    this.ruthFill.position.set(position.x,2.8,position.z+1.1);
+    this.ruthRim.position.set(position.x-.45,2.0,position.z-1.15);
+    this.ruthFill.intensity=2.2*p*breath;
+    this.ruthRim.intensity=1.25*p;
+  }
+
+  setAyniCelebration(amount:number,position:THREE.Vector3,elapsed=0):void{
+    const p=THREE.MathUtils.clamp(amount,0,1);
+    const pulse=.72+.28*Math.sin(elapsed*7.4);
+    this.ayniHalo.position.set(position.x,.03,position.z);
+    this.ayniHaloMat.opacity=.24*p*pulse;
+    this.ayniHalo.scale.setScalar(.92+.10*Math.sin(elapsed*5.2));
+    this.ayniFill.position.set(position.x,2.7,position.z+1.05);
+    this.ayniWarm.position.set(position.x,1.25,position.z-1.0);
+    this.ayniFill.intensity=2.35*p*pulse;
+    this.ayniWarm.intensity=.85*p;
+  }
 }
