@@ -6,7 +6,7 @@ export class MenuScreen {
   constructor(private readonly root: HTMLElement, callbacks: MenuCallbacks) {
     this.element.className = 'menu-screen';
     this.element.innerHTML = `
-      <img class="menu-bg-canonical" src="/assets/menu/apulab-menu-bg-hd.png" alt="" aria-hidden="true" />
+      <img class="menu-bg-canonical" src="/assets/menu/Fondo_menu.png" alt="" aria-hidden="true" />
       <div class="menu-actions" aria-label="Menú principal">
         <button data-action="start" class="btn-game btn-game--yellow btn-game--menu">INICIAR MISIÓN</button>
         <button data-action="settings" class="btn-game btn-game--purple btn-game--menu">AJUSTES</button>
