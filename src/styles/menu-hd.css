@@ -5,56 +5,74 @@
   background:
     linear-gradient(
       180deg,
-      rgba(11, 14, 38, .015) 0%,
-      rgba(11, 14, 38, .035) 48%,
-      rgba(11, 14, 38, .085) 100%
+      rgba(11, 14, 38, .010) 0%,
+      rgba(11, 14, 38, .020) 48%,
+      rgba(11, 14, 38, .055) 100%
     ),
     url('/assets/menu/apulab-menu-bg-hd.png') center center / cover no-repeat,
     #141938;
-  image-rendering: auto;
+  image-rendering:auto;
 }
 
-/* Menú deliberadamente más fino que un panel de gameplay. */
+/* Menú principal: más fino, corto y delicado que un panel de gameplay. */
 .menu-screen .menu-actions {
-  width: min(316px, 48%);
-  gap: 10px;
-  transform: translateY(54px);
+  width:260px !important;
+  max-width:46% !important;
+  gap:8px !important;
+  transform:translateY(48px) !important;
 }
 
 .menu-screen .menu-actions .btn {
-  width: 100%;
-  min-height: 47px;
-  padding: 0 16px 0 38px;
-  border-width: 2px;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0;
-  box-shadow: 4px 4px 0 var(--ui-border-purple);
+  width:260px !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  height:42px !important;
+  min-height:42px !important;
+  padding:0 14px 0 32px !important;
+  border:2px solid var(--ui-text-dark) !important;
+  border-radius:4px !important;
+  font-size:13px !important;
+  font-weight:700 !important;
+  letter-spacing:0 !important;
+  line-height:1 !important;
+  box-shadow:3px 3px 0 var(--ui-border-purple) !important;
 }
 
 .menu-screen .menu-actions .btn.primary {
-  box-shadow: 4px 4px 0 var(--ui-yellow-shadow);
+  box-shadow:3px 3px 0 var(--ui-yellow-shadow) !important;
 }
 
 .menu-screen .menu-actions .btn::before {
-  left: 14px;
-  border-top-width: 6px;
-  border-bottom-width: 6px;
-  border-left-width: 9px;
+  left:11px !important;
+  border-top-width:5px !important;
+  border-bottom-width:5px !important;
+  border-left-width:8px !important;
+}
+
+.menu-screen .menu-actions .btn:hover,
+.menu-screen .menu-actions .btn:focus-visible {
+  transform:translateY(-1px) !important;
 }
 
 .menu-screen .menu-actions .btn:active {
-  transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0 var(--ui-border-purple);
+  transform:translate(2px,2px) !important;
+  box-shadow:1px 1px 0 var(--ui-border-purple) !important;
 }
 
 .menu-screen .menu-actions .btn.primary:active {
-  box-shadow: 2px 2px 0 var(--ui-yellow-shadow);
+  box-shadow:1px 1px 0 var(--ui-yellow-shadow) !important;
 }
 
-@media (max-width: 800px) {
+@media (max-width:800px) {
   .menu-screen .menu-actions {
-    width: min(300px, 62%);
+    width:238px !important;
+    max-width:62% !important;
+  }
+
+  .menu-screen .menu-actions .btn {
+    width:238px !important;
+    height:40px !important;
+    min-height:40px !important;
+    font-size:12px !important;
   }
 }
