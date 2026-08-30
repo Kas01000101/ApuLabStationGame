@@ -1,126 +1,182 @@
 import * as THREE from 'three';
 
-type TextStyle = {
-  width: number;
-  height: number;
-  fontSize: number;
-  topColor: string;
-  bottomColor: string;
-  sideColor: string;
-  deepSideColor: string;
-  stroke: string;
+type Glyph = readonly string[];
+
+const FONT: Record<string, Glyph> = {
+  A: ['01110','10001','10001','11111','10001','10001','10001'],
+  B: ['11110','10001','10001','11110','10001','10001','11110'],
+  I: ['11111','00100','00100','00100','00100','00100','11111'],
+  L: ['10000','10000','10000','10000','10000','10000','11111'],
+  N: ['10001','11001','11001','10101','10011','10011','10001'],
+  O: ['01110','10001','10001','10001','10001','10001','01110'],
+  P: ['11110','10001','10001','11110','10000','10000','10000'],
+  S: ['01111','10000','10000','01110','00001','00001','11110'],
+  T: ['11111','00100','00100','00100','00100','00100','00100'],
+  U: ['10001','10001','10001','10001','10001','10001','01110'],
 };
 
-/**
- * Crea el lettering del logo por código. No usa una imagen de logo.
- * El tratamiento busca el estilo chunky/arcade del arte de referencia:
- * frente claro, borde oscuro, bisel luminoso y extrusion de color.
- */
-function makeTextTexture(text: string, options: TextStyle): THREE.CanvasTexture {
-  const canvas = document.createElement('canvas');
-  canvas.width = options.width;
-  canvas.height = options.height;
+type WordPalette = {
+  front: number;
+  top: number;
+  side: number;
+  deep: number;
+  emissive: number;
+};
 
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('ApuLab menu logo canvas context unavailable.');
+const APULAB: WordPalette = {
+  front: 0xfff7e8,
+  top: 0xffffff,
+  side: 0xe2a72f,
+  deep: 0x8e5418,
+  emissive: 0x4d2c08,
+};
 
-  const centerX = canvas.width / 2;
-  const centerY = canvas.height / 2 - 8;
-  const font = `900 ${options.fontSize}px "Arial Black", Impact, Arial, sans-serif`;
+const STATION: WordPalette = {
+  front: 0x67e1eb,
+  top: 0xb7f7fb,
+  side: 0x1789ad,
+  deep: 0x174e75,
+  emissive: 0x0b5365,
+};
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = font;
-  ctx.lineJoin = 'miter';
-  ctx.miterLimit = 3;
-
-  // Extrusion profunda: crea el lateral grueso propio de un logo de videojuego.
-  for (let depth = 18; depth >= 7; depth -= 1) {
-    const amount = (depth - 6) / 12;
-    ctx.fillStyle = options.deepSideColor;
-    ctx.strokeStyle = options.stroke;
-    ctx.lineWidth = Math.max(12, options.fontSize * 0.072);
-    ctx.strokeText(text, centerX + depth * 0.72, centerY + depth * 0.88);
-    ctx.globalAlpha = 0.45 + amount * 0.35;
-    ctx.fillText(text, centerX + depth * 0.72, centerY + depth * 0.88);
-    ctx.globalAlpha = 1;
-  }
-
-  // Lateral dorado/cyan inmediatamente detrás del frente.
-  for (let depth = 7; depth >= 1; depth -= 1) {
-    ctx.fillStyle = options.sideColor;
-    ctx.strokeStyle = options.stroke;
-    ctx.lineWidth = Math.max(11, options.fontSize * 0.065);
-    ctx.strokeText(text, centerX + depth * 0.72, centerY + depth * 0.88);
-    ctx.fillText(text, centerX + depth * 0.72, centerY + depth * 0.88);
-  }
-
-  // Frente: borde azul oscuro grueso.
-  ctx.shadowColor = 'rgba(11,14,38,.50)';
-  ctx.shadowBlur = 8;
-  ctx.shadowOffsetY = 4;
-  ctx.strokeStyle = options.stroke;
-  ctx.lineWidth = Math.max(11, options.fontSize * 0.064);
-  ctx.strokeText(text, centerX, centerY);
-
-  // Cara frontal con degradado vertical para simular iluminación/bisel.
-  const face = ctx.createLinearGradient(0, centerY - options.fontSize * 0.56, 0, centerY + options.fontSize * 0.56);
-  face.addColorStop(0, '#FFFFFF');
-  face.addColorStop(0.18, options.topColor);
-  face.addColorStop(0.7, options.topColor);
-  face.addColorStop(1, options.bottomColor);
-  ctx.fillStyle = face;
-  ctx.shadowColor = 'transparent';
-  ctx.fillText(text, centerX, centerY);
-
-  // Línea de brillo superior muy sutil: da sensación de borde biselado.
-  ctx.save();
-  ctx.globalAlpha = 0.34;
-  ctx.translate(0, -2.4);
-  ctx.strokeStyle = '#FFFFFF';
-  ctx.lineWidth = Math.max(2.5, options.fontSize * 0.014);
-  ctx.strokeText(text, centerX, centerY);
-  ctx.restore();
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 4;
-  texture.needsUpdate = true;
-  return texture;
+function glyphWidth(glyph: Glyph): number {
+  return glyph.reduce((width, row) => Math.max(width, row.length), 0);
 }
 
-function makeTextPlane(
+function wordColumns(text: string, spacing = 1): number {
+  let width = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    const glyph = FONT[text[i]];
+    if (!glyph) continue;
+    width += glyphWidth(glyph);
+    if (i < text.length - 1) width += spacing;
+  }
+  return width;
+}
+
+function activePixels(text: string): number {
+  let count = 0;
+  for (const char of text) {
+    const glyph = FONT[char];
+    if (!glyph) continue;
+    for (const row of glyph) for (const cell of row) if (cell === '1') count += 1;
+  }
+  return count;
+}
+
+function createFaceMaterials(palette: WordPalette): THREE.MeshStandardMaterial[] {
+  const side = new THREE.MeshStandardMaterial({
+    color: palette.side,
+    roughness: 0.34,
+    metalness: 0.2,
+  });
+  const deep = new THREE.MeshStandardMaterial({
+    color: palette.deep,
+    roughness: 0.42,
+    metalness: 0.16,
+  });
+  const top = new THREE.MeshStandardMaterial({
+    color: palette.top,
+    emissive: palette.emissive,
+    emissiveIntensity: 0.2,
+    roughness: 0.24,
+    metalness: 0.08,
+  });
+  const bottom = new THREE.MeshStandardMaterial({
+    color: palette.deep,
+    roughness: 0.46,
+    metalness: 0.12,
+  });
+  const front = new THREE.MeshStandardMaterial({
+    color: palette.front,
+    emissive: palette.emissive,
+    emissiveIntensity: 0.12,
+    roughness: 0.22,
+    metalness: 0.05,
+  });
+  const back = deep;
+
+  // BoxGeometry: +X, -X, +Y, -Y, +Z, -Z.
+  return [side, deep, top, bottom, front, back];
+}
+
+function createShadowMaterials(): THREE.MeshStandardMaterial[] {
+  const shadow = new THREE.MeshStandardMaterial({
+    color: 0x17133a,
+    roughness: 0.55,
+    metalness: 0.18,
+  });
+  return [shadow, shadow, shadow, shadow, shadow, shadow];
+}
+
+function createVoxelWord(
   text: string,
-  width: number,
-  height: number,
-  textureWidth: number,
-  fontSize: number,
-  style: Pick<TextStyle, 'topColor' | 'bottomColor' | 'sideColor' | 'deepSideColor'>,
-): THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial> {
-  const texture = makeTextTexture(text, {
-    width: textureWidth,
-    height: 340,
-    fontSize,
-    ...style,
-    stroke: '#17133A',
-  });
+  palette: WordPalette,
+  unit: number,
+  depth: number,
+): THREE.Group {
+  const word = new THREE.Group();
+  const columns = wordColumns(text);
+  const pixelCount = activePixels(text);
+  const cube = new THREE.BoxGeometry(unit * 0.91, unit * 0.91, depth);
+  const shadowCube = new THREE.BoxGeometry(unit * 0.95, unit * 0.95, depth * 1.08);
 
-  const material = new THREE.MeshBasicMaterial({
-    map: texture,
-    transparent: true,
-    depthWrite: false,
-    toneMapped: false,
-  });
+  const faceMaterials = createFaceMaterials(palette);
+  const shadowMaterials = createShadowMaterials();
 
-  return new THREE.Mesh(new THREE.PlaneGeometry(width, height), material);
+  const letters = new THREE.InstancedMesh(cube, faceMaterials, pixelCount);
+  const shadow = new THREE.InstancedMesh(shadowCube, shadowMaterials, pixelCount);
+  letters.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+  shadow.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+
+  const matrix = new THREE.Matrix4();
+  let cursor = 0;
+  let index = 0;
+
+  for (let letterIndex = 0; letterIndex < text.length; letterIndex += 1) {
+    const glyph = FONT[text[letterIndex]];
+    if (!glyph) continue;
+    const width = glyphWidth(glyph);
+
+    for (let row = 0; row < glyph.length; row += 1) {
+      for (let col = 0; col < glyph[row].length; col += 1) {
+        if (glyph[row][col] !== '1') continue;
+
+        const x = (cursor + col - (columns - 1) / 2) * unit;
+        const y = (3 - row) * unit;
+
+        matrix.makeTranslation(x, y, 0);
+        letters.setMatrixAt(index, matrix);
+
+        // Contorno/sombra desplazada hacia abajo-derecha como en un logo arcade extruido.
+        matrix.makeTranslation(x + unit * 0.24, y - unit * 0.24, -depth * 0.72);
+        shadow.setMatrixAt(index, matrix);
+        index += 1;
+      }
+    }
+
+    cursor += width + 1;
+  }
+
+  letters.instanceMatrix.needsUpdate = true;
+  shadow.instanceMatrix.needsUpdate = true;
+  shadow.renderOrder = 0;
+  letters.renderOrder = 1;
+
+  word.add(shadow, letters);
+  return word;
 }
 
+/**
+ * Logo tipográfico procedural del menú.
+ * No usa PNG/SVG del logo: cada letra se arma con bloques 3D reales en Three.js,
+ * inspirados en lettering arcade/voxel extruido.
+ */
 export class MenuLogo3D {
   private readonly host = document.createElement('div');
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene = new THREE.Scene();
-  private readonly camera = new THREE.OrthographicCamera(-5.6, 5.6, 1.65, -1.65, 0.1, 20);
+  private readonly camera = new THREE.OrthographicCamera(-6.1, 6.1, 2.2, -2.2, 0.1, 30);
   private readonly group = new THREE.Group();
   private readonly clock = new THREE.Clock();
   private readonly resizeObserver: ResizeObserver;
@@ -140,13 +196,16 @@ export class MenuLogo3D {
     this.renderer.setClearColor(0x000000, 0);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.02;
     this.renderer.domElement.className = 'menu-logo3d-canvas';
     this.host.appendChild(this.renderer.domElement);
 
-    this.camera.position.set(0, 0, 10);
+    this.camera.position.set(0, 0, 12);
     this.camera.lookAt(0, 0, 0);
 
     this.scene.add(this.group);
+    this.buildLights();
     this.buildTextLogo();
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
@@ -174,36 +233,43 @@ export class MenuLogo3D {
       if (!(object instanceof THREE.Mesh)) return;
       object.geometry.dispose();
       const materials = Array.isArray(object.material) ? object.material : [object.material];
-      materials.forEach((material) => {
-        if ('map' in material && material.map instanceof THREE.Texture) material.map.dispose();
-        material.dispose();
-      });
+      materials.forEach((material) => material.dispose());
     });
     this.renderer.dispose();
     this.host.remove();
   }
 
+  private buildLights(): void {
+    this.scene.add(new THREE.AmbientLight(0xffffff, 2.1));
+
+    const key = new THREE.DirectionalLight(0xffffff, 3.6);
+    key.position.set(-4, 6, 8);
+    this.scene.add(key);
+
+    const cyan = new THREE.PointLight(0x49c9d7, 2.4, 11, 2);
+    cyan.position.set(4.4, 1.8, 5);
+    this.scene.add(cyan);
+
+    const warm = new THREE.PointLight(0xf4c75e, 2.2, 10, 2);
+    warm.position.set(-3.8, 2.2, 4.5);
+    this.scene.add(warm);
+  }
+
   private buildTextLogo(): void {
-    // Solo las letras. La posición se conserva; cambia únicamente el estilo tipográfico.
-    const apulab = makeTextPlane('ApuLab', 5.5, 1.38, 1250, 202, {
-      topColor: '#FFF7E8',
-      bottomColor: '#F7DCA0',
-      sideColor: '#EAA62D',
-      deepSideColor: '#9C5B19',
-    });
-    apulab.position.set(-1.55, 0, 0);
+    const apulab = createVoxelWord('APULAB', APULAB, 0.145, 0.34);
+    apulab.position.set(-2.05, 0.04, 0);
+    apulab.rotation.x = 0.06;
+    apulab.rotation.y = -0.16;
     this.group.add(apulab);
 
-    const station = makeTextPlane('Station', 3.9, 1.16, 1050, 184, {
-      topColor: '#76EDF4',
-      bottomColor: '#35B8D2',
-      sideColor: '#1687AE',
-      deepSideColor: '#164976',
-    });
-    station.position.set(3.12, -0.08, 0.01);
+    const station = createVoxelWord('STATION', STATION, 0.105, 0.28);
+    station.position.set(3.05, -0.04, 0.04);
+    station.rotation.x = 0.06;
+    station.rotation.y = -0.16;
     this.group.add(station);
 
-    this.group.scale.setScalar(0.78);
+    // Mantiene la composición/posición general ya aprobada; cambia el tipo de letra.
+    this.group.scale.setScalar(0.92);
   }
 
   private start(): void {
@@ -218,9 +284,9 @@ export class MenuLogo3D {
       this.frame = requestAnimationFrame(tick);
       const t = this.clock.getElapsedTime();
 
-      // Mantiene el logo quieto; solo respira casi imperceptiblemente.
-      const pulse = 1 + Math.sin(t * 1.65) * 0.004;
-      this.group.scale.setScalar(0.78 * pulse);
+      // Respiración mínima, sin desplazar la posición del logo.
+      const pulse = 1 + Math.sin(t * 1.5) * 0.003;
+      this.group.scale.setScalar(0.92 * pulse);
       this.renderer.render(this.scene, this.camera);
     };
 
