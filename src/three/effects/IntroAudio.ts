@@ -1,6 +1,8 @@
 export class IntroAudio {
   private ctx?: AudioContext;
   private master?: GainNode;
+  private driveOsc?: OscillatorNode;
+  private driveGain?: GainNode;
 
   unlock(): void {
     if (!this.ctx) {
@@ -10,6 +12,34 @@ export class IntroAudio {
       this.master.connect(this.ctx.destination);
     }
     if (this.ctx.state === 'suspended') void this.ctx.resume();
+  }
+
+  startDriveHum(): void {
+    this.unlock();
+    if (!this.ctx || !this.master || this.driveOsc) return;
+    this.driveOsc = this.ctx.createOscillator();
+    this.driveGain = this.ctx.createGain();
+    this.driveOsc.type = 'sawtooth';
+    this.driveOsc.frequency.value = 82;
+    this.driveGain.gain.value = 0.001;
+    this.driveOsc.connect(this.driveGain);
+    this.driveGain.connect(this.master);
+    this.driveOsc.start();
+  }
+
+  setDriveHum(level: number, frequency: number): void {
+    if (!this.ctx || !this.driveOsc || !this.driveGain) return;
+    this.driveGain.gain.setTargetAtTime(Math.max(0.001, level), this.ctx.currentTime, 0.06);
+    this.driveOsc.frequency.setTargetAtTime(Math.max(20, frequency), this.ctx.currentTime, 0.07);
+  }
+
+  stopDriveHum(): void {
+    if (!this.ctx || !this.driveOsc || !this.driveGain) return;
+    const now = this.ctx.currentTime;
+    this.driveGain.gain.setTargetAtTime(0.001, now, 0.04);
+    try { this.driveOsc.stop(now + 0.18); } catch { /* already stopped */ }
+    this.driveOsc = undefined;
+    this.driveGain = undefined;
   }
 
   beep(high = false): void { this.tone(high ? 940 : 720, high ? 1180 : 860, 0.10, 'sine', 0.11); }
