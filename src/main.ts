@@ -6,6 +6,10 @@ import './styles/menu-hd.css';
 import { ApuLabApp } from './app/ApuLabApp';
 import { installFailureAlarmFx } from './three/effects/FailureAlarmFx';
 
+const BUILD_ID = '2026.08.30-1151';
+document.documentElement.dataset.apulabBuild = BUILD_ID;
+console.info(`[ApuLabStationGame] build ${BUILD_ID}`);
+
 const threeRoot=document.querySelector<HTMLDivElement>('#three-root');
 const uiRoot=document.querySelector<HTMLDivElement>('#ui-root');
 if(!threeRoot||!uiRoot)throw new Error('apulab_root_missing');
