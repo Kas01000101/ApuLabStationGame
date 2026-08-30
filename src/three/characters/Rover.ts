@@ -1,441 +1,64 @@
 import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
-export interface RoverOptions {
-  name: string;
-  bodyTint?: number;
-}
+export interface RoverOptions { name: string; bodyTint?: number; }
 
-const palette = {
-  panel: 0x13213c,
-  panel2: 0xa1adbf,
-  frame: 0x1d212a,
-  tan: 0xcac2b7,
-  cream: 0xe7e0d6,
-  dark: 0x252831,
-  metal: 0x666159,
-  bronze: 0xc86f10,
-  wheel: 0x24252a,
-  black: 0x111318,
-  gray: 0x4b4e57,
-  orange: 0xe08b18,
-  hubDark: 0x181a20,
-  cyan: 0x49c9d7,
-};
+const C={panel:0x13213c,panel2:0xa1adbf,frame:0x1d212a,tan:0xcac2b7,cream:0xe7e0d6,dark:0x252831,metal:0x666159,bronze:0xc86f10,wheel:0x24252a,black:0x111318,gray:0x4b4e57,orange:0xe08b18,hubDark:0x181a20};
+const mat=(color:number,roughness=.82,metalness=.05)=>new THREE.MeshStandardMaterial({color,roughness,metalness,flatShading:true});
 
-function material(color: number, roughness = 0.8, metalness = 0.05): THREE.MeshStandardMaterial {
-  return new THREE.MeshStandardMaterial({
-    color,
-    roughness,
-    metalness,
-    flatShading: true,
-  });
-}
+function add(g:THREE.BufferGeometry,m:THREE.Material,p:THREE.Object3D,shadow=true):THREE.Mesh{const x=new THREE.Mesh(g,m);x.castShadow=shadow;x.receiveShadow=shadow;p.add(x);return x;}
+function box(w:number,h:number,d:number,m:THREE.Material,p:THREE.Object3D,s=true):THREE.Mesh{return add(new THREE.BoxGeometry(w,h,d),m,p,s);}
+function rbox(w:number,h:number,d:number,r:number,m:THREE.Material,p:THREE.Object3D,s=true):THREE.Mesh{return add(new RoundedBoxGeometry(w,h,d,1,r),m,p,s);}
+function cyl(rt:number,rb:number,h:number,n:number,m:THREE.Material,p:THREE.Object3D,s=true):THREE.Mesh{return add(new THREE.CylinderGeometry(rt,rb,h,n),m,p,s);}
+function beam(a:THREE.Vector3,b:THREE.Vector3,t:number,m:THREE.Material,p:THREE.Object3D):THREE.Mesh{const mid=a.clone().add(b).multiplyScalar(.5),len=a.distanceTo(b),q=box(t,len,t,m,p);q.position.copy(mid);q.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),b.clone().sub(a).normalize());return q;}
+function jointX(r:number,depth:number,m:THREE.Material,p:THREE.Object3D,pos:THREE.Vector3):THREE.Mesh{const j=cyl(r,r,depth,8,m,p);j.position.copy(pos);j.rotation.z=Math.PI/2;return j;}
 
-function meshBox(
-  width: number,
-  height: number,
-  depth: number,
-  mat: THREE.Material,
-  parent: THREE.Object3D,
-  castShadow = true,
-): THREE.Mesh {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), mat);
-  mesh.castShadow = castShadow;
-  mesh.receiveShadow = false;
-  parent.add(mesh);
-  return mesh;
-}
+function panelShape(w:number,d:number,cut=.22):THREE.Shape{const s=new THREE.Shape();s.moveTo(-w/2+cut,-d/2);s.lineTo(w/2-cut,-d/2);s.lineTo(w/2,-d/2+cut);s.lineTo(w/2,d/2-cut);s.lineTo(w/2-cut,d/2);s.lineTo(-w/2+cut,d/2);s.lineTo(-w/2,d/2-cut);s.lineTo(-w/2,-d/2+cut);s.closePath();return s;}
+function normalizePanelUV(geo:THREE.BufferGeometry,w:number,d:number):void{const pos=geo.attributes.position as THREE.BufferAttribute,uv=new Float32Array(pos.count*2);for(let i=0;i<pos.count;i++){uv[i*2]=THREE.MathUtils.clamp((pos.getX(i)+w/2)/w,0,1);uv[i*2+1]=THREE.MathUtils.clamp((pos.getY(i)+d/2)/d,0,1);}geo.setAttribute('uv',new THREE.BufferAttribute(uv,2));}
+function solarTexture():THREE.CanvasTexture{const c=document.createElement('canvas');c.width=768;c.height=512;const x=c.getContext('2d');if(!x)throw new Error('solar_texture_context_missing');x.imageSmoothingEnabled=false;x.fillStyle='#20252f';x.fillRect(0,0,c.width,c.height);const outer=18;x.fillStyle='#0a1428';x.fillRect(outer,outer,c.width-outer*2,c.height-outer*2);const cols=6,rows=4,pad=28,gap=9,areaX=outer+pad,areaY=outer+pad,areaW=c.width-(outer+pad)*2,areaH=c.height-(outer+pad)*2,cellW=(areaW-gap*(cols-1))/cols,cellH=(areaH-gap*(rows-1))/rows;for(let row=0;row<rows;row++)for(let col=0;col<cols;col++){const px=areaX+col*(cellW+gap),py=areaY+row*(cellH+gap),g=x.createLinearGradient(px,py,px+cellW,py+cellH);g.addColorStop(0,'#284b83');g.addColorStop(.46,'#183866');g.addColorStop(1,'#0d244d');x.fillStyle=g;x.fillRect(px,py,cellW,cellH);x.strokeStyle='rgba(204,220,242,.88)';x.lineWidth=3;x.strokeRect(px+1.5,py+1.5,cellW-3,cellH-3);x.fillStyle='rgba(220,230,245,.55)';x.fillRect(px+cellW*.33,py+7,2.6,cellH-14);x.fillRect(px+cellW*.66,py+7,2.6,cellH-14);x.fillStyle='rgba(112,145,190,.30)';for(let n=1;n<5;n++)x.fillRect(px+6,py+(cellH/5)*n,cellW-12,1.5);}const reflection=x.createLinearGradient(0,0,c.width,c.height);reflection.addColorStop(0,'rgba(255,255,255,0)');reflection.addColorStop(.43,'rgba(255,255,255,0)');reflection.addColorStop(.52,'rgba(202,226,255,.13)');reflection.addColorStop(.61,'rgba(255,255,255,0)');reflection.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=reflection;x.fillRect(0,0,c.width,c.height);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.minFilter=THREE.LinearMipmapLinearFilter;t.magFilter=THREE.LinearFilter;t.anisotropy=4;return t;}
 
-function meshCylinder(
-  radius: number,
-  height: number,
-  segments: number,
-  mat: THREE.Material,
-  parent: THREE.Object3D,
-  castShadow = true,
-): THREE.Mesh {
-  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, height, segments), mat);
-  mesh.castShadow = castShadow;
-  parent.add(mesh);
-  return mesh;
-}
+export class Rover{
+  readonly group=new THREE.Group();readonly deck=new THREE.Group();readonly mast=new THREE.Group();readonly dish=new THREE.Group();readonly antenna=new THREE.Group();readonly wheelGroups:THREE.Group[]=[];readonly eyeMaterials:THREE.MeshStandardMaterial[]=[];readonly powerMaterials:THREE.MeshStandardMaterial[]=[];readonly cameraBar:THREE.Mesh;readonly detachableSolarPanel:THREE.Group;
+  private readonly wheelPositions:THREE.Vector3[]=[];private readonly detachableBasePosition:THREE.Vector3;private readonly detachableBaseRotation:THREE.Euler;private readonly detachableBaseScale:THREE.Vector3;private wheelSpin=0;
 
-function addBeam(
-  parent: THREE.Object3D,
-  a: THREE.Vector3,
-  b: THREE.Vector3,
-  thickness: number,
-  mat: THREE.Material,
-): THREE.Mesh {
-  const length = a.distanceTo(b);
-  const beam = meshBox(thickness, length, thickness, mat, parent);
-  beam.position.copy(a).add(b).multiplyScalar(0.5);
-  beam.quaternion.setFromUnitVectors(
-    new THREE.Vector3(0, 1, 0),
-    b.clone().sub(a).normalize(),
-  );
-  return beam;
-}
+  constructor(options:RoverOptions){
+    this.group.name=options.name;this.group.position.y=1.80;
+    const M={panel:mat(C.panel,.60,.04),panel2:mat(C.panel2,.55,.12),frame:mat(C.frame,.76,.12),tan:mat(C.tan,.82,.03),cream:mat(C.cream,.80,.02),dark:mat(C.dark,.88,.05),metal:mat(C.metal,.72,.22),bronze:mat(C.bronze,.74,.05),wheel:mat(C.wheel,.90,.04),black:mat(C.black,.92,.01),gray:mat(C.gray,.80,.12),orange:mat(C.orange,.70,.03),hubDark:mat(C.hubDark,.88,.05)};
+    // chasis expuesto canónico
+    const chassis=new THREE.Group();this.group.add(chassis);rbox(3.25,.58,2.25,.12,M.dark,chassis).position.y=-.10;rbox(2.95,.28,2.05,.08,M.metal,chassis).position.y=.25;for(const z of[-.78,.78]){const b=box(3.05,.10,.10,M.gray,chassis);b.position.set(0,-.36,z);}for(const x of[-1.18,1.18]){const b=box(.10,.10,1.85,M.gray,chassis);b.position.set(x,-.36,0);}
 
-export class Rover {
-  readonly group = new THREE.Group();
-  readonly deck = new THREE.Group();
-  readonly mast = new THREE.Group();
-  readonly dish = new THREE.Group();
-  readonly antenna = new THREE.Group();
-  readonly wheelGroups: THREE.Group[] = [];
-  readonly eyeMaterials: THREE.MeshStandardMaterial[] = [];
-  readonly powerMaterials: THREE.MeshStandardMaterial[] = [];
-  readonly cameraBar: THREE.Mesh;
-  readonly detachableSolarPanel: THREE.Group;
+    // paneles solares mariposa, 6x4 celdas
+    this.deck.position.y=.58;this.group.add(this.deck);const solarMat=new THREE.MeshStandardMaterial({map:solarTexture(),color:0xffffff,roughness:.30,metalness:.035,emissive:0x08172f,emissiveIntensity:.12,flatShading:true});
+    const makePanel=(w:number,d:number,x:number,z:number,ry=0,rz=0):THREE.Group=>{const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=ry;g.rotation.z=rz;this.deck.add(g);const frameGeo=new THREE.ExtrudeGeometry(panelShape(w+.08,d+.08,.22),{depth:.07,bevelEnabled:false,steps:1});const frame=add(frameGeo,M.frame,g,false);frame.rotation.x=-Math.PI/2;frame.position.y=.02;const faceGeo=new THREE.ShapeGeometry(panelShape(w,d,.20));normalizePanelUV(faceGeo,w,d);const face=add(faceGeo,solarMat,g,false);face.rotation.x=-Math.PI/2;face.position.y=.100;return g;};
+    makePanel(2.35,1.72,0,.05);makePanel(2.25,1.62,-2.18,.56,.06,.015);makePanel(2.30,1.62,-2.20,-1.08,-.04,-.018);makePanel(2.25,1.62,2.18,.56,-.06,-.015);makePanel(2.30,1.62,2.20,-1.08,.04,.018);makePanel(2.12,1.42,0,1.66,0,-.01);this.detachableSolarPanel=makePanel(2.18,1.42,0,-1.63,0,.012);this.detachableBasePosition=this.detachableSolarPanel.position.clone();this.detachableBaseRotation=this.detachableSolarPanel.rotation.clone();this.detachableBaseScale=this.detachableSolarPanel.scale.clone();for(const x of[-1.28,1.28])for(const z of[-.78,.78]){const h=cyl(.10,.10,.26,8,M.metal,this.deck,false);h.position.set(x,.13,z);h.rotation.z=Math.PI/2;}
 
-  private readonly wheelPositions: THREE.Vector3[] = [];
-  private readonly detachableBasePosition: THREE.Vector3;
-  private readonly detachableBaseRotation: THREE.Euler;
-  private readonly detachableBaseScale: THREE.Vector3;
-  private wheelSpin = 0;
-  private currentPower = 1;
+    // mástil / cámara
+    this.mast.position.set(-.72,.58,.22);this.group.add(this.mast);cyl(.46,.46,.20,10,M.bronze,this.mast).position.y=.12;cyl(.39,.39,.22,10,M.cream,this.mast).position.y=.30;rbox(.48,.55,.48,.05,M.gray,this.mast).position.y=.61;rbox(.36,2.18,.36,.045,M.cream,this.mast).position.y=1.83;for(const y of[1.10,1.72,2.34]){const band=rbox(.38,.10,.38,.02,M.bronze,this.mast);band.position.y=y;}cyl(.34,.34,.24,10,M.tan,this.mast).position.y=3.00;const tilt=cyl(.31,.31,1.30,10,M.cream,this.mast);tilt.position.set(0,3.28,0);tilt.rotation.z=Math.PI/2;for(const x of[-.67,.67]){const e=cyl(.35,.35,.16,10,M.tan,this.mast);e.position.set(x,3.28,0);e.rotation.z=Math.PI/2;}this.cameraBar=rbox(1.95,.42,.46,.05,M.tan,this.mast);this.cameraBar.position.set(0,3.80,.02);[-.74,-.38,0,.38,.74].forEach((x,i)=>{const main=i===0||i===4,frame=rbox(main?.34:.30,main?.31:.28,.11,.03,main?M.cream:M.gray,this.mast,false);frame.position.set(x,3.80,.28);const lm=(main?M.black:M.dark).clone();if(main){lm.emissive=new THREE.Color(0x08161c);lm.emissiveIntensity=.12;this.eyeMaterials.push(lm);}const lens=cyl(main?.135:.10,main?.135:.10,.14,10,lm,this.mast,false);lens.position.set(x,3.80,.36);lens.rotation.x=Math.PI/2;});
 
-  constructor(options: RoverOptions) {
-    this.group.name = options.name;
-    this.group.position.y = 1.8;
-
-    const mats = {
-      panel: material(palette.panel, 0.6, 0.04),
-      panel2: material(palette.panel2, 0.55, 0.12),
-      frame: material(palette.frame, 0.76, 0.12),
-      tan: material(options.bodyTint ?? palette.tan, 0.82, 0.03),
-      cream: material(palette.cream, 0.8, 0.02),
-      dark: material(palette.dark, 0.88, 0.05),
-      metal: material(palette.metal, 0.72, 0.22),
-      bronze: material(palette.bronze, 0.74, 0.05),
-      wheel: material(palette.wheel, 0.9, 0.04),
-      black: material(palette.black, 0.92, 0.01),
-      gray: material(palette.gray, 0.8, 0.12),
-      orange: material(palette.orange, 0.7, 0.03),
-      hubDark: material(palette.hubDark, 0.88, 0.05),
-    };
-
-    const lower = meshBox(3.55, 0.78, 2.25, mats.dark, this.group);
-    lower.position.set(0, -0.1, 0.03);
-
-    const belly = meshBox(2.8, 0.45, 1.72, mats.frame, this.group);
-    belly.position.set(0, -0.55, -0.02);
-
-    const frontBox = meshBox(1.25, 0.6, 1.72, mats.tan, this.group);
-    frontBox.position.set(-1.22, 0.35, 0.05);
-
-    const rearBox = meshBox(1.15, 0.55, 1.62, mats.cream, this.group);
-    rearBox.position.set(1.26, 0.34, 0.04);
-
-    this.deck.position.y = 0.58;
-    this.group.add(this.deck);
-
-    const solarMat = new THREE.MeshStandardMaterial({
-      color: 0x183767,
-      roughness: 0.35,
-      metalness: 0.06,
-      emissive: 0x071426,
-      emissiveIntensity: 0.12,
-      flatShading: true,
-    });
-
-    const makePanel = (
-      width: number,
-      depth: number,
-      x: number,
-      z: number,
-      ry = 0,
-      rz = 0,
-    ): THREE.Group => {
-      const g = new THREE.Group();
-      g.position.set(x, 0, z);
-      g.rotation.y = ry;
-      g.rotation.z = rz;
-      this.deck.add(g);
-
-      const frame = meshBox(width + 0.08, 0.09, depth + 0.08, mats.frame, g, false);
-      frame.position.y = 0.01;
-
-      const face = meshBox(width, 0.035, depth, solarMat, g, false);
-      face.position.y = 0.075;
-
-      const lineMat = new THREE.MeshBasicMaterial({ color: 0x86a7d2, transparent: true, opacity: 0.42 });
-      for (let ix = 1; ix < 6; ix += 1) {
-        const line = meshBox(0.012, 0.006, depth * 0.96, lineMat, g, false);
-        line.position.set(-width / 2 + (width / 6) * ix, 0.097, 0);
-      }
-      for (let iz = 1; iz < 4; iz += 1) {
-        const line = meshBox(width * 0.96, 0.006, 0.012, lineMat, g, false);
-        line.position.set(0, 0.097, -depth / 2 + (depth / 4) * iz);
-      }
-
-      return g;
-    };
-
-    makePanel(2.35, 1.72, 0, 0.05);
-    makePanel(2.25, 1.62, -2.18, 0.56, 0.06, 0.015);
-    makePanel(2.30, 1.62, -2.20, -1.08, -0.04, -0.018);
-    makePanel(2.25, 1.62, 2.18, 0.56, -0.06, -0.015);
-    makePanel(2.30, 1.62, 2.20, -1.08, 0.04, 0.018);
-    makePanel(2.12, 1.42, 0, 1.66, 0, -0.01);
-    this.detachableSolarPanel = makePanel(2.18, 1.42, 0, -1.63, 0, 0.012);
-
-    this.detachableBasePosition = this.detachableSolarPanel.position.clone();
-    this.detachableBaseRotation = this.detachableSolarPanel.rotation.clone();
-    this.detachableBaseScale = this.detachableSolarPanel.scale.clone();
-
-    this.mast.position.set(-0.72, 0.58, 0.22);
-    this.group.add(this.mast);
-
-    const mastBase = meshCylinder(0.46, 0.2, 10, mats.bronze, this.mast);
-    mastBase.position.y = 0.12;
-    const lowerMount = meshBox(0.48, 0.55, 0.48, mats.gray, this.mast);
-    lowerMount.position.y = 0.61;
-    const column = meshBox(0.36, 2.18, 0.36, mats.cream, this.mast);
-    column.position.y = 1.83;
-    const tilt = meshCylinder(0.31, 1.3, 10, mats.cream, this.mast);
-    tilt.position.set(0, 3.28, 0);
-    tilt.rotation.z = Math.PI / 2;
-
-    this.cameraBar = meshBox(1.95, 0.42, 0.46, mats.tan, this.mast);
-    this.cameraBar.position.set(0, 3.8, 0.02);
-
-    const sensorXs = [-0.74, -0.38, 0, 0.38, 0.74];
-    sensorXs.forEach((x, index) => {
-      const mainEye = index === 0 || index === sensorXs.length - 1;
-      const frame = meshBox(mainEye ? 0.34 : 0.30, mainEye ? 0.31 : 0.28, 0.11, mainEye ? mats.cream : mats.gray, this.mast, false);
-      frame.position.set(x, 3.8, 0.28);
-
-      const lensMat = (mainEye ? mats.black : mats.dark).clone();
-      if (mainEye) {
-        lensMat.emissive = new THREE.Color(0x163c49);
-        lensMat.emissiveIntensity = 0.12;
-        this.eyeMaterials.push(lensMat);
-      }
-
-      const lens = meshCylinder(mainEye ? 0.135 : 0.1, 0.14, 10, lensMat, this.mast, false);
-      lens.position.set(x, 3.8, 0.36);
-      lens.rotation.x = Math.PI / 2;
-    });
-
-    this.antenna.position.set(0.58, 0.64, 0.08);
-    this.group.add(this.antenna);
-    const antLower = meshCylinder(0.075, 0.65, 8, mats.metal, this.antenna);
-    antLower.position.y = 0.6;
-    const antMid = meshCylinder(0.1, 0.22, 8, mats.dark, this.antenna);
-    antMid.position.y = 1.04;
-    const antUpper = meshCylinder(0.06, 1.15, 8, mats.metal, this.antenna);
-    antUpper.position.y = 1.72;
-
-    this.dish.position.set(1.35, 0.66, -0.1);
-    this.group.add(this.dish);
-    const stem = meshBox(0.20, 0.52, 0.20, mats.cream, this.dish);
-    stem.position.y = 0.48;
-    const disk = new THREE.Mesh(
-      new THREE.ConeGeometry(0.63, 0.18, 12, 1, true),
-      new THREE.MeshStandardMaterial({
-        color: palette.black,
-        roughness: 0.85,
-        metalness: 0.05,
-        side: THREE.DoubleSide,
-        flatShading: true,
-      }),
-    );
-    disk.position.set(0.1, 1.16, 0.06);
-    disk.rotation.set(Math.PI / 2 + 0.12, -0.22, 0.08);
-    this.dish.add(disk);
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.63, 0.035, 6, 12), mats.bronze);
-    rim.position.copy(disk.position);
-    rim.rotation.copy(disk.rotation);
-    this.dish.add(rim);
-
-    for (const z of [-0.48, 0.48]) {
-      const indicatorMat = new THREE.MeshStandardMaterial({
-        color: palette.cyan,
-        emissive: palette.cyan,
-        emissiveIntensity: 1.85,
-        roughness: 0.35,
-        metalness: 0.03,
-        flatShading: true,
-      });
-      const indicator = meshBox(0.11, 0.18, 0.28, indicatorMat, this.group, false);
-      indicator.position.set(-1.83, 0.18, z);
-      this.powerMaterials.push(indicatorMat);
-    }
-
-    this.createSuspension(mats);
-    this.createWheels(mats);
-    this.setPower(1);
-    this.setEyesGlow(0.25);
+    // antena
+    this.antenna.position.set(.58,.64,.08);this.group.add(this.antenna);cyl(.15,.15,.30,8,M.gray,this.antenna).position.y=.15;cyl(.075,.075,.65,8,M.metal,this.antenna).position.y=.60;cyl(.10,.10,.22,8,M.dark,this.antenna).position.y=1.04;cyl(.06,.06,1.15,8,M.metal,this.antenna).position.y=1.72;cyl(.08,.08,.16,8,M.dark,this.antenna).position.y=2.36;
+    // plato
+    this.dish.position.set(1.35,.66,-.10);this.group.add(this.dish);cyl(.25,.25,.24,8,M.tan,this.dish).position.y=.12;const stem=rbox(.20,.52,.20,.04,M.cream,this.dish);stem.position.y=.48;cyl(.20,.20,.24,8,M.metal,this.dish).position.y=.82;const dishMat=M.black.clone();dishMat.side=THREE.DoubleSide;const disk=add(new THREE.ConeGeometry(.63,.18,12,1,true),dishMat,this.dish,false);disk.position.set(.10,1.16,.06);disk.rotation.set(Math.PI/2+.12,-.22,.08);const rim=add(new THREE.TorusGeometry(.63,.035,6,12),M.bronze,this.dish,false);rim.position.copy(disk.position);rim.rotation.copy(disk.rotation);const dh=cyl(.075,.075,.16,8,M.metal,this.dish,false);dh.position.set(.10,1.08,-.02);dh.rotation.x=Math.PI/2;
+    // instrumentos de cubierta
+    const inst=new THREE.Group();inst.position.y=.76;this.group.add(inst);rbox(.56,.30,.46,.05,M.cream,inst).position.set(.38,.18,.34);rbox(.46,.26,.40,.04,M.tan,inst).position.set(.92,.15,.52);cyl(.08,.08,.38,6,M.dark,inst).position.set(-1.35,.20,.78);
+    // luces de potencia discretas
+    for(const z of[-.48,.48]){const lm=new THREE.MeshStandardMaterial({color:0x49c9d7,emissive:0x49c9d7,emissiveIntensity:1.85,roughness:.35,metalness:.03,flatShading:true});const l=rbox(.11,.18,.28,.02,lm,this.group,false);l.position.set(-1.70,.18,z);this.powerMaterials.push(lm);}
+    this.createSuspension(M);this.createWheels(M);this.setPower(1);this.setEyesGlow(.25);
   }
 
-  private createSuspension(mats: Record<string, THREE.MeshStandardMaterial>): void {
-    const sideMaterial = mats.metal;
-    for (const side of [-1, 1]) {
-      const suspension = new THREE.Group();
-      this.group.add(suspension);
-      const bodyPivot = new THREE.Vector3(side * 1.66, -0.12, 0.1);
-      const frontElbow = new THREE.Vector3(side * 2.08, -0.53, 1.05);
-      const frontHub = new THREE.Vector3(side * 2.82, -1.05, 1.95);
-      const bogie = new THREE.Vector3(side * 2.04, -0.49, -0.72);
-      const middleHub = new THREE.Vector3(side * 2.62, -1.05, -0.03);
-      const rearHub = new THREE.Vector3(side * 2.80, -1.05, -1.82);
+  private createSuspension(M:Record<string,THREE.MeshStandardMaterial>):void{for(const side of[-1,1]){const g=new THREE.Group();this.group.add(g);const bp=new THREE.Vector3(side*1.66,-.12,.10);jointX(.23,.30,M.gray,g,bp);const fe=new THREE.Vector3(side*2.08,-.53,1.05),fh=new THREE.Vector3(side*2.82,-1.05,1.95);beam(bp,fe,.15,M.metal,g);beam(fe,fh,.13,M.metal,g);jointX(.18,.28,M.gray,g,fe);jointX(.17,.28,M.gray,g,fh);const bog=new THREE.Vector3(side*2.04,-.49,-.72),mh=new THREE.Vector3(side*2.62,-1.05,-.03),rh=new THREE.Vector3(side*2.80,-1.05,-1.82);beam(bp,bog,.15,M.metal,g);beam(bog,mh,.13,M.metal,g);beam(bog,rh,.13,M.metal,g);jointX(.20,.28,M.gray,g,bog);jointX(.17,.28,M.gray,g,mh);jointX(.17,.28,M.gray,g,rh);beam(new THREE.Vector3(side*1.90,-.48,1.22),fh,.10,M.cream,g);beam(new THREE.Vector3(side*1.95,-.48,-.82),rh,.10,M.cream,g);}}
+  private createWheels(M:Record<string,THREE.MeshStandardMaterial>):void{for(const x of[-2.82,2.82])this.wheelPositions.push(new THREE.Vector3(x,-1.05,1.95),new THREE.Vector3(x,-1.05,-.03),new THREE.Vector3(x,-1.05,-1.82));const wheelR=.66,wheelW=.52,tireGeo=new THREE.CylinderGeometry(wheelR,wheelR,wheelW,12,1,true),sideGeo=new THREE.RingGeometry(.39,.655,12,1),rimGeo=new THREE.TorusGeometry(.425,.060,6,12),hubGeo=new THREE.CylinderGeometry(.285,.285,wheelW+.06,12),capGeo=new THREE.CylinderGeometry(.115,.115,wheelW+.11,8);for(const p of this.wheelPositions){const wg=new THREE.Group();wg.position.copy(p);this.group.add(wg);this.wheelGroups.push(wg);const tire=add(tireGeo,M.wheel,wg);tire.rotation.z=Math.PI/2;for(const side of[-1,1]){const sw=add(sideGeo,M.wheel,wg,false);sw.rotation.y=Math.PI/2;sw.position.x=side*(wheelW/2+.006);const rim=add(rimGeo,M.orange,wg,false);rim.rotation.y=Math.PI/2;rim.position.x=side*(wheelW/2+.020);}const hub=add(hubGeo,M.hubDark,wg,false);hub.rotation.z=Math.PI/2;const core=add(capGeo,M.metal,wg,false);core.rotation.z=Math.PI/2;for(let i=0;i<12;i++){const a=i/12*Math.PI*2;for(const side of[-1,1]){const tread=box(wheelW*.58,.145,.205,M.gray,wg,false);tread.position.set(side*wheelW*.19,Math.cos(a)*(wheelR+.040),Math.sin(a)*(wheelR+.040));tread.rotation.set(-a,0,side*.28);}}}}
 
-      addBeam(suspension, bodyPivot, frontElbow, 0.15, sideMaterial);
-      addBeam(suspension, frontElbow, frontHub, 0.13, sideMaterial);
-      addBeam(suspension, bodyPivot, bogie, 0.15, sideMaterial);
-      addBeam(suspension, bogie, middleHub, 0.13, sideMaterial);
-      addBeam(suspension, bogie, rearHub, 0.13, sideMaterial);
-      addBeam(suspension, new THREE.Vector3(side * 1.9, -0.48, 1.22), frontHub, 0.1, mats.cream);
-      addBeam(suspension, new THREE.Vector3(side * 1.95, -0.48, -0.82), rearHub, 0.1, mats.cream);
-    }
-  }
-
-  private createWheels(mats: Record<string, THREE.MeshStandardMaterial>): void {
-    const wheelPositions: THREE.Vector3[] = [];
-    for (const x of [-2.82, 2.82]) {
-      wheelPositions.push(
-        new THREE.Vector3(x, -1.05, 1.95),
-        new THREE.Vector3(x, -1.05, -0.03),
-        new THREE.Vector3(x, -1.05, -1.82),
-      );
-    }
-    this.wheelPositions.push(...wheelPositions);
-
-    const tireGeo = new THREE.CylinderGeometry(0.66, 0.66, 0.52, 12, 1, true);
-    const sideGeo = new THREE.RingGeometry(0.39, 0.655, 12, 1);
-    const rimGeo = new THREE.TorusGeometry(0.425, 0.060, 6, 12);
-    const hubGeo = new THREE.CylinderGeometry(0.285, 0.285, 0.58, 12);
-    const capGeo = new THREE.CylinderGeometry(0.115, 0.115, 0.63, 8);
-
-    for (const position of wheelPositions) {
-      const wheelGroup = new THREE.Group();
-      wheelGroup.position.copy(position);
-      this.group.add(wheelGroup);
-      this.wheelGroups.push(wheelGroup);
-
-      const tire = new THREE.Mesh(tireGeo, mats.wheel);
-      tire.rotation.z = Math.PI / 2;
-      tire.castShadow = true;
-      wheelGroup.add(tire);
-
-      for (const side of [-1, 1]) {
-        const sidewall = new THREE.Mesh(sideGeo, mats.wheel);
-        sidewall.rotation.y = Math.PI / 2;
-        sidewall.position.x = side * 0.266;
-        wheelGroup.add(sidewall);
-
-        const rim = new THREE.Mesh(rimGeo, mats.orange);
-        rim.rotation.y = Math.PI / 2;
-        rim.position.x = side * 0.28;
-        wheelGroup.add(rim);
-      }
-
-      const hub = new THREE.Mesh(hubGeo, mats.hubDark);
-      hub.rotation.z = Math.PI / 2;
-      wheelGroup.add(hub);
-
-      const cap = new THREE.Mesh(capGeo, mats.metal);
-      cap.rotation.z = Math.PI / 2;
-      wheelGroup.add(cap);
-
-      for (let i = 0; i < 12; i += 1) {
-        const angle = (i / 12) * Math.PI * 2;
-        const tread = meshBox(0.32, 0.12, 0.19, mats.gray, wheelGroup, false);
-        tread.position.set(0, Math.sin(angle) * 0.68, Math.cos(angle) * 0.68);
-        tread.rotation.x = angle;
-        tread.rotation.z = i % 2 === 0 ? 0.18 : -0.18;
-      }
-    }
-  }
-
-  advance(speed: number, dt: number): void {
-    this.group.position.x += speed * dt * 2.2;
-    this.animateWheels(speed, dt);
-  }
-
-  animateWheels(speed: number, dt: number): void {
-    this.wheelSpin -= speed * dt * 3.7;
-    this.wheelGroups.forEach((wheel) => {
-      wheel.rotation.x = this.wheelSpin;
-    });
-  }
-
-  setPower(amount: number): void {
-    const p = THREE.MathUtils.clamp(amount, 0, 1);
-    this.currentPower = p;
-    const off = new THREE.Color(0x11151a);
-    const on = new THREE.Color(palette.cyan);
-    this.powerMaterials.forEach((mat) => {
-      mat.color.copy(off).lerp(on, p);
-      mat.emissive.setHex(palette.cyan);
-      mat.emissiveIntensity = 1.85 * p;
-    });
-  }
-
-  setEyesGlow(amount: number): void {
-    const p = THREE.MathUtils.clamp(amount, 0, 1);
-    this.eyeMaterials.forEach((mat, index) => {
-      mat.emissive.setHex(0x163c49);
-      mat.emissiveIntensity = 0.12 + p * (1.2 + index * 0.12);
-    });
-  }
-
-  pointMast(yaw: number, pitch = 0): void {
-    this.mast.rotation.y = yaw;
-    this.mast.rotation.x = pitch;
-  }
-
-  pointDish(yaw: number): void {
-    this.dish.rotation.y = yaw;
-  }
-
-  getWorldEyePosition(target = new THREE.Vector3()): THREE.Vector3 {
-    this.cameraBar.getWorldPosition(target);
-    target.z += 0.18;
-    return target;
-  }
-
-  getWorldWheelPosition(index = 3, target = new THREE.Vector3()): THREE.Vector3 {
-    const wheel = this.wheelGroups[index] ?? this.wheelGroups[0];
-    wheel.getWorldPosition(target);
-    target.y += 0.28;
-    target.z -= 0.1;
-    return target;
-  }
-
-  getWorldAntennaTip(target = new THREE.Vector3()): THREE.Vector3 {
-    target.set(0.58, 3.2, 0.08);
-    return this.group.localToWorld(target);
-  }
-
-  detachSolarPanelTo(parent: THREE.Object3D): void {
-    if (this.detachableSolarPanel.parent === parent) return;
-    parent.attach(this.detachableSolarPanel);
-  }
-
-  restoreSolarPanel(): void {
-    if (this.detachableSolarPanel.parent !== this.deck) {
-      this.deck.attach(this.detachableSolarPanel);
-    }
-    this.detachableSolarPanel.position.copy(this.detachableBasePosition);
-    this.detachableSolarPanel.rotation.copy(this.detachableBaseRotation);
-    this.detachableSolarPanel.scale.copy(this.detachableBaseScale);
-    this.detachableSolarPanel.visible = true;
-  }
-
-  resetDynamicPose(): void {
-    this.wheelSpin = 0;
-    this.wheelGroups.forEach((wheel) => wheel.rotation.set(0, 0, 0));
-    this.mast.rotation.set(0, 0, 0);
-    this.dish.rotation.set(0, 0, 0);
-    this.setPower(1);
-    this.setEyesGlow(0.25);
-    this.restoreSolarPanel();
-  }
-
-  get powerLevel(): number {
-    return this.currentPower;
-  }
+  advance(speed:number,dt:number):void{this.group.position.x+=speed*dt*2.2;this.animateWheels(speed,dt);}
+  animateWheels(speed:number,dt:number):void{this.wheelSpin-=speed*dt*3.7;this.wheelGroups.forEach(w=>w.rotation.x=this.wheelSpin);}
+  setPower(amount:number):void{const p=THREE.MathUtils.clamp(amount,0,1);this.powerMaterials.forEach(m=>{m.color.copy(new THREE.Color(0x20242c).lerp(new THREE.Color(0x49c9d7),p));m.emissive.copy(new THREE.Color(0x071014).lerp(new THREE.Color(0x49c9d7),p));m.emissiveIntensity=.02+1.82*p;});}
+  setEyesGlow(amount:number):void{const p=THREE.MathUtils.clamp(amount,0,1);this.eyeMaterials.forEach(m=>{m.emissive.copy(new THREE.Color(0x08161c).lerp(new THREE.Color(0x39cfe5),p));m.emissiveIntensity=.06+1.15*p;});}
+  pointMast(yaw:number,pitch:number):void{this.mast.rotation.y=yaw;this.mast.rotation.x=pitch;}
+  pointDish(amount:number):void{this.dish.rotation.y=amount;}
+  getWorldWheelPosition(index:number,target=new THREE.Vector3()):THREE.Vector3{const i=THREE.MathUtils.clamp(index,0,this.wheelGroups.length-1);return this.wheelGroups[i].getWorldPosition(target);}
+  getWorldEyePosition(target=new THREE.Vector3()):THREE.Vector3{return this.cameraBar.getWorldPosition(target);}
+  getWorldAntennaTip(target=new THREE.Vector3()):THREE.Vector3{target.set(0,2.44,0);return this.antenna.localToWorld(target);}
+  detachSolarPanelTo(parent:THREE.Object3D):void{this.detachableSolarPanel.updateMatrixWorld(true);parent.attach(this.detachableSolarPanel);}
+  restoreSolarPanel():void{if(this.detachableSolarPanel.parent!==this.deck)this.deck.attach(this.detachableSolarPanel);this.detachableSolarPanel.position.copy(this.detachableBasePosition);this.detachableSolarPanel.rotation.copy(this.detachableBaseRotation);this.detachableSolarPanel.scale.copy(this.detachableBaseScale);this.detachableSolarPanel.visible=true;}
+  resetDynamicPose():void{this.wheelSpin=0;this.wheelGroups.forEach(w=>w.rotation.set(0,0,0));this.mast.rotation.set(0,0,0);this.dish.rotation.set(0,0,0);this.antenna.rotation.set(0,0,0);this.restoreSolarPanel();this.setPower(1);this.setEyesGlow(.25);}
 }
