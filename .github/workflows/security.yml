@@ -1,0 +1,32 @@
+name: Security and Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+
+      - name: Install dependencies
+        run: npm install --no-fund
+
+      - name: Build
+        run: npm run build
+
+      - name: Audit high severity vulnerabilities
+        run: npm audit --audit-level=high
