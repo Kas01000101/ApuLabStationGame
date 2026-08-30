@@ -1,231 +1,171 @@
 /* =========================================================
    ApuLab Station · Game UI Standard
-   Basado en Misión 01 V50/V51: bloque sólido + borde oscuro + sombra desplazada.
+   Un único sistema para menú, modal y gameplay.
    ========================================================= */
 
 /* ---------- BOTONES ---------- */
-.btn {
+.btn-game {
   position:relative;
-  min-height:44px;
-  padding:0 16px 0 34px;
-  border:var(--game-border);
-  border-radius:var(--game-radius);
-  background:var(--ui-utility-dark);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:210px;
+  height:54px;
+  padding:0 18px 0 38px;
+  border:2px solid var(--ui-text-dark);
+  border-radius:6px;
   color:var(--ui-white);
-  box-shadow:5px 5px 0 var(--ui-border-purple);
   font-family:var(--font-game);
   font-style:normal;
-  font-size:13px;
+  font-size:14px;
   font-weight:700;
-  letter-spacing:0;
+  letter-spacing:.02em;
+  line-height:1;
+  text-transform:uppercase;
   text-shadow:none;
   cursor:pointer;
-  overflow:visible;
-  transition:background-color 120ms ease,box-shadow 120ms ease,transform 80ms ease;
+  user-select:none;
+  box-shadow:4px 4px 0 var(--ui-border-purple);
+  transition:background-color 120ms ease,box-shadow 80ms ease,transform 80ms ease,filter 120ms ease;
 }
 
-.btn::before {
+.btn-game::before {
   content:"";
   position:absolute;
-  left:12px;
+  left:14px;
   top:50%;
   width:0;
   height:0;
-  border-top:6px solid transparent;
-  border-bottom:6px solid transparent;
-  border-left:9px solid currentColor;
+  border-top:7px solid transparent;
+  border-bottom:7px solid transparent;
+  border-left:10px solid currentColor;
   transform:translateY(-50%);
   pointer-events:none;
 }
 
-.btn:hover,
-.btn:focus-visible {
-  background:var(--ui-utility-dark-hover);
-  outline:none;
-  filter:none;
-  transform:none;
-}
+.btn-game:hover,
+.btn-game:focus-visible { filter:brightness(1.035);outline:none; }
+.btn-game:active { transform:translate(2px,2px); }
+.btn-game:disabled { opacity:.52;cursor:not-allowed;filter:saturate(.65);transform:none; }
 
-.btn:active {
-  transform:translate(3px,3px);
-  background:var(--ui-utility-dark-pressed);
-  box-shadow:2px 2px 0 var(--ui-border-purple);
-  filter:none;
-}
-
-.btn.primary {
+.btn-game--yellow {
   background:var(--ui-yellow);
-  border-color:var(--ui-text-dark);
   color:var(--ui-text-dark);
-  box-shadow:var(--game-shadow-yellow);
-}
-
-.btn.primary:hover,
-.btn.primary:focus-visible {
-  background:var(--ui-yellow-hover);
-  border-color:var(--ui-text-dark);
-}
-
-.btn.primary:active {
-  background:var(--ui-yellow-pressed);
-  box-shadow:2px 2px 0 var(--ui-yellow-shadow);
-}
-
-.btn.utility-light {
-  background:var(--ui-utility-light);
-  box-shadow:5px 5px 0 var(--ui-utility-dark-pressed);
-}
-
-.btn.utility-light:hover,
-.btn.utility-light:focus-visible {
-  background:var(--ui-utility-light-hover);
-}
-
-.btn.utility-light:active {
-  background:var(--ui-utility-light-pressed);
-  box-shadow:2px 2px 0 var(--ui-utility-dark-pressed);
-}
-
-.btn:disabled {
-  opacity:.52;
-  filter:saturate(.7);
-  cursor:not-allowed;
-  transform:none;
-}
-
-/* ---------- MENÚ PRINCIPAL ---------- */
-/* La imagen ya contiene el ambiente; solo usamos un velo mínimo para lectura. */
-.menu-screen {
-  background:
-    linear-gradient(180deg,rgba(11,14,38,.035),rgba(11,14,38,.075) 48%,rgba(11,14,38,.13)),
-    url('/assets/menu/apulab-menu-bg.webp') center center / cover no-repeat,
-    #141938 !important;
-}
-
-.menu-actions {
-  width:min(316px,50%);
-  display:grid;
-  gap:10px;
-  transform:translateY(42px);
-}
-
-.menu-actions .btn {
-  width:100%;
-  min-height:47px;
-  padding:0 15px 0 37px;
-  font-size:13.5px;
-  box-shadow:4px 4px 0 var(--ui-border-purple);
-}
-
-.menu-actions .btn.primary {
   box-shadow:4px 4px 0 var(--ui-yellow-shadow);
 }
+.btn-game--yellow:hover,.btn-game--yellow:focus-visible{background:var(--ui-yellow-hover);}
+.btn-game--yellow:active{background:var(--ui-yellow-pressed);box-shadow:2px 2px 0 var(--ui-yellow-shadow);}
 
-.menu-actions .btn::before {
-  left:14px;
-  border-top-width:6px;
-  border-bottom-width:6px;
-  border-left-width:9px;
+.btn-game--cyan {
+  background:var(--ui-cyan);
+  color:var(--ui-text-dark);
+  box-shadow:4px 4px 0 var(--ui-cyan-shadow);
 }
+.btn-game--cyan:hover,.btn-game--cyan:focus-visible{background:var(--ui-cyan-hover);}
+.btn-game--cyan:active{box-shadow:2px 2px 0 var(--ui-cyan-shadow);}
 
-.menu-actions .btn:active {
-  transform:translate(2px,2px);
-  box-shadow:2px 2px 0 var(--ui-border-purple);
-}
-
-.menu-actions .btn.primary:active {
-  box-shadow:2px 2px 0 var(--ui-yellow-shadow);
-}
-
-/* ---------- CAJAS / PANELES ---------- */
-.game-panel,
-.access-card,
-.nickname-card,
-.intro-dialogue,
-.intro-beat {
-  border:var(--game-border);
-  border-radius:var(--game-radius);
-  background:var(--ui-raised);
+.btn-game--purple {
+  background:var(--ui-utility-dark);
   color:var(--ui-white);
-  box-shadow:var(--game-shadow-purple);
+  box-shadow:4px 4px 0 var(--ui-border-purple);
 }
+.btn-game--purple:hover,.btn-game--purple:focus-visible{background:var(--ui-utility-dark-hover);}
+.btn-game--purple:active{background:var(--ui-utility-dark-pressed);box-shadow:2px 2px 0 var(--ui-border-purple);}
 
-.access-overlay {
-  background:rgba(11,14,38,.64);
-  backdrop-filter:blur(4px);
-}
-
-.access-card {
-  width:min(610px,78%);
-  padding:28px 30px 30px;
-  border:var(--game-border);
-  border-radius:var(--game-radius);
-  background:var(--ui-raised);
+.btn-game--lavender {
+  background:var(--ui-utility-light);
   color:var(--ui-white);
-  box-shadow:8px 8px 0 var(--ui-utility-dark);
+  box-shadow:4px 4px 0 var(--ui-border-purple);
 }
+.btn-game--lavender:hover,.btn-game--lavender:focus-visible{background:var(--ui-utility-light-hover);}
+.btn-game--lavender:active{background:var(--ui-utility-light-pressed);box-shadow:2px 2px 0 var(--ui-border-purple);}
 
-.access-card h2 {
-  position:static;
-  transform:none;
-  margin:0 48px 22px 0;
-  padding:0;
-  border:0;
-  border-radius:0;
-  background:transparent;
-  color:var(--ui-white);
-  box-shadow:none;
-  white-space:normal;
-  font-family:var(--font-game);
-  font-size:31px;
-  font-weight:800;
-  line-height:1.1;
-  letter-spacing:-.01em;
-  text-align:left;
+.btn-game--disabled {
+  background:#756AA8;
+  color:rgba(255,255,255,.45);
+  box-shadow:4px 4px 0 #4A4175;
+  cursor:not-allowed;
+  pointer-events:none;
 }
+.btn-game--disabled::before{opacity:.5;}
 
-.access-card label {
-  display:grid;
-  gap:7px;
-  margin:16px 0;
-  color:var(--ui-white);
+.btn-game--sm{min-width:190px;height:46px;font-size:13px;}
+.btn-game--md{min-width:230px;height:52px;}
+.btn-game--lg{min-width:260px;height:58px;}
+.btn-game--counter{min-width:78px;padding:0 14px;}
+.btn-game--counter::before{display:none;}
+
+/* ---------- CAMPOS ---------- */
+.ui-field-wrap{display:grid;gap:7px;width:100%;}
+.ui-label{font-family:var(--font-game);font-size:13px;font-weight:700;color:var(--ui-white);}
+.ui-field,
+.nickname-input{
+  width:100%;
+  height:48px;
+  padding:0 14px;
+  border:2px solid var(--ui-border-purple);
+  border-radius:6px;
+  background:#F1EEF9;
+  color:var(--ui-text-dark);
   font-family:var(--font-game);
   font-size:14px;
-  font-weight:700;
-}
-
-.access-card input,
-.nickname-input {
-  width:100%;
-  min-height:46px;
-  padding:0 14px;
-  border:2px solid var(--ui-text-dark);
-  border-radius:var(--game-radius);
-  background:var(--popup-bg);
-  color:var(--ui-text-dark);
-  box-shadow:4px 4px 0 var(--popup-shadow);
-  font-family:var(--font-game);
-  font-style:normal;
+  font-weight:600;
+  box-shadow:3px 3px 0 var(--popup-shadow);
   outline:none;
+  transition:border-color 120ms ease,box-shadow 120ms ease,background 120ms ease;
+}
+.ui-field::placeholder,.nickname-input::placeholder{color:#857EAA;font-weight:600;}
+.ui-field:focus,.nickname-input:focus{
+  border-color:var(--ui-cyan);
+  background:#F8F7FC;
+  box-shadow:3px 3px 0 var(--ui-cyan-shadow),0 0 0 2px rgba(73,201,215,.16);
 }
 
-.access-card input::placeholder,
-.nickname-input::placeholder { color:#8D86A9; }
-
-.access-card input:focus,
-.nickname-input:focus {
-  border-color:var(--ui-text-dark);
-  box-shadow:4px 4px 0 var(--ui-cyan-shadow),0 0 0 2px var(--ui-cyan-light);
-}
-
-.access-card .close {
+/* ---------- MODAL ---------- */
+.ui-modal-backdrop{
   position:absolute;
-  top:14px;
-  right:14px;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(11,14,38,.52);
+  backdrop-filter:blur(3px);
+  z-index:40;
+}
+
+.ui-modal{
+  position:relative;
+  width:min(560px,86%);
+  padding:26px 28px 24px;
+  border:2px solid var(--ui-text-dark);
+  border-radius:8px;
+  background:var(--ui-raised);
+  color:var(--ui-white);
+  box-shadow:7px 7px 0 var(--ui-panel);
+}
+
+.ui-modal__title{
+  margin:0 46px 22px 0;
+  color:var(--ui-white);
+  font-family:var(--font-game);
+  font-size:28px;
+  font-weight:800;
+  line-height:1;
+  letter-spacing:-.01em;
+  text-transform:uppercase;
+}
+
+.ui-modal__close{
+  position:absolute;
+  top:12px;
+  right:12px;
   width:32px;
   height:32px;
-  border:var(--game-border);
-  border-radius:var(--game-radius);
+  display:grid;
+  place-items:center;
+  padding:0;
+  border:2px solid var(--ui-text-dark);
+  border-radius:5px;
   background:var(--ui-utility-dark);
   color:var(--ui-white);
   box-shadow:3px 3px 0 var(--ui-border-purple);
@@ -233,138 +173,87 @@
   font-size:18px;
   font-weight:800;
   line-height:1;
+  cursor:pointer;
 }
+.ui-modal__close:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ui-border-purple);}
+.ui-modal__close:disabled{opacity:.52;cursor:not-allowed;}
 
-.access-card .close:active {
-  transform:translate(2px,2px);
-  box-shadow:1px 1px 0 var(--ui-border-purple);
-}
+.ui-modal__body{display:grid;gap:15px;}
+.ui-modal__actions{display:grid;gap:11px;justify-content:start;margin-top:2px;}
+.ui-modal__helper{margin:0 0 0 1px;color:var(--ui-white-soft);font-family:var(--font-game);font-size:12px;font-weight:600;}
+.ui-modal__error{min-height:18px;margin:-3px 0 0;color:var(--ui-error);font-family:var(--font-game);font-size:12px;font-weight:700;}
+.access-modal .btn-game{width:220px;min-width:220px;height:46px;}
 
-.access-card .continue,
-.access-card .demo {
-  min-width:230px;
-  min-height:48px;
-}
-
-.access-card .support {
-  margin:18px 0 12px;
-  color:var(--ui-white-soft);
-  font-size:13px;
-  font-weight:500;
-  text-align:center;
-}
-
-.access-card .error {
-  min-height:22px;
-  margin:6px 0 10px;
-  color:var(--ui-error);
-  font-weight:700;
-}
-
-.intro-dialogue {
+/* ---------- INTRO / PANELES ---------- */
+.game-panel,
+.nickname-card,
+.intro-dialogue,
+.intro-beat{
   border:var(--game-border);
   border-radius:var(--game-radius);
   background:var(--ui-raised);
-  box-shadow:6px 6px 0 var(--ui-utility-dark);
-  backdrop-filter:none;
+  color:var(--ui-white);
+  box-shadow:var(--game-shadow-purple);
 }
 
-.intro-speaker { color:var(--ui-cyan-light); }
-.intro-dialogue-text { color:var(--ui-white-soft); }
+.intro-dialogue{box-shadow:6px 6px 0 var(--ui-utility-dark);backdrop-filter:none;}
+.intro-speaker{color:var(--ui-cyan-light);}
+.intro-dialogue-text{color:var(--ui-white-soft);}
+.intro-beat{background:var(--ui-panel);color:var(--ui-cyan-light);box-shadow:5px 5px 0 var(--ui-border-purple);}
 
-.intro-beat {
-  border:var(--game-border);
-  border-radius:var(--game-radius);
-  background:var(--ui-panel);
-  color:var(--ui-cyan-light);
-  box-shadow:5px 5px 0 var(--ui-border-purple);
-}
-
-.nickname-card {
+.nickname-card{
   width:min(560px,74%);
   padding:26px 28px 28px;
-  border:var(--game-border);
-  border-radius:var(--game-radius);
   background:var(--ui-raised);
   box-shadow:7px 7px 0 var(--ui-utility-dark);
 }
-
-.nickname-title { color:var(--ui-white); }
-.nickname-copy { color:var(--ui-white-soft); }
-
-.nickname-continue {
+.nickname-title{color:var(--ui-white);}
+.nickname-copy{color:var(--ui-white-soft);}
+.nickname-continue{
   position:relative;
   min-width:230px;
   min-height:48px;
   padding:0 18px 0 36px;
   border:var(--game-border);
-  border-radius:var(--game-radius);
+  border-radius:6px;
   background:var(--ui-yellow);
   color:var(--ui-text-dark);
-  box-shadow:5px 5px 0 var(--ui-yellow-shadow);
+  box-shadow:4px 4px 0 var(--ui-yellow-shadow);
   font-family:var(--font-game);
   font-weight:700;
   cursor:pointer;
 }
-
-.nickname-continue::before {
-  content:"";
-  position:absolute;
-  left:13px;
-  top:50%;
-  width:0;
-  height:0;
-  border-top:6px solid transparent;
-  border-bottom:6px solid transparent;
-  border-left:9px solid var(--ui-text-dark);
+.nickname-continue::before{
+  content:"";position:absolute;left:13px;top:50%;width:0;height:0;
+  border-top:6px solid transparent;border-bottom:6px solid transparent;border-left:9px solid var(--ui-text-dark);
   transform:translateY(-50%);
 }
+.nickname-continue:hover,.nickname-continue:focus-visible{background:var(--ui-yellow-hover);outline:none;}
+.nickname-continue:active{transform:translate(2px,2px);background:var(--ui-yellow-pressed);box-shadow:2px 2px 0 var(--ui-yellow-shadow);}
 
-.nickname-continue:hover,
-.nickname-continue:focus-visible { background:var(--ui-yellow-hover);outline:none; }
-
-.nickname-continue:active {
-  transform:translate(3px,3px);
-  background:var(--ui-yellow-pressed);
-  box-shadow:2px 2px 0 var(--ui-yellow-shadow);
-}
-
-.intro-skip {
+.intro-skip{
   border:2px solid var(--ui-text-dark);
-  border-radius:var(--game-radius);
+  border-radius:5px;
   background:var(--ui-deep);
   color:var(--ui-white-soft);
   box-shadow:3px 3px 0 var(--ui-border-purple);
   backdrop-filter:none;
 }
+.intro-skip:hover{background:var(--ui-panel);}
+.intro-skip:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ui-border-purple);}
 
-.intro-skip:hover { background:var(--ui-panel); }
-.intro-skip:active { transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ui-border-purple); }
-
-/* Alarma de Yachay: cuatro pulsos cortos, no un cartel permanente. */
-.failure-alarm-pi {
-  position:absolute;
-  left:50%;
-  top:29%;
-  z-index:24;
-  opacity:0;
-  transform:translate(-50%,-50%) scale(.78);
-  pointer-events:none;
-  color:var(--ui-yellow-highlight);
-  font-family:var(--font-game);
-  font-size:31px;
-  font-weight:800;
-  letter-spacing:.07em;
+/* Alarma de Yachay: cuatro pulsos cortos. */
+.failure-alarm-pi{
+  position:absolute;left:50%;top:29%;z-index:24;opacity:0;
+  transform:translate(-50%,-50%) scale(.78);pointer-events:none;
+  color:var(--ui-yellow-highlight);font-family:var(--font-game);font-size:31px;font-weight:800;letter-spacing:.07em;
   text-shadow:3px 3px 0 var(--ui-text-dark),0 0 16px rgba(244,199,94,.28);
   transition:opacity 70ms linear,transform 90ms ease-out;
 }
-
-.failure-alarm-pi.show {
-  opacity:1;
-  transform:translate(-50%,-50%) scale(1);
-}
+.failure-alarm-pi.show{opacity:1;transform:translate(-50%,-50%) scale(1);}
 
 @media(max-width:800px){
-  .menu-actions{width:min(304px,68%);gap:9px;}
-  .menu-actions .btn{min-height:45px;font-size:13px;}
+  .ui-modal{width:88%;padding:22px 22px 20px;}
+  .ui-modal__title{font-size:24px;}
+  .access-modal .btn-game{width:205px;min-width:205px;}
 }
