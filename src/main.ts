@@ -3,10 +3,11 @@ import './styles/tokens.css';
 import './styles/game-ui.css';
 import './styles/intro-canon.css';
 import './styles/menu-hd.css';
+import './styles/mission01.css';
 import { ApuLabApp } from './app/ApuLabApp';
 import { installFailureAlarmFx } from './three/effects/FailureAlarmFx';
 
-const BUILD_ID = '2026.08.30-1151';
+const BUILD_ID = '2026.08.30-mission01-l1-l3';
 document.documentElement.dataset.apulabBuild = BUILD_ID;
 console.info(`[ApuLabStationGame] build ${BUILD_ID}`);
 
