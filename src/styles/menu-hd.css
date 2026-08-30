@@ -14,54 +14,57 @@
   image-rendering:auto;
 }
 
+/* Menú principal: proporciones HUD, no barras largas. */
 .menu-screen .menu-actions {
-  width:260px;
-  max-width:46%;
+  width:210px !important;
+  max-width:40% !important;
   display:grid;
-  gap:8px;
-  transform:translateY(48px);
+  gap:7px !important;
+  transform:translateY(46px) !important;
 }
 
 .menu-screen .btn-game--menu {
-  width:260px;
-  min-width:0;
-  max-width:100%;
-  height:42px;
-  min-height:42px;
-  padding:0 14px 0 32px;
-  border-radius:5px;
-  font-size:13px;
-  font-weight:700;
-  letter-spacing:0;
-  box-shadow:3px 3px 0 var(--ui-border-purple);
+  width:210px !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  height:38px !important;
+  min-height:38px !important;
+  padding:0 12px 0 29px !important;
+  border:2px solid var(--ui-text-dark) !important;
+  border-radius:5px !important;
+  font-size:12px !important;
+  font-weight:700 !important;
+  letter-spacing:0 !important;
+  line-height:1 !important;
+  box-shadow:2px 2px 0 var(--ui-border-purple) !important;
 }
 
 .menu-screen .btn-game--yellow.btn-game--menu {
-  box-shadow:3px 3px 0 var(--ui-yellow-shadow);
+  box-shadow:2px 2px 0 var(--ui-yellow-shadow) !important;
 }
 
 .menu-screen .btn-game--menu::before {
-  left:11px;
-  border-top-width:5px;
-  border-bottom-width:5px;
-  border-left-width:8px;
+  left:10px !important;
+  border-top-width:4px !important;
+  border-bottom-width:4px !important;
+  border-left-width:7px !important;
 }
 
 .menu-screen .btn-game--menu:hover,
 .menu-screen .btn-game--menu:focus-visible {
-  transform:translateY(-1px);
+  transform:translateY(-1px) !important;
 }
 
 .menu-screen .btn-game--menu:active {
-  transform:translate(2px,2px);
-  box-shadow:1px 1px 0 var(--ui-border-purple);
+  transform:translate(1px,1px) !important;
+  box-shadow:1px 1px 0 var(--ui-border-purple) !important;
 }
 
 .menu-screen .btn-game--yellow.btn-game--menu:active {
-  box-shadow:1px 1px 0 var(--ui-yellow-shadow);
+  box-shadow:1px 1px 0 var(--ui-yellow-shadow) !important;
 }
 
 @media (max-width:800px) {
-  .menu-screen .menu-actions { width:238px;max-width:62%; }
-  .menu-screen .btn-game--menu { width:238px;height:40px;min-height:40px;font-size:12px; }
+  .menu-screen .menu-actions { width:196px !important;max-width:58% !important; }
+  .menu-screen .btn-game--menu { width:196px !important;height:36px !important;min-height:36px !important;font-size:11.5px !important; }
 }
