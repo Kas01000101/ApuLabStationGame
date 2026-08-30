@@ -8,6 +8,9 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview"
   },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  },
   "dependencies": {
     "three": "^0.180.0"
   },
