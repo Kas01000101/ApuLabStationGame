@@ -12,7 +12,8 @@
     "node": "^20.19.0 || >=22.12.0"
   },
   "allowScripts": {
-    "esbuild@0.28.2": true
+    "esbuild@0.28.2": true,
+    "fsevents": false
   },
   "overrides": {
     "esbuild": "0.28.2"
