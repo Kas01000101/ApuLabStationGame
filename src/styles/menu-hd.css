@@ -1,6 +1,5 @@
 /* ApuLab Station · menú principal HD
-   Usa el fondo original de alta resolución del repositorio canónico anterior.
-   Este archivo se importa al final para evitar que estilos antiguos vuelvan a comprimir/oscurecer el fondo. */
+   El PNG canónico se descarga en predev/prebuild y se sirve desde el mismo deploy. */
 
 .menu-screen {
   background:
@@ -10,7 +9,7 @@
       rgba(11, 14, 38, .035) 48%,
       rgba(11, 14, 38, .085) 100%
     ),
-    url('https://raw.githubusercontent.com/Kas01000101/ApuLabStation/main/public/assets/boot/menu/fondo_menu_apulab.png') center center / cover no-repeat,
+    url('/assets/menu/apulab-menu-bg-hd.png') center center / cover no-repeat,
     #141938;
   image-rendering: auto;
 }
