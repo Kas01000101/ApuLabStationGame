@@ -1,0 +1,61 @@
+/* ApuLab Station · menú principal HD
+   Usa el fondo original de alta resolución del repositorio canónico anterior.
+   Este archivo se importa al final para evitar que estilos antiguos vuelvan a comprimir/oscurecer el fondo. */
+
+.menu-screen {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(11, 14, 38, .015) 0%,
+      rgba(11, 14, 38, .035) 48%,
+      rgba(11, 14, 38, .085) 100%
+    ),
+    url('https://raw.githubusercontent.com/Kas01000101/ApuLabStation/main/public/assets/boot/menu/fondo_menu_apulab.png') center center / cover no-repeat,
+    #141938;
+  image-rendering: auto;
+}
+
+/* Menú deliberadamente más fino que un panel de gameplay. */
+.menu-screen .menu-actions {
+  width: min(316px, 48%);
+  gap: 10px;
+  transform: translateY(54px);
+}
+
+.menu-screen .menu-actions .btn {
+  width: 100%;
+  min-height: 47px;
+  padding: 0 16px 0 38px;
+  border-width: 2px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0;
+  box-shadow: 4px 4px 0 var(--ui-border-purple);
+}
+
+.menu-screen .menu-actions .btn.primary {
+  box-shadow: 4px 4px 0 var(--ui-yellow-shadow);
+}
+
+.menu-screen .menu-actions .btn::before {
+  left: 14px;
+  border-top-width: 6px;
+  border-bottom-width: 6px;
+  border-left-width: 9px;
+}
+
+.menu-screen .menu-actions .btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--ui-border-purple);
+}
+
+.menu-screen .menu-actions .btn.primary:active {
+  box-shadow: 2px 2px 0 var(--ui-yellow-shadow);
+}
+
+@media (max-width: 800px) {
+  .menu-screen .menu-actions {
+    width: min(300px, 62%);
+  }
+}
