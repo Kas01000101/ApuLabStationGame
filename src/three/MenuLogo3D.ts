@@ -1,16 +1,22 @@
 import * as THREE from 'three';
 
-function makeTextTexture(
-  text: string,
-  options: {
-    width: number;
-    height: number;
-    fontSize: number;
-    leftColor: string;
-    rightColor: string;
-    stroke: string;
-  },
-): THREE.CanvasTexture {
+type TextStyle = {
+  width: number;
+  height: number;
+  fontSize: number;
+  topColor: string;
+  bottomColor: string;
+  sideColor: string;
+  deepSideColor: string;
+  stroke: string;
+};
+
+/**
+ * Crea el lettering del logo por código. No usa una imagen de logo.
+ * El tratamiento busca el estilo chunky/arcade del arte de referencia:
+ * frente claro, borde oscuro, bisel luminoso y extrusion de color.
+ */
+function makeTextTexture(text: string, options: TextStyle): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
   canvas.width = options.width;
   canvas.height = options.height;
@@ -18,35 +24,64 @@ function makeTextTexture(
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('ApuLab menu logo canvas context unavailable.');
 
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2 - 8;
+  const font = `900 ${options.fontSize}px "Arial Black", Impact, Arial, sans-serif`;
+
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = `900 ${options.fontSize}px Poppins, Arial Black, Arial, sans-serif`;
-  ctx.lineJoin = 'round';
+  ctx.font = font;
+  ctx.lineJoin = 'miter';
+  ctx.miterLimit = 3;
 
-  // Sombra/contorno para dar volumen sin añadir ningún elemento alrededor del logo.
-  ctx.lineWidth = Math.max(8, options.fontSize * 0.05);
+  // Extrusion profunda: crea el lateral grueso propio de un logo de videojuego.
+  for (let depth = 18; depth >= 7; depth -= 1) {
+    const amount = (depth - 6) / 12;
+    ctx.fillStyle = options.deepSideColor;
+    ctx.strokeStyle = options.stroke;
+    ctx.lineWidth = Math.max(12, options.fontSize * 0.072);
+    ctx.strokeText(text, centerX + depth * 0.72, centerY + depth * 0.88);
+    ctx.globalAlpha = 0.45 + amount * 0.35;
+    ctx.fillText(text, centerX + depth * 0.72, centerY + depth * 0.88);
+    ctx.globalAlpha = 1;
+  }
+
+  // Lateral dorado/cyan inmediatamente detrás del frente.
+  for (let depth = 7; depth >= 1; depth -= 1) {
+    ctx.fillStyle = options.sideColor;
+    ctx.strokeStyle = options.stroke;
+    ctx.lineWidth = Math.max(11, options.fontSize * 0.065);
+    ctx.strokeText(text, centerX + depth * 0.72, centerY + depth * 0.88);
+    ctx.fillText(text, centerX + depth * 0.72, centerY + depth * 0.88);
+  }
+
+  // Frente: borde azul oscuro grueso.
+  ctx.shadowColor = 'rgba(11,14,38,.50)';
+  ctx.shadowBlur = 8;
+  ctx.shadowOffsetY = 4;
   ctx.strokeStyle = options.stroke;
-  ctx.shadowColor = 'rgba(11, 14, 38, .72)';
-  ctx.shadowBlur = 14;
-  ctx.shadowOffsetY = 9;
-  ctx.strokeText(text, canvas.width / 2, canvas.height / 2 + 2);
+  ctx.lineWidth = Math.max(11, options.fontSize * 0.064);
+  ctx.strokeText(text, centerX, centerY);
 
-  const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-  gradient.addColorStop(0, options.leftColor);
-  gradient.addColorStop(1, options.rightColor);
-  ctx.fillStyle = gradient;
+  // Cara frontal con degradado vertical para simular iluminación/bisel.
+  const face = ctx.createLinearGradient(0, centerY - options.fontSize * 0.56, 0, centerY + options.fontSize * 0.56);
+  face.addColorStop(0, '#FFFFFF');
+  face.addColorStop(0.18, options.topColor);
+  face.addColorStop(0.7, options.topColor);
+  face.addColorStop(1, options.bottomColor);
+  ctx.fillStyle = face;
   ctx.shadowColor = 'transparent';
-  ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+  ctx.fillText(text, centerX, centerY);
 
-  // Highlight superior muy fino para que parezca una letra 3D iluminada.
-  ctx.globalAlpha = 0.28;
-  ctx.fillStyle = '#FFFFFF';
+  // Línea de brillo superior muy sutil: da sensación de borde biselado.
   ctx.save();
-  ctx.translate(0, -3);
-  ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+  ctx.globalAlpha = 0.34;
+  ctx.translate(0, -2.4);
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = Math.max(2.5, options.fontSize * 0.014);
+  ctx.strokeText(text, centerX, centerY);
   ctx.restore();
-  ctx.globalAlpha = 1;
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -61,15 +96,13 @@ function makeTextPlane(
   height: number,
   textureWidth: number,
   fontSize: number,
-  leftColor: string,
-  rightColor: string,
+  style: Pick<TextStyle, 'topColor' | 'bottomColor' | 'sideColor' | 'deepSideColor'>,
 ): THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial> {
   const texture = makeTextTexture(text, {
     width: textureWidth,
-    height: 280,
+    height: 340,
     fontSize,
-    leftColor,
-    rightColor,
+    ...style,
     stroke: '#17133A',
   });
 
@@ -151,32 +184,25 @@ export class MenuLogo3D {
   }
 
   private buildTextLogo(): void {
-    // Solo letras. Mantiene la identidad cromática del logo canónico.
-    const apulab = makeTextPlane(
-      'ApuLab',
-      5.5,
-      1.38,
-      1150,
-      205,
-      '#FFF7E8',
-      '#F4C75E',
-    );
+    // Solo las letras. La posición se conserva; cambia únicamente el estilo tipográfico.
+    const apulab = makeTextPlane('ApuLab', 5.5, 1.38, 1250, 202, {
+      topColor: '#FFF7E8',
+      bottomColor: '#F7DCA0',
+      sideColor: '#EAA62D',
+      deepSideColor: '#9C5B19',
+    });
     apulab.position.set(-1.55, 0, 0);
     this.group.add(apulab);
 
-    const station = makeTextPlane(
-      'Station',
-      3.9,
-      1.16,
-      950,
-      188,
-      '#72E5EE',
-      '#49C9D7',
-    );
+    const station = makeTextPlane('Station', 3.9, 1.16, 1050, 184, {
+      topColor: '#76EDF4',
+      bottomColor: '#35B8D2',
+      sideColor: '#1687AE',
+      deepSideColor: '#164976',
+    });
     station.position.set(3.12, -0.08, 0.01);
     this.group.add(station);
 
-    // Escala general pequeña para respetar la composición del fondo 1672×941.
     this.group.scale.setScalar(0.78);
   }
 
@@ -192,8 +218,8 @@ export class MenuLogo3D {
       this.frame = requestAnimationFrame(tick);
       const t = this.clock.getElapsedTime();
 
-      // Microanimación: solo un leve pulso/respiración, sin mover el logo de sitio.
-      const pulse = 1 + Math.sin(t * 1.65) * 0.006;
+      // Mantiene el logo quieto; solo respira casi imperceptiblemente.
+      const pulse = 1 + Math.sin(t * 1.65) * 0.004;
       this.group.scale.setScalar(0.78 * pulse);
       this.renderer.render(this.scene, this.camera);
     };
