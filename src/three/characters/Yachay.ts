@@ -1,38 +1,40 @@
 import * as THREE from 'three';
+import { Rover } from './Rover';
 
-export class Yachay {
-  readonly group = new THREE.Group();
-  private wheelSpin = 0;
-  private mast = new THREE.Group();
-  private wheels: THREE.Mesh[] = [];
-  private power = 1;
-
+export class Yachay extends Rover {
   constructor() {
-    const body = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1, 2.2), new THREE.MeshStandardMaterial({ color: 0xCAC2B7, roughness: .85 }));
-    body.position.y = 1.4;
-    body.castShadow = true;
-    this.group.add(body);
-    this.mast.position.set(0, 2.4, 0);
-    const head = new THREE.Mesh(new THREE.BoxGeometry(1.7, .45, .55), new THREE.MeshStandardMaterial({ color: 0xE7E0D6 }));
-    this.mast.add(head);
-    this.group.add(this.mast);
-    for (const x of [-1.55, 1.55]) for (const z of [-.8, .8, 0]) {
-      const wheel = new THREE.Mesh(new THREE.CylinderGeometry(.48, .48, .38, 12), new THREE.MeshStandardMaterial({ color: 0x24252A }));
-      wheel.rotation.z = Math.PI / 2;
-      wheel.position.set(x, .55, z);
-      this.group.add(wheel);
-      this.wheels.push(wheel);
-    }
+    super({ name: 'Yachay' });
+    this.group.position.set(-8.8, 1.8, 0.15);
   }
 
   drive(speed: number, dt: number): void {
-    this.group.position.x += speed * dt * 2.2;
-    this.wheelSpin -= speed * dt * 3.4;
-    this.wheels.forEach(w => w.rotation.x = this.wheelSpin);
+    this.advance(speed, dt);
   }
 
-  scan(dt: number): void { this.mast.rotation.y += dt * .7; }
-  telemetry(dt: number): void { this.mast.rotation.y += dt * .4; }
-  setPower(amount: number): void { this.power = Math.max(0, Math.min(1, amount)); }
-  get powerLevel(): number { return this.power; }
+  scan(elapsed: number, intensity = 1): void {
+    this.pointMast(0.22 + Math.sin(elapsed * 3.2) * 0.07 * intensity, -0.015);
+    this.pointDish(0.08 + Math.sin(elapsed * 1.9) * 0.04 * intensity);
+    this.setEyesGlow(0.42 + 0.30 * intensity);
+  }
+
+  telemetry(elapsed: number): void {
+    this.pointMast(0.44 + Math.sin(elapsed * 1.7) * 0.025, 0);
+    this.pointDish(0.14 + Math.sin(elapsed * 2.1) * 0.035);
+  }
+
+  happyIdle(elapsed: number): void {
+    this.group.position.y = 1.8 + Math.sin(elapsed * 3.7) * 0.025;
+    this.group.rotation.z = Math.sin(elapsed * 2.5) * 0.008;
+    this.pointMast(Math.sin(elapsed * 0.85) * 0.09, 0);
+    this.setEyesGlow(0.38 + 0.12 * Math.sin(elapsed * 2.4));
+  }
+
+  lookConcerned(elapsed: number, amount: number): void {
+    const p = THREE.MathUtils.clamp(amount, 0, 1);
+    this.pointMast(
+      0.10 * p + Math.sin(elapsed * 4.2) * 0.022 * p,
+      -0.035 * p,
+    );
+    this.setEyesGlow(0.28 + 0.72 * p);
+  }
 }
