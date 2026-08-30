@@ -54,6 +54,7 @@ export class ApuLabApp {
    * Única salida válida de la introducción.
    * Se usa tanto al finalizarla normalmente como al pulsar OMITIR INTRO,
    * para garantizar que ambos caminos abran el Nivel 1 de Misión 01.
+   * Mantener esta ruta única evita regresiones entre ambos flujos.
    */
   private readonly enterMission01 = (): void => {
     this.goTo('mission01');
