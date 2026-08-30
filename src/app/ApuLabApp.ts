@@ -2,6 +2,7 @@ import { MenuScreen } from '../ui/MenuScreen';
 import { AccessModal } from '../ui/AccessModal';
 import { ThreeEngine } from '../three/ThreeEngine';
 import { SessionService } from '../systems/SessionService';
+import { GameState } from '../systems/GameState';
 import { IntroController } from '../story/IntroController';
 
 export type AppState = 'menu' | 'intro' | 'mission01' | 'final';
@@ -23,7 +24,6 @@ export class ApuLabApp {
   }
 
   start(): void {
-    window.addEventListener('pointerdown', () => undefined, { once: true });
     this.engine.start((dt) => this.update(dt));
     this.goTo('menu');
   }
@@ -48,8 +48,13 @@ export class ApuLabApp {
       this.intro?.destroy();
       this.intro = undefined;
     }
+
     this.state = state;
+    GameState.getInstance().setScene(
+      state === 'menu' ? 'main-menu' : state === 'intro' ? 'intro' : state,
+    );
     this.menu.setVisible(state === 'menu');
+
     if (state === 'intro') {
       this.intro?.destroy();
       this.intro = new IntroController(this.engine, this.roots.uiRoot);
