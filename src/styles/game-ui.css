@@ -93,32 +93,43 @@
   transform:none;
 }
 
-/* Menú principal: misma geometría, solo mayor escala. */
+/* ---------- MENÚ PRINCIPAL ---------- */
+/* La imagen ya contiene el ambiente; solo usamos un velo mínimo para lectura. */
+.menu-screen {
+  background:
+    linear-gradient(180deg,rgba(11,14,38,.035),rgba(11,14,38,.075) 48%,rgba(11,14,38,.13)),
+    url('/assets/menu/apulab-menu-bg.webp') center center / cover no-repeat,
+    #141938 !important;
+}
+
 .menu-actions {
-  width:min(360px,58%);
-  gap:14px;
+  width:min(316px,50%);
+  display:grid;
+  gap:10px;
+  transform:translateY(42px);
 }
 
 .menu-actions .btn {
   width:100%;
-  min-height:52px;
-  padding-left:42px;
-  font-size:15px;
-  box-shadow:6px 6px 0 var(--ui-border-purple);
+  min-height:47px;
+  padding:0 15px 0 37px;
+  font-size:13.5px;
+  box-shadow:4px 4px 0 var(--ui-border-purple);
 }
 
 .menu-actions .btn.primary {
-  box-shadow:6px 6px 0 var(--ui-yellow-shadow);
+  box-shadow:4px 4px 0 var(--ui-yellow-shadow);
 }
 
 .menu-actions .btn::before {
-  left:16px;
-  border-top-width:7px;
-  border-bottom-width:7px;
-  border-left-width:10px;
+  left:14px;
+  border-top-width:6px;
+  border-bottom-width:6px;
+  border-left-width:9px;
 }
 
 .menu-actions .btn:active {
+  transform:translate(2px,2px);
   box-shadow:2px 2px 0 var(--ui-border-purple);
 }
 
@@ -139,7 +150,6 @@
   box-shadow:var(--game-shadow-purple);
 }
 
-/* Modal de acceso: ya no usa tarjeta redonda flotante. */
 .access-overlay {
   background:rgba(11,14,38,.64);
   backdrop-filter:blur(4px);
@@ -200,9 +210,7 @@
 }
 
 .access-card input::placeholder,
-.nickname-input::placeholder {
-  color:#8D86A9;
-}
+.nickname-input::placeholder { color:#8D86A9; }
 
 .access-card input:focus,
 .nickname-input:focus {
@@ -253,7 +261,6 @@
   font-weight:700;
 }
 
-/* Diálogo de intro: caja rectangular estándar, sin blur/sombra difusa. */
 .intro-dialogue {
   border:var(--game-border);
   border-radius:var(--game-radius);
@@ -262,13 +269,8 @@
   backdrop-filter:none;
 }
 
-.intro-speaker {
-  color:var(--ui-cyan-light);
-}
-
-.intro-dialogue-text {
-  color:var(--ui-white-soft);
-}
+.intro-speaker { color:var(--ui-cyan-light); }
+.intro-dialogue-text { color:var(--ui-white-soft); }
 
 .intro-beat {
   border:var(--game-border);
@@ -278,7 +280,6 @@
   box-shadow:5px 5px 0 var(--ui-border-purple);
 }
 
-/* Apodo: misma caja de juego, no tarjeta web. */
 .nickname-card {
   width:min(560px,74%);
   padding:26px 28px 28px;
@@ -288,13 +289,8 @@
   box-shadow:7px 7px 0 var(--ui-utility-dark);
 }
 
-.nickname-title {
-  color:var(--ui-white);
-}
-
-.nickname-copy {
-  color:var(--ui-white-soft);
-}
+.nickname-title { color:var(--ui-white); }
+.nickname-copy { color:var(--ui-white-soft); }
 
 .nickname-continue {
   position:relative;
@@ -325,10 +321,7 @@
 }
 
 .nickname-continue:hover,
-.nickname-continue:focus-visible {
-  background:var(--ui-yellow-hover);
-  outline:none;
-}
+.nickname-continue:focus-visible { background:var(--ui-yellow-hover);outline:none; }
 
 .nickname-continue:active {
   transform:translate(3px,3px);
@@ -336,7 +329,6 @@
   box-shadow:2px 2px 0 var(--ui-yellow-shadow);
 }
 
-/* OMITIR INTRO conserva discreción pero adopta geometría del sistema. */
 .intro-skip {
   border:2px solid var(--ui-text-dark);
   border-radius:var(--game-radius);
@@ -346,11 +338,33 @@
   backdrop-filter:none;
 }
 
-.intro-skip:hover {
-  background:var(--ui-panel);
+.intro-skip:hover { background:var(--ui-panel); }
+.intro-skip:active { transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ui-border-purple); }
+
+/* Alarma de Yachay: cuatro pulsos cortos, no un cartel permanente. */
+.failure-alarm-pi {
+  position:absolute;
+  left:50%;
+  top:29%;
+  z-index:24;
+  opacity:0;
+  transform:translate(-50%,-50%) scale(.78);
+  pointer-events:none;
+  color:var(--ui-yellow-highlight);
+  font-family:var(--font-game);
+  font-size:31px;
+  font-weight:800;
+  letter-spacing:.07em;
+  text-shadow:3px 3px 0 var(--ui-text-dark),0 0 16px rgba(244,199,94,.28);
+  transition:opacity 70ms linear,transform 90ms ease-out;
 }
 
-.intro-skip:active {
-  transform:translate(2px,2px);
-  box-shadow:1px 1px 0 var(--ui-border-purple);
+.failure-alarm-pi.show {
+  opacity:1;
+  transform:translate(-50%,-50%) scale(1);
+}
+
+@media(max-width:800px){
+  .menu-actions{width:min(304px,68%);gap:9px;}
+  .menu-actions .btn{min-height:45px;font-size:13px;}
 }
