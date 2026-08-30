@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { gunzipSync } from 'node:zlib';
 
 const ROOT = process.cwd();
-const MISSION_SRC = resolve(ROOT, 'src/missions/mission01');
+const MISSION_SRC = resolve(ROOT, 'src/missions/mission01/final');
 const OUT_DIR = resolve(ROOT, 'public/missions/mission01');
 
 const EXPECTED = {
@@ -17,16 +17,7 @@ function sha256(text) {
   return createHash('sha256').update(Buffer.from(text, 'utf8')).digest('hex');
 }
 
-async function readPacked(path) {
-  return (await readFile(resolve(MISSION_SRC, path), 'utf8')).replace(/\s+/g, '');
-}
-
-async function concatPacked(paths) {
-  const chunks = await Promise.all(paths.map((path) => readPacked(path)));
-  return chunks.join('');
-}
-
-async function concatTextFiles(directory, pattern) {
+async function concatParts(directory, pattern) {
   const names = (await readdir(directory))
     .filter((name) => pattern.test(name))
     .sort((a, b) => a.localeCompare(b, 'en', { numeric: true }));
@@ -100,40 +91,43 @@ function patchLevel2(source) {
   return html.replaceAll('three@0.160.0', 'three@0.180.0');
 }
 
+async function unpackLevel(level) {
+  const directory = resolve(MISSION_SRC, `level${level}`);
+  const encoded = await concatParts(directory, /^part\d+\.b64$/);
+  return gunzipSync(Buffer.from(encoded, 'base64')).toString('utf8');
+}
+
 async function buildLevel1() {
-  // part00/01 + canonical tail form the exact gzip/base64 source sent for Level 1.
-  const encoded = await concatPacked([
-    'source/level1/part00.b64',
-    'source/level1/part01.b64',
-    'canonical/level1/tail00.b64',
-    'canonical/level1/tail01.b64',
-    'canonical/level1/tail02.b64',
-  ]);
-  const source = gunzipSync(Buffer.from(encoded, 'base64')).toString('utf8');
-  return patchLevel1(source);
+  return patchLevel1(await unpackLevel(1));
 }
 
 async function buildLevel2() {
-  // source part02 was a bad/overlapping upload. canonical middle16k is its exact replacement.
-  const encoded = await concatPacked([
-    'source/level2/part00.b64',
-    'source/level2/part01.b64',
-    'canonical/level2/middle16k.b64',
-    'source/level2/part03.b64',
-    'source/level2/part04.b64',
-  ]);
-  const source = gunzipSync(Buffer.from(encoded, 'base64')).toString('utf8');
-  return patchLevel2(source);
+  return patchLevel2(await unpackLevel(2));
 }
 
 async function buildLevel3() {
-  // Exact first 20k base64 chars are kept in final/head*. The old corrected part00 was corrupt.
-  const exactHead = await concatTextFiles(resolve(MISSION_SRC, 'final/level3'), /^head\d+\.b64$/);
-  const exactTail = await concatTextFiles(resolve(MISSION_SRC, 'corrected/level3'), /^part0[1-3]\.gz\.b64$/);
+  const directory = resolve(MISSION_SRC, 'level3');
+  const exactHead = await concatParts(directory, /^head\d+\.b64$/);
+  const exactTail = await concatParts(directory, /^tail\d+\.gz\.b64$/);
   return gunzipSync(Buffer.from(exactHead + exactTail, 'base64')).toString('utf8');
 }
 
+function verifySemanticContract(level, html) {
+  const required = [`${level} / 8`, `Nivel ${level} de 8`, 'three@0.180.0'];
+  for (const marker of required) {
+    if (!html.includes(marker)) throw new Error(`mission01_semantic_missing:level${level}:${marker}`);
+  }
+  if (html.includes('three@0.160.0')) throw new Error(`mission01_legacy_three:level${level}`);
+
+  if (level === 3) {
+    for (const marker of ['Conector de seguridad', 'NIVEL 4 · PRÓXIMAMENTE', 'TP1', 'TP2', 'TP3']) {
+      if (!html.includes(marker)) throw new Error(`mission01_level3_missing:${marker}`);
+    }
+  }
+}
+
 async function verifyAndWrite(level, html) {
+  verifySemanticContract(level, html);
   const actualHash = sha256(html);
   const actualBytes = Buffer.byteLength(html, 'utf8');
   const expected = EXPECTED[level];
