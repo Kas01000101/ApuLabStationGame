@@ -9,26 +9,47 @@ export class AccessModal {
   private busy = false;
 
   constructor(private readonly root: HTMLElement, private readonly options: Options) {
-    this.overlay.className = 'access-overlay';
+    this.overlay.className = 'access-overlay ui-modal-backdrop';
     this.overlay.innerHTML = `
-      <div class="access-card" role="dialog" aria-modal="true" aria-labelledby="access-title">
-        <button class="close" type="button" aria-label="Cerrar">×</button>
-        <h2 id="access-title">INICIAR MISIÓN</h2>
+      <div class="ui-modal access-modal" role="dialog" aria-modal="true" aria-labelledby="access-title">
+        <button class="ui-modal__close close" type="button" aria-label="Cerrar">×</button>
+        <h2 id="access-title" class="ui-modal__title">INICIAR MISIÓN</h2>
 
-        <label for="participant-code">
-          Código de participante
-          <input id="participant-code" maxlength="32" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Ingresa tu código">
-        </label>
+        <div class="ui-modal__body">
+          <div class="ui-field-wrap">
+            <label class="ui-label" for="participant-code">Código de participante</label>
+            <input
+              id="participant-code"
+              class="ui-field"
+              maxlength="32"
+              autocomplete="off"
+              autocapitalize="none"
+              spellcheck="false"
+              placeholder="Ingresa tu código"
+            >
+          </div>
 
-        <label for="participant-credential">
-          Contraseña
-          <input id="participant-credential" type="password" maxlength="64" autocomplete="off" spellcheck="false" placeholder="Ingresa tu contraseña">
-        </label>
+          <div class="ui-field-wrap">
+            <label class="ui-label" for="participant-credential">Contraseña</label>
+            <input
+              id="participant-credential"
+              class="ui-field"
+              type="password"
+              maxlength="64"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="Ingresa tu contraseña"
+            >
+          </div>
 
-        <p class="error" aria-live="polite"></p>
-        <button class="btn primary continue" type="button">CONTINUAR</button>
-        <p class="support">¿No tienes credenciales?</p>
-        <button class="btn utility-light demo" type="button">MODO DEMO</button>
+          <p class="error ui-modal__error" aria-live="polite"></p>
+
+          <div class="ui-modal__actions">
+            <button class="btn-game btn-game--yellow btn-game--md continue" type="button">CONTINUAR</button>
+            <p class="ui-modal__helper">¿No tienes credenciales?</p>
+            <button class="btn-game btn-game--lavender btn-game--md demo" type="button">MODO DEMO</button>
+          </div>
+        </div>
       </div>
     `;
 
