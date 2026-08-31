@@ -16,6 +16,19 @@ export class ApuLabApp {
   private state: AppState = 'menu';
   private intro?: IntroController;
 
+  /**
+   * Los navegadores modernos deciden el texto de esta confirmación y no
+   * permiten personalizarlo. El objetivo aquí es impedir una recarga/salida
+   * accidental mientras existe progreso de una sesión activa.
+   */
+  private readonly handleBeforeUnload = (event: BeforeUnloadEvent): void => {
+    if (!this.hasProgressAtRisk()) return;
+
+    event.preventDefault();
+    // Compatibilidad con navegadores que todavía requieren returnValue.
+    event.returnValue = '';
+  };
+
   constructor(private readonly roots: { threeRoot: HTMLElement; uiRoot: HTMLElement }) {
     this.engine = new ThreeEngine(roots.threeRoot);
     this.menu = new MenuScreen(roots.uiRoot, {
@@ -28,6 +41,8 @@ export class ApuLabApp {
         if (level >= 4) window.alert(`Nivel ${level} próximamente.`);
       },
     });
+
+    window.addEventListener('beforeunload', this.handleBeforeUnload);
   }
 
   start(): void {
@@ -48,6 +63,14 @@ export class ApuLabApp {
         return result;
       },
     });
+  }
+
+  /**
+   * Solo protegemos estados donde una recarga haría perder progreso.
+   * En menú y al finalizar no debe aparecer una alerta innecesaria.
+   */
+  private hasProgressAtRisk(): boolean {
+    return this.state === 'intro' || this.state === 'mission01';
   }
 
   /**
