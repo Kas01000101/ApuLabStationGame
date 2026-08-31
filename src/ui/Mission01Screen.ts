@@ -66,8 +66,20 @@ export class Mission01Screen {
     activeFrame.setAttribute('aria-hidden', 'false');
     activeFrame.title = `ApuLab · Misión 01 · Nivel ${level} de 8`;
 
-    if (activeFrame.getAttribute('src') !== path) activeFrame.src = path;
-    this.prefetchLevel(level + 1);
+    if (activeFrame.getAttribute('src') !== path) {
+      activeFrame.addEventListener(
+        'load',
+        () => {
+          if (this.activeFrameIndex === this.frames.indexOf(activeFrame) && this.activeLevel === level) {
+            this.prefetchLevel(level + 1);
+          }
+        },
+        { once: true },
+      );
+      activeFrame.src = path;
+    } else {
+      this.prefetchLevel(level + 1);
+    }
   }
 
   setVisible(value: boolean): void {
@@ -196,7 +208,8 @@ export class Mission01Screen {
   private disposeFrame(frame: HTMLIFrameElement, immediate = false): void {
     const clear = (): void => {
       try {
-        if (frame.getAttribute('src') !== 'about:blank') frame.src = 'about:blank';
+        const src = frame.getAttribute('src');
+        if (src && src !== 'about:blank') frame.src = 'about:blank';
       } catch (_) {
         // El iframe puede estar navegando; dejarlo desmontar es suficiente.
       }
