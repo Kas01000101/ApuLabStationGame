@@ -1,3 +1,5 @@
+const SFX_SETTING_KEY = 'apulab.settings.sfx';
+
 export class IntroAudio {
   private ctx?: AudioContext;
   private master?: GainNode;
@@ -5,6 +7,7 @@ export class IntroAudio {
   private driveGain?: GainNode;
 
   unlock(): void {
+    if (!this.isEnabled()) return;
     if (!this.ctx) {
       this.ctx = new AudioContext();
       this.master = this.ctx.createGain();
@@ -15,6 +18,7 @@ export class IntroAudio {
   }
 
   startDriveHum(): void {
+    if (!this.isEnabled()) return;
     this.unlock();
     if (!this.ctx || !this.master || this.driveOsc) return;
     this.driveOsc = this.ctx.createOscillator();
@@ -28,6 +32,10 @@ export class IntroAudio {
   }
 
   setDriveHum(level: number, frequency: number): void {
+    if (!this.isEnabled()) {
+      this.stopDriveHum();
+      return;
+    }
     if (!this.ctx || !this.driveOsc || !this.driveGain) return;
     this.driveGain.gain.setTargetAtTime(Math.max(0.001, level), this.ctx.currentTime, 0.06);
     this.driveOsc.frequency.setTargetAtTime(Math.max(20, frequency), this.ctx.currentTime, 0.07);
@@ -52,7 +60,16 @@ export class IntroAudio {
   transition(): void { this.tone(420, 620, 0.46, 'sine', 0.06); this.tone(620, 920, 0.46, 'triangle', 0.045, 0.04); }
   success(): void { this.tone(520, 720, 0.18, 'sine', 0.06); this.tone(660, 920, 0.20, 'sine', 0.05, 0.10); this.tone(820, 1180, 0.28, 'triangle', 0.045, 0.20); }
 
+  private isEnabled(): boolean {
+    try {
+      return window.localStorage.getItem(SFX_SETTING_KEY) !== 'off';
+    } catch {
+      return true;
+    }
+  }
+
   private tone(startHz: number, endHz: number, duration: number, type: OscillatorType, gainValue: number, delay = 0): void {
+    if (!this.isEnabled()) return;
     this.unlock();
     if (!this.ctx || !this.master) return;
     const now = this.ctx.currentTime + delay;
@@ -71,6 +88,7 @@ export class IntroAudio {
   }
 
   private noise(duration: number, gainValue: number, startCutoff = 1800, endCutoff = 260): void {
+    if (!this.isEnabled()) return;
     this.unlock();
     if (!this.ctx || !this.master) return;
     const sampleCount = Math.ceil(this.ctx.sampleRate * duration);

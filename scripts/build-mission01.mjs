@@ -130,15 +130,32 @@ function patchLevel4(source) {
   const before = "function goToNextLevel(){let handled=false;try{if(parent&&typeof parent.apulabCompleteLevel==='function'){parent.apulabCompleteLevel(4,5);handled=true}}catch(e){console.warn('Direct navigation bridge unavailable',e)}if(!handled){try{parent.postMessage({type:'apulab-level-complete',level:4,nextLevel:5},'*')}catch(e){console.error('Navigation failed',e)}}}";
   const after = "function goToNextLevel(){try{localStorage.setItem('apulab.level4.successProgram',JSON.stringify(program))}catch(_){}let handled=false;try{if(parent&&typeof parent.apulabCompleteLevel==='function'){parent.apulabCompleteLevel(4,5);handled=true}}catch(e){console.warn('Direct navigation bridge unavailable',e)}if(!handled){try{parent.postMessage({type:'apulab-level-complete',level:4,nextLevel:5},'*')}catch(e){console.error('Navigation failed',e)}}}";
   html = replaceRequired(html, before, after, 'l4-program-continuity');
+  html = patchSfxAudio45(html, 4);
   return html;
 }
 
+function patchSfxAudio45(source, level) {
+  return replaceRequired(
+    source,
+    "function ensureAudio(){\n  const AC=window.AudioContext||window.webkitAudioContext;",
+    "function ensureAudio(){\n  try{if(localStorage.getItem('apulab.settings.sfx')==='off')return null}catch(_){}\n  const AC=window.AudioContext||window.webkitAudioContext;",
+    `l${level}-sfx-setting`,
+  );
+}
+
 function patchLevel5(source) {
-  return source.replaceAll('three@0.160.0', 'three@0.180.0');
+  return patchSfxAudio45(source.replaceAll('three@0.160.0', 'three@0.180.0'), 5);
 }
 
 function patchLevel6(source) {
-  return source.replaceAll('three@0.160.0', 'three@0.180.0');
+  let html = source.replaceAll('three@0.160.0', 'three@0.180.0');
+  html = replaceRequired(
+    html,
+    "let audioCtx=null;function ensureAudio(){audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();return audioCtx}function playTone(freq,d=.18,type='sine',gain=.055){const ctx=ensureAudio(),o=ctx.createOscillator(),g=ctx.createGain(),t=ctx.currentTime;",
+    "let audioCtx=null;function ensureAudio(){try{if(localStorage.getItem('apulab.settings.sfx')==='off')return null}catch(_){}audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();return audioCtx}function playTone(freq,d=.18,type='sine',gain=.055){const ctx=ensureAudio();if(!ctx)return Promise.resolve();const o=ctx.createOscillator(),g=ctx.createGain(),t=ctx.currentTime;",
+    'l6-sfx-setting',
+  );
+  return html;
 }
 
 async function unpackLevel(level) {
@@ -193,6 +210,9 @@ function verifySemanticContract(level, html) {
   }
   if (level === 6 && !html.includes('apulab.level5.finalProgram')) {
     throw new Error('mission01_level6_missing_previous_program');
+  }
+  if (level >= 4 && level <= 6 && !html.includes('apulab.settings.sfx')) {
+    throw new Error(`mission01_level${level}_missing_sfx_setting`);
   }
 }
 
