@@ -42,7 +42,7 @@ export class Mission01Screen {
   }
 
   private loadLevel(level: number): void {
-    if (level < 1 || level > 3) {
+    if (level < 1 || level > 6) {
       this.callbacks.onUnavailableLevel?.(level);
       return;
     }
@@ -57,13 +57,17 @@ export class Mission01Screen {
     if (!this.visible || event.source !== this.frame.contentWindow) return;
     if (event.origin !== window.location.origin) return;
 
-    const payload = event.data as { type?: unknown; nextLevel?: unknown } | null;
+    const payload = event.data as { type?: unknown; level?: unknown; nextLevel?: unknown } | null;
     if (!payload || payload.type !== 'apulab-level-complete') return;
 
+    const completedLevel = Number(payload.level);
     const nextLevel = Number(payload.nextLevel);
     if (!Number.isInteger(nextLevel)) return;
 
-    if (nextLevel >= 1 && nextLevel <= 3) {
+    // Ignora mensajes atrasados de un iframe anterior durante una transición.
+    if (Number.isInteger(completedLevel) && completedLevel !== this.activeLevel) return;
+
+    if (nextLevel >= 1 && nextLevel <= 6) {
       this.loadLevel(nextLevel);
       return;
     }

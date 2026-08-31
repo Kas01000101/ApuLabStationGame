@@ -38,7 +38,7 @@ export class ApuLabApp {
     });
     this.mission01 = new Mission01Screen(roots.uiRoot, {
       onUnavailableLevel: (level) => {
-        if (level >= 4) window.alert(`Nivel ${level} próximamente.`);
+        if (level >= 7) window.alert(`Nivel ${level} próximamente.`);
       },
     });
 
