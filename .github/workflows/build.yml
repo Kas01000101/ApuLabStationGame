@@ -35,13 +35,13 @@ jobs:
       - name: Verify generated Mission 01 assets
         shell: bash
         run: |
-          test -f public/missions/mission01/level1.html
-          test -f public/missions/mission01/level2.html
-          test -f public/missions/mission01/level3.html
+          for level in 1 2 3 4 5 6; do
+            test -f "public/missions/mission01/level${level}.html"
+            grep -Fq "${level} / 8" "public/missions/mission01/level${level}.html"
+          done
           test -f public/missions/mission01/manifest.json
-          grep -Fq '1 / 8' public/missions/mission01/level1.html
-          grep -Fq '2 / 8' public/missions/mission01/level2.html
-          grep -Fq '3 / 8' public/missions/mission01/level3.html
-          grep -Fq 'NIVEL 4 · PRÓXIMAMENTE' public/missions/mission01/level3.html
+          grep -Fq 'CONTINUAR AL NIVEL 4' public/missions/mission01/level3.html
+          ! grep -Fq 'NIVEL 4 · PRÓXIMAMENTE' public/missions/mission01/level3.html
           grep -Fq '"totalLevels": 8' public/missions/mission01/manifest.json
           grep -Fq '"availableLevels"' public/missions/mission01/manifest.json
+          grep -Fq '"level": 6' public/missions/mission01/manifest.json

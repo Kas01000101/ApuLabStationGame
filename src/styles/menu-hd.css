@@ -4,4 +4,26 @@
 .menu-screen .menu-actions{position:relative;z-index:2;box-sizing:border-box;width:184px!important;min-width:184px!important;max-width:184px!important;display:grid;gap:6px!important;transform:translateY(18px)!important}
 .menu-screen .btn-game--menu{box-sizing:border-box;width:184px!important;min-width:184px!important;max-width:184px!important;height:36px!important;min-height:36px!important;max-height:36px!important;padding:0 10px 0 27px!important;border:2px solid var(--ui-text-dark)!important;border-radius:4px!important;font-size:11.5px!important;font-weight:700!important;letter-spacing:0!important;line-height:1!important;box-shadow:2px 2px 0 var(--ui-border-purple)!important}
 .menu-screen .btn-game--yellow.btn-game--menu{box-shadow:2px 2px 0 var(--ui-yellow-shadow)!important}.menu-screen .btn-game--menu::before{left:9px!important;border-top-width:4px!important;border-bottom-width:4px!important;border-left-width:7px!important}.menu-screen .btn-game--menu:hover,.menu-screen .btn-game--menu:focus-visible{transform:none!important}.menu-screen .btn-game--menu:active{transform:translate(1px,1px)!important;box-shadow:1px 1px 0 var(--ui-border-purple)!important}.menu-screen .btn-game--yellow.btn-game--menu:active{box-shadow:1px 1px 0 var(--ui-yellow-shadow)!important}
-@media(max-width:800px){.menu-screen .menu-actions{width:174px!important;min-width:174px!important;max-width:174px!important}.menu-screen .btn-game--menu{width:174px!important;min-width:174px!important;max-width:174px!important;height:34px!important;min-height:34px!important;max-height:34px!important;font-size:11px!important}}
+
+/* Panel AJUSTES: solo sonido, idioma fijo en español y restablecer. */
+.menu-settings-overlay{position:absolute;inset:0;z-index:20;display:none;align-items:center;justify-content:center;background:rgba(11,14,38,.66);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.menu-settings-overlay.visible{display:flex}
+.menu-settings-panel{position:relative;box-sizing:border-box;width:440px;padding:30px 30px 28px;border:3px solid #4D4288;border-radius:8px;background:linear-gradient(180deg,#2D2654 0%,#211D49 100%);box-shadow:8px 8px 0 #17133A,0 20px 42px rgba(0,0,0,.34);font-family:"Poppins",sans-serif;font-style:normal;color:#FFFFFF}
+.menu-settings-kicker{margin-bottom:4px;color:#49C9D7;font-size:11px;font-weight:800;letter-spacing:.08em}
+.menu-settings-panel h2{margin:0 0 22px;font-family:"Poppins",sans-serif;font-style:normal;font-size:28px;font-weight:800;line-height:1;color:#FFFFFF}
+.menu-settings-close{position:absolute;top:16px;right:16px;width:34px;height:34px;padding:0;border:2px solid #17133A;border-radius:4px;background:#49C9D7;color:#17133A;box-shadow:3px 3px 0 #269AAA;font:800 18px/1 "Poppins",sans-serif;cursor:pointer}
+.menu-settings-close:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #269AAA}
+.menu-settings-row{min-height:76px;margin-bottom:12px;padding:13px 14px;border:2px solid #4D4288;border-radius:6px;background:#141938;display:flex;align-items:center;justify-content:space-between;gap:18px}
+.menu-settings-copy{display:flex;min-width:0;flex-direction:column;gap:4px}
+.menu-settings-copy strong{font-size:13px;font-weight:800;line-height:1.1;color:#FFFFFF}
+.menu-settings-copy span{font-size:11px;font-weight:500;line-height:1.2;color:#B8C2CC}
+.menu-settings-toggle{position:relative;box-sizing:border-box;width:94px;height:38px;flex:0 0 94px;padding:0 10px 0 40px;border:2px solid #17133A;border-radius:5px;background:#49C9D7;color:#17133A;box-shadow:3px 3px 0 #269AAA;font:800 12px/1 "Poppins",sans-serif;cursor:pointer;transition:background .16s,box-shadow .16s,color .16s}
+.menu-settings-toggle-knob{position:absolute;left:8px;top:50%;width:22px;height:22px;border:2px solid #17133A;border-radius:4px;background:#FFF7E8;transform:translateY(-50%);transition:left .16s}
+.menu-settings-toggle.is-off{padding:0 40px 0 10px;background:#3B326B;color:#FFFFFF;box-shadow:3px 3px 0 #241E4A}
+.menu-settings-toggle.is-off .menu-settings-toggle-knob{left:62px;background:#B8C2CC}
+.menu-settings-language{min-width:112px;height:36px;padding:0 12px;border:2px solid #4D4288;border-radius:5px;background:#3B326B;color:#F8F9FA;display:flex;align-items:center;justify-content:center;font:800 11px/1 "Poppins",sans-serif;letter-spacing:.03em}
+.menu-settings-reset{width:100%;height:42px;margin-top:4px;border:2px solid #17133A;border-radius:4px;background:#F4C75E;color:#17133A;box-shadow:4px 4px 0 #D5A43D;font:800 12px/1 "Poppins",sans-serif;cursor:pointer}
+.menu-settings-reset:hover,.menu-settings-reset:focus-visible{background:#F7D06F;outline:none}
+.menu-settings-reset:active{transform:translate(2px,2px);box-shadow:2px 2px 0 #D5A43D}
+
+@media(max-width:800px){.menu-screen .menu-actions{width:174px!important;min-width:174px!important;max-width:174px!important}.menu-screen .btn-game--menu{width:174px!important;min-width:174px!important;max-width:174px!important;height:34px!important;min-height:34px!important;max-height:34px!important;font-size:11px!important}.menu-settings-panel{width:400px;padding:26px}.menu-settings-panel h2{font-size:25px}}

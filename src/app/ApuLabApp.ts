@@ -33,7 +33,6 @@ export class ApuLabApp {
     this.engine = new ThreeEngine(roots.threeRoot);
     this.menu = new MenuScreen(roots.uiRoot, {
       onStart: () => this.openAccess(),
-      onSettings: () => window.alert('Ajustes próximamente.'),
       onCredits: () => window.alert('ApuLab Station · Three.js'),
     });
     this.mission01 = new Mission01Screen(roots.uiRoot, {
