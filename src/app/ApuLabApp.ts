@@ -35,11 +35,10 @@ export class ApuLabApp {
       onStart: () => this.openAccess(),
       onCredits: () => window.alert('ApuLab Station · Three.js'),
     });
-    this.mission01 = new Mission01Screen(roots.uiRoot, {
-      onUnavailableLevel: (level) => {
-        if (level >= 7) window.alert(`Nivel ${level} próximamente.`);
-      },
-    });
+
+    // Mission01Screen maneja los niveles aún no integrados dentro de la propia
+    // interfaz para no romper la inmersión con un alert nativo del navegador.
+    this.mission01 = new Mission01Screen(roots.uiRoot);
 
     window.addEventListener('beforeunload', this.handleBeforeUnload);
   }
