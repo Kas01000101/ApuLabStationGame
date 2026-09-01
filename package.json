@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "prepare:missions": "node scripts/build-mission01.mjs && node scripts/patch-mission01-level1-pedagogy.mjs && node scripts/verify-mission01-level1-output.mjs",
+    "prepare:missions": "node scripts/build-mission01.mjs && node scripts/patch-mission01-level1-pedagogy.mjs && node scripts/patch-mission01-level1-explore-panel.mjs && node scripts/verify-mission01-level1-output.mjs",
     "dev": "npm run prepare:missions && vite",
     "build": "npm run prepare:missions && tsc -b && vite build",
     "preview": "vite preview"
