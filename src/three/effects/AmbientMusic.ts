@@ -1,6 +1,6 @@
 const MUSIC_VOLUME_SETTING_KEY = 'apulab.settings.musicVolume';
 const AMBIENT_TRACK_URL = '/assets/audio/specular-city.mp3';
-const DEFAULT_MUSIC_VOLUME = 35;
+const DEFAULT_MUSIC_VOLUME = 15;
 const FADE_IN_MS = 900;
 const FADE_OUT_MS = 250;
 
@@ -72,14 +72,17 @@ export class AmbientMusic {
   };
 
   private readonly handleVisibilityChange = (): void => {
-    if (document.hidden) {
-      this.cancelFade();
-      this.audio.pause();
-      this.audio.volume = 0;
-      return;
-    }
+    // No pausamos la música al cambiar de pestaña. Los elementos HTMLAudio
+    // pueden seguir reproduciéndose en segundo plano y así evitamos que el
+    // navegador exija un gesto nuevo al volver a ApuLab Station.
+    if (document.hidden) return;
 
-    if (this.hasUserInteraction && this.getTargetVolume() > 0) void this.playWithFade();
+    // Si el navegador suspendió el audio por su cuenta, intentamos reanudarlo
+    // al recuperar la pestaña. Si la política de autoplay lo impide,
+    // playWithFade vuelve a armar el siguiente gesto de la jugadora.
+    if (this.hasUserInteraction && this.getTargetVolume() > 0 && this.audio.paused) {
+      void this.playWithFade();
+    }
   };
 
   private async playWithFade(): Promise<void> {
