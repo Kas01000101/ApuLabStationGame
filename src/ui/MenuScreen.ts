@@ -1,4 +1,4 @@
-type MenuCallbacks = { onStart: () => void; onCredits: () => void };
+type MenuCallbacks = { onStart: () => void };
 
 const SFX_SETTING_KEY = 'apulab.settings.sfx';
 const MUSIC_VOLUME_SETTING_KEY = 'apulab.settings.musicVolume';
@@ -69,19 +69,40 @@ export class MenuScreen {
           <button class="menu-settings-reset" data-settings-reset type="button">RESTABLECER AJUSTES</button>
         </section>
       </div>
+
+      <div class="menu-settings-overlay" data-credits-panel aria-hidden="true">
+        <section class="menu-settings-panel menu-credits-panel" role="dialog" aria-modal="true" aria-labelledby="menu-credits-title">
+          <button class="menu-settings-close" data-credits-close type="button" aria-label="Cerrar créditos">×</button>
+          <div class="menu-settings-kicker">APULAB STATION</div>
+          <h2 id="menu-credits-title">CRÉDITOS</h2>
+
+          <div class="menu-settings-row menu-credits-row">
+            <div class="menu-settings-copy menu-credits-copy">
+              <strong>MÚSICA</strong>
+              <span class="menu-credits-track">“Specular City” — Vitalezzz</span>
+              <span>Música con licencia CC0 1.0.</span>
+              <span>Fuente: OpenGameArt.</span>
+            </div>
+          </div>
+        </section>
+      </div>
     `;
 
     this.root.appendChild(this.element);
 
     this.element.querySelector('[data-action="start"]')?.addEventListener('click', callbacks.onStart);
     this.element.querySelector('[data-action="settings"]')?.addEventListener('click', this.openSettings);
-    this.element.querySelector('[data-action="credits"]')?.addEventListener('click', callbacks.onCredits);
+    this.element.querySelector('[data-action="credits"]')?.addEventListener('click', this.openCredits);
     this.element.querySelector('[data-settings-close]')?.addEventListener('click', this.closeSettings);
+    this.element.querySelector('[data-credits-close]')?.addEventListener('click', this.closeCredits);
     this.element.querySelector('[data-sfx-toggle]')?.addEventListener('click', this.toggleSfx);
     this.element.querySelector('[data-music-volume]')?.addEventListener('input', this.changeMusicVolume);
     this.element.querySelector('[data-settings-reset]')?.addEventListener('click', this.resetSettings);
     this.element.querySelector('[data-settings-panel]')?.addEventListener('click', (event) => {
       if (event.target === event.currentTarget) this.closeSettings();
+    });
+    this.element.querySelector('[data-credits-panel]')?.addEventListener('click', (event) => {
+      if (event.target === event.currentTarget) this.closeCredits();
     });
     window.addEventListener('keydown', this.handleKeydown);
     this.syncSettingsUi();
@@ -89,7 +110,10 @@ export class MenuScreen {
 
   setVisible(value: boolean): void {
     this.element.classList.toggle('hidden', !value);
-    if (!value) this.closeSettings();
+    if (!value) {
+      this.closeSettings();
+      this.closeCredits();
+    }
   }
 
   destroy(): void {
@@ -98,6 +122,7 @@ export class MenuScreen {
   }
 
   private readonly openSettings = (): void => {
+    this.closeCredits();
     const panel = this.element.querySelector<HTMLElement>('[data-settings-panel]');
     panel?.classList.add('visible');
     panel?.setAttribute('aria-hidden', 'false');
@@ -106,6 +131,19 @@ export class MenuScreen {
 
   private readonly closeSettings = (): void => {
     const panel = this.element.querySelector<HTMLElement>('[data-settings-panel]');
+    panel?.classList.remove('visible');
+    panel?.setAttribute('aria-hidden', 'true');
+  };
+
+  private readonly openCredits = (): void => {
+    this.closeSettings();
+    const panel = this.element.querySelector<HTMLElement>('[data-credits-panel]');
+    panel?.classList.add('visible');
+    panel?.setAttribute('aria-hidden', 'false');
+  };
+
+  private readonly closeCredits = (): void => {
+    const panel = this.element.querySelector<HTMLElement>('[data-credits-panel]');
     panel?.classList.remove('visible');
     panel?.setAttribute('aria-hidden', 'true');
   };
@@ -128,7 +166,9 @@ export class MenuScreen {
   };
 
   private readonly handleKeydown = (event: KeyboardEvent): void => {
-    if (event.key === 'Escape') this.closeSettings();
+    if (event.key !== 'Escape') return;
+    this.closeSettings();
+    this.closeCredits();
   };
 
   private saveSettings(): void {
