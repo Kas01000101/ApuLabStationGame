@@ -29,48 +29,58 @@ if (html.includes('La reserva de energía · 1 / 11')) {
 const stylePatch = `
 <style id="level1-pedagogy-final-patch">
 /* ==========================================================
-   NIVEL 1 · JERARQUÍA PEDAGÓGICA FINAL
-   Conserva el diseño original del HUD.
-   Solo modifica el estado visual de las cajas EXPLORAR/GUÍA
-   y la señal de atención posterior a EXPLORAR.
-   No modifica layout, geometría, cámara ni Three.js.
+   NIVEL 1 · EXPLORAR / GUÍA · COLORES FINALES
+   Mantiene exactamente posición, dimensiones y geometría del HUD.
+   Solo corrige color/jerarquía visual y la señal de siguiente paso.
    ========================================================== */
 
-/*
-  IMPORTANTE:
-  Los botones EXPLORAR y GUÍA NO se rediseñan aquí.
-  Conservan exactamente el bloque rectangular V50 ya definido:
-  borde oscuro, sombra desplazada, tamaños, posición y tipografía.
-*/
-
-/* EXPLORAR: la caja informativa pasa a amarillo durante los 4 pasos. */
-#kawsay-guide-container > #kawsay-concept-panel.level1-explore-panel {
+/* EXPLORAR · amarillo principal ApuLab. */
+#kawsay-hud-container > #kawsay-explanation {
   background: #F4C75E !important;
-  border: 2px solid #17133A !important;
-  box-shadow:
-    6px 6px 0 #D5A43D,
-    inset 0 0 0 1px rgba(23, 19, 58, 0.14) !important;
+  border-color: #FFE5A3 !important;
   color: #17133A !important;
 }
 
-#kawsay-guide-container > #kawsay-concept-panel.level1-explore-panel #kawsay-concept-title,
-#kawsay-guide-container > #kawsay-concept-panel.level1-explore-panel #kawsay-concept-text,
-#kawsay-guide-container > #kawsay-concept-panel.level1-explore-panel #kawsay-hint {
-  color: #17133A !important;
+#kawsay-hud-container > #kawsay-explanation:hover,
+#kawsay-hud-container > #kawsay-explanation:focus-visible {
+  background: #F7D06F !important;
+  border-color: #FFE5A3 !important;
 }
 
-#kawsay-guide-container > #kawsay-concept-panel.level1-explore-panel #kawsay-concept-title {
-  font-weight: 800 !important;
+/* GUÍA · lavanda claro para que no se confunda con EXPLORAR ni con el morado oscuro del panel. */
+#kawsay-hud-container > #kawsay-guide {
+  background: #8E7DCE !important;
+  border-color: #B8A9F0 !important;
+  color: #FFFFFF !important;
+  box-shadow: 5px 5px 0 #4D4288 !important;
+  filter: none !important;
 }
 
-/* GUÍA conserva el morado original del bloque V50. */
-#kawsay-guide-container > #kawsay-concept-panel.level1-guide-panel.is-guide {
-  background: #3B326B !important;
-  border: 2px solid #17133A !important;
-  box-shadow: 6px 6px 0 #6960B8 !important;
+#kawsay-hud-container > #kawsay-guide:hover,
+#kawsay-hud-container > #kawsay-guide:focus-visible {
+  background: #9B8BDD !important;
+  border-color: #B8A9F0 !important;
+  color: #FFFFFF !important;
+  filter: none !important;
 }
 
-/* Jerarquía de lectura: título fuerte + acciones clave todavía más visibles. */
+#kawsay-hud-container > #kawsay-guide.is-active {
+  background: #9284D2 !important;
+  border-color: #D7CDF8 !important;
+  color: #FFFFFF !important;
+  box-shadow: 5px 5px 0 #4D4288 !important;
+}
+
+/* Sigue bloqueada funcionalmente al inicio, pero conserva claramente el color lavanda. */
+#kawsay-hud-container > #kawsay-guide:disabled {
+  background: #8E7DCE !important;
+  border-color: #B8A9F0 !important;
+  color: #FFFFFF !important;
+  opacity: 0.76 !important;
+  filter: none !important;
+}
+
+/* Jerarquía de lectura dentro de la GUÍA existente; no crea otra caja. */
 #kawsay-guide-container > #kawsay-concept-panel.level1-guide-panel.is-guide #kawsay-concept-title.level1-guide-title {
   color: #FFFFFF !important;
   font-weight: 900 !important;
@@ -81,18 +91,19 @@ const stylePatch = `
   font-weight: 900 !important;
 }
 
-/*
-  Después de EXPLORAR 4/4, GUÍA recibe un aro rosado luminoso.
-  No cambia de tamaño, no se desplaza y no altera el HUD.
-*/
+/* Después de EXPLORAR 4/4: brillo lavanda + aro rosado exterior. */
 #kawsay-hud-container > #kawsay-guide.level1-guide-attention {
-  outline: 2px solid rgba(255, 120, 183, 0.98) !important;
+  background: #8E7DCE !important;
+  border-color: #B8A9F0 !important;
+  color: #FFFFFF !important;
+  opacity: 1 !important;
+  outline: 2px solid #FF78B7 !important;
   outline-offset: 1px;
   box-shadow:
     5px 5px 0 #4D4288,
-    0 0 0 2px rgba(255, 120, 183, 0.18),
-    0 0 16px rgba(255, 120, 183, 0.42) !important;
-  filter: brightness(1.08) !important;
+    0 0 12px rgba(142, 125, 206, 0.62),
+    0 0 0 2px rgba(255, 120, 183, 0.16) !important;
+  filter: brightness(1.05) !important;
   animation: level1-guide-ring 1.45s ease-out infinite !important;
 }
 
@@ -102,16 +113,16 @@ const stylePatch = `
     outline-offset: 1px;
     box-shadow:
       5px 5px 0 #4D4288,
-      0 0 0 2px rgba(255, 120, 183, 0.26),
-      0 0 18px rgba(255, 120, 183, 0.50);
+      0 0 14px rgba(142, 125, 206, 0.70),
+      0 0 0 2px rgba(255, 120, 183, 0.22);
   }
   100% {
     outline-color: rgba(255, 120, 183, 0);
     outline-offset: 9px;
     box-shadow:
       5px 5px 0 #4D4288,
-      0 0 0 1px rgba(255, 120, 183, 0.05),
-      0 0 10px rgba(255, 120, 183, 0.20);
+      0 0 9px rgba(142, 125, 206, 0.38),
+      0 0 0 1px rgba(255, 120, 183, 0.04);
   }
 }
 
@@ -122,9 +133,8 @@ const stylePatch = `
     outline-offset: 4px;
     box-shadow:
       5px 5px 0 #4D4288,
-      0 0 0 2px rgba(255, 120, 183, 0.18),
-      0 0 14px rgba(255, 120, 183, 0.36) !important;
-    filter: brightness(1.06) !important;
+      0 0 12px rgba(142, 125, 206, 0.58),
+      0 0 0 2px rgba(255, 120, 183, 0.18) !important;
   }
 }
 </style>`;
@@ -163,20 +173,6 @@ const runtimePatch = `
     guideButton.classList.add('level1-guide-attention', 'is-recommended');
   };
 
-  const syncPanelVisualMode = () => {
-    const title = conceptTitle?.textContent || '';
-    const isExploreStep = !conceptPanel.hidden
-      && !conceptPanel.classList.contains('is-guide')
-      && new RegExp(' · [1-4] / 4$').test(title);
-
-    conceptPanel.classList.toggle('level1-explore-panel', isExploreStep);
-
-    if (!conceptPanel.classList.contains('is-guide')) {
-      conceptPanel.classList.remove('level1-guide-panel');
-      conceptTitle?.classList.remove('level1-guide-title');
-    }
-  };
-
   const keywordPattern = /(POWER|V⎓|COM|VΩ|PUNTA ROJA|PUNTA NEGRA|TERMINAL \\+|TERMINAL −|presiónalo|presiona|selecciona|arrastra|conecta|coloca|mide|enciende|acerca|intercámbialas)/giu;
 
   const emphasizeGuidePanel = () => {
@@ -184,7 +180,6 @@ const runtimePatch = `
     highlighting = true;
 
     try {
-      conceptPanel.classList.remove('level1-explore-panel');
       conceptPanel.classList.add('level1-guide-panel');
       conceptTitle?.classList.add('level1-guide-title');
 
@@ -243,8 +238,6 @@ const runtimePatch = `
   };
 
   const syncFlow = () => {
-    syncPanelVisualMode();
-
     const text = document.body.textContent || '';
     const finalStepVisible = text.includes('AHORA PRUÉBALO · 4 / 4');
 
@@ -263,7 +256,6 @@ const runtimePatch = `
     guideOpened = true;
     deactivateGuideAttention();
     requestAnimationFrame(() => {
-      syncPanelVisualMode();
       bindGuidePanel();
       syncFlow();
     });
