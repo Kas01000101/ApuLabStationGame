@@ -13,7 +13,7 @@ export class CanonicalStationFx {
   private readonly rightMonitorCanvas = document.createElement('canvas');
   private readonly rightMonitorTexture: THREE.CanvasTexture;
   private readonly brandCanvas = document.createElement('canvas');
-  private readonly brandTexture: THREE.CanvasTexture;
+  private readonly brandTexture = new THREE.CanvasTexture(this.brandCanvas);
 
   private readonly stemMaterials: THREE.MeshBasicMaterial[] = [];
   private readonly ambientStripMaterials: THREE.MeshStandardMaterial[] = [];
@@ -204,7 +204,7 @@ export class CanonicalStationFx {
       ctx.fillStyle='#49C9D7';ctx.fillRect(310,118,404,6);
       ctx.fillStyle='#B8C2CC';ctx.font='700 29px Poppins, Arial';ctx.fillText('STATION · PERÚ',512,171);
     }
-    this.brandTexture=new THREE.CanvasTexture(this.brandCanvas);this.brandTexture.colorSpace=THREE.SRGBColorSpace;
+    this.brandTexture.colorSpace=THREE.SRGBColorSpace;this.brandTexture.needsUpdate=true;
     const sign=new THREE.Mesh(new THREE.PlaneGeometry(4.65,1.0),new THREE.MeshBasicMaterial({map:this.brandTexture}));
     sign.position.set(2.9,7.65,-10.22);this.group.add(sign);
   }
