@@ -1,13 +1,17 @@
 type MenuCallbacks = { onStart: () => void; onCredits: () => void };
 
 const SFX_SETTING_KEY = 'apulab.settings.sfx';
+const MUSIC_VOLUME_SETTING_KEY = 'apulab.settings.musicVolume';
+const DEFAULT_MUSIC_VOLUME = 35;
 
 export class MenuScreen {
   private readonly element = document.createElement('section');
   private sfxEnabled = true;
+  private musicVolume = DEFAULT_MUSIC_VOLUME;
 
   constructor(private readonly root: HTMLElement, callbacks: MenuCallbacks) {
-    this.sfxEnabled = localStorage.getItem(SFX_SETTING_KEY) !== 'off';
+    this.sfxEnabled = this.readSetting(SFX_SETTING_KEY) !== 'off';
+    this.musicVolume = this.readMusicVolume();
     this.element.className = 'menu-screen';
     this.element.innerHTML = `
       <img class="menu-bg-canonical" src="/assets/menu/Fondo_menu.png" alt="" aria-hidden="true" />
@@ -25,8 +29,28 @@ export class MenuScreen {
 
           <div class="menu-settings-row">
             <div class="menu-settings-copy">
-              <strong>SONIDO</strong>
-              <span>Música ambiental y efectos</span>
+              <strong>MÚSICA</strong>
+              <span>Volumen de la música ambiental</span>
+            </div>
+            <div class="menu-settings-volume">
+              <input
+                data-music-volume
+                id="music-volume"
+                type="range"
+                min="0"
+                max="100"
+                step="5"
+                value="${DEFAULT_MUSIC_VOLUME}"
+                aria-label="Volumen de la música"
+              />
+              <output data-music-volume-label for="music-volume">${DEFAULT_MUSIC_VOLUME}%</output>
+            </div>
+          </div>
+
+          <div class="menu-settings-row">
+            <div class="menu-settings-copy">
+              <strong>EFECTOS</strong>
+              <span>Sonidos de botones y misiones</span>
             </div>
             <button class="menu-settings-toggle" data-sfx-toggle type="button" aria-pressed="true">
               <span class="menu-settings-toggle-knob" aria-hidden="true"></span>
@@ -54,6 +78,7 @@ export class MenuScreen {
     this.element.querySelector('[data-action="credits"]')?.addEventListener('click', callbacks.onCredits);
     this.element.querySelector('[data-settings-close]')?.addEventListener('click', this.closeSettings);
     this.element.querySelector('[data-sfx-toggle]')?.addEventListener('click', this.toggleSfx);
+    this.element.querySelector('[data-music-volume]')?.addEventListener('input', this.changeMusicVolume);
     this.element.querySelector('[data-settings-reset]')?.addEventListener('click', this.resetSettings);
     this.element.querySelector('[data-settings-panel]')?.addEventListener('click', (event) => {
       if (event.target === event.currentTarget) this.closeSettings();
@@ -92,6 +117,13 @@ export class MenuScreen {
 
   private readonly resetSettings = (): void => {
     this.sfxEnabled = true;
+    this.musicVolume = DEFAULT_MUSIC_VOLUME;
+    this.saveSettings();
+  };
+
+  private readonly changeMusicVolume = (event: Event): void => {
+    const input = event.currentTarget as HTMLInputElement;
+    this.musicVolume = this.clampVolume(Number(input.value));
     this.saveSettings();
   };
 
@@ -101,10 +133,15 @@ export class MenuScreen {
 
   private saveSettings(): void {
     localStorage.setItem(SFX_SETTING_KEY, this.sfxEnabled ? 'on' : 'off');
+    localStorage.setItem(MUSIC_VOLUME_SETTING_KEY, String(this.musicVolume));
     this.syncSettingsUi();
     window.dispatchEvent(
       new CustomEvent('apulab-settings-changed', {
-        detail: { sfxEnabled: this.sfxEnabled, language: 'es' },
+        detail: {
+          sfxEnabled: this.sfxEnabled,
+          musicVolume: this.musicVolume,
+          language: 'es',
+        },
       }),
     );
   }
@@ -112,8 +149,34 @@ export class MenuScreen {
   private syncSettingsUi(): void {
     const toggle = this.element.querySelector<HTMLButtonElement>('[data-sfx-toggle]');
     const label = this.element.querySelector<HTMLElement>('[data-sfx-label]');
+    const volume = this.element.querySelector<HTMLInputElement>('[data-music-volume]');
+    const volumeLabel = this.element.querySelector<HTMLOutputElement>('[data-music-volume-label]');
     toggle?.classList.toggle('is-off', !this.sfxEnabled);
     toggle?.setAttribute('aria-pressed', String(this.sfxEnabled));
     if (label) label.textContent = this.sfxEnabled ? 'ON' : 'OFF';
+    if (volume) {
+      volume.value = String(this.musicVolume);
+      volume.style.setProperty('--music-volume', `${this.musicVolume}%`);
+    }
+    if (volumeLabel) volumeLabel.textContent = `${this.musicVolume}%`;
+  }
+
+  private readMusicVolume(): number {
+    const stored = this.readSetting(MUSIC_VOLUME_SETTING_KEY);
+    if (stored === null) return DEFAULT_MUSIC_VOLUME;
+    const parsed = Number(stored);
+    return Number.isFinite(parsed) ? this.clampVolume(parsed) : DEFAULT_MUSIC_VOLUME;
+  }
+
+  private readSetting(key: string): string | null {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  }
+
+  private clampVolume(value: number): number {
+    return Math.min(100, Math.max(0, Math.round(value / 5) * 5));
   }
 }
