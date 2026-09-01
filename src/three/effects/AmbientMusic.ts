@@ -1,10 +1,10 @@
-const SOUND_SETTING_KEY = 'apulab.settings.sfx';
-const AMBIENT_TRACK_URL = '/assets/audio/an-ocean-in-outer-space.ogg';
-const AMBIENT_VOLUME = 0.2;
-const FADE_IN_MS = 2500;
+const MUSIC_VOLUME_SETTING_KEY = 'apulab.settings.musicVolume';
+const AMBIENT_TRACK_URL = '/assets/audio/an-ocean-in-outer-space.mp3';
+const DEFAULT_MUSIC_VOLUME = 35;
+const FADE_IN_MS = 900;
 const FADE_OUT_MS = 250;
 
-type SettingsChangedDetail = { sfxEnabled?: boolean };
+type SettingsChangedDetail = { musicVolume?: number };
 
 /**
  * Música ambiental global de ApuLab Station.
@@ -53,18 +53,19 @@ export class AmbientMusic {
   private readonly handleFirstInteraction = (): void => {
     this.hasUserInteraction = true;
     this.disarm();
-    if (this.isEnabled() && !document.hidden) void this.playWithFade();
+    if (this.getTargetVolume() > 0 && !document.hidden) void this.playWithFade();
   };
 
   private readonly handleSettingsChanged = (event: CustomEvent<SettingsChangedDetail>): void => {
-    const enabled = event.detail?.sfxEnabled ?? this.isEnabled();
-    if (!enabled) {
+    const targetVolume = this.normalizeVolume(event.detail?.musicVolume ?? this.readVolumeSetting());
+    if (targetVolume === 0) {
       this.fadeTo(0, FADE_OUT_MS, true);
       return;
     }
 
     if (this.hasUserInteraction && !document.hidden) {
-      void this.playWithFade();
+      if (this.audio.paused) void this.playWithFade();
+      else this.fadeTo(targetVolume, FADE_OUT_MS);
     } else {
       this.arm();
     }
@@ -78,7 +79,7 @@ export class AmbientMusic {
       return;
     }
 
-    if (this.hasUserInteraction && this.isEnabled()) void this.playWithFade();
+    if (this.hasUserInteraction && this.getTargetVolume() > 0) void this.playWithFade();
   };
 
   private async playWithFade(): Promise<void> {
@@ -87,7 +88,7 @@ export class AmbientMusic {
 
     try {
       await this.audio.play();
-      this.fadeTo(AMBIENT_VOLUME, FADE_IN_MS);
+      this.fadeTo(this.getTargetVolume(), FADE_IN_MS);
     } catch {
       // Si el navegador aún exige un gesto válido, volvemos a esperar uno.
       this.hasUserInteraction = false;
@@ -132,11 +133,22 @@ export class AmbientMusic {
     this.armed = false;
   }
 
-  private isEnabled(): boolean {
+  private getTargetVolume(): number {
+    return this.normalizeVolume(this.readVolumeSetting());
+  }
+
+  private readVolumeSetting(): number {
     try {
-      return window.localStorage.getItem(SOUND_SETTING_KEY) !== 'off';
+      const stored = window.localStorage.getItem(MUSIC_VOLUME_SETTING_KEY);
+      if (stored === null) return DEFAULT_MUSIC_VOLUME;
+      const parsed = Number(stored);
+      return Number.isFinite(parsed) ? parsed : DEFAULT_MUSIC_VOLUME;
     } catch {
-      return true;
+      return DEFAULT_MUSIC_VOLUME;
     }
+  }
+
+  private normalizeVolume(value: number): number {
+    return Math.min(1, Math.max(0, value / 100));
   }
 }
