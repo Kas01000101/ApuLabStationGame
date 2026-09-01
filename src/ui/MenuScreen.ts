@@ -2,7 +2,7 @@ type MenuCallbacks = { onStart: () => void; onCredits: () => void };
 
 const SFX_SETTING_KEY = 'apulab.settings.sfx';
 const MUSIC_VOLUME_SETTING_KEY = 'apulab.settings.musicVolume';
-const DEFAULT_MUSIC_VOLUME = 35;
+const DEFAULT_MUSIC_VOLUME = 15;
 
 export class MenuScreen {
   private readonly element = document.createElement('section');
