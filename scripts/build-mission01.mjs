@@ -7,9 +7,9 @@ const ROOT = process.cwd();
 const MISSION_SRC = resolve(ROOT, 'src/missions/mission01/final');
 const OUT_DIR = resolve(ROOT, 'public/missions/mission01');
 
-// Niveles 1 y 2 ya se verifican después de sus parches históricos.
+// Nivel 2 conserva verificación exacta. Nivel 1 se fija de nuevo al final de
+// esta edición pedagógica después de obtener su hash determinista en CI.
 const FINAL_EXPECTED = {
-  1: { sha256: 'ae79c89d4c5ca52bf854b42b3d847b5b3d8e779bf0e2e87ebc9f279118cd18fb', bytes: 162855 },
   2: { sha256: 'e6a93e42ddb2d3e561b09d95ae4416f8d9b1dd0e03e77d16b8891e7d2be3f29c', bytes: 206358 },
 };
 
@@ -51,6 +51,14 @@ function replaceRequired(source, before, after, label) {
   return source.replace(before, after);
 }
 
+function replaceBlock(source, startMarker, endMarker, replacement, label) {
+  const start = source.indexOf(startMarker);
+  if (start < 0) throw new Error(`mission01_patch_missing:${label}:start`);
+  const end = source.indexOf(endMarker, start + startMarker.length);
+  if (end < 0) throw new Error(`mission01_patch_missing:${label}:end`);
+  return source.slice(0, start) + replacement + source.slice(end);
+}
+
 function patchLevel1(source) {
   let html = source;
   html = replaceRequired(
@@ -83,7 +91,320 @@ function patchLevel1(source) {
     'aria-label="Nivel 1 de 8">1 / 8</span>',
     'l1-progress',
   );
-  return html.replaceAll('three@0.160.0', 'three@0.180.0');
+  html = html.replaceAll('three@0.160.0', 'three@0.180.0');
+
+  // NIVEL 1 ÚNICAMENTE: señal tutorial temporal. No altera layout ni botones.
+  const interactionCss = `
+/* ==========================================================
+   NIVEL 1 · ATENCIÓN TEMPORAL A EXPLORAR
+   Solo flecha/pulse permitidos por el contrato pedagógico.
+   ========================================================== */
+#kawsay-explore-attention {
+  position: absolute;
+  left: 1162px;
+  top: 48px;
+  width: 48px;
+  height: 20px;
+  z-index: 1002;
+  pointer-events: none;
+  filter: drop-shadow(0 0 7px rgba(244, 199, 94, 0.62));
+  animation: kawsay-explore-arrow-float 1.45s ease-in-out infinite;
+}
+#kawsay-explore-attention[hidden] { display: none !important; }
+#kawsay-explore-attention::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 34px;
+  height: 4px;
+  border-radius: 999px;
+  background: #F4C75E;
+  box-shadow: 0 0 9px rgba(244, 199, 94, 0.5);
+}
+#kawsay-explore-attention::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 2px;
+  width: 0;
+  height: 0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 14px solid #F4C75E;
+}
+#kawsay-hud-container > #kawsay-explanation.is-explore-attention {
+  animation: kawsay-explore-attention-pulse 1.65s ease-in-out infinite !important;
+  will-change: transform, box-shadow;
+}
+@keyframes kawsay-explore-attention-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 5px 5px 0 #D5A43D, 0 0 0 0 rgba(244,199,94,0), 0 0 12px rgba(244,199,94,.16) !important;
+  }
+  50% {
+    transform: scale(1.025);
+    box-shadow: 5px 5px 0 #D5A43D, 0 0 0 4px rgba(255,229,163,.12), 0 0 19px rgba(244,199,94,.34) !important;
+  }
+}
+@keyframes kawsay-explore-arrow-float {
+  0%, 100% { transform: translateY(-2px); }
+  50% { transform: translateY(2px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #kawsay-explore-attention { animation: none; }
+  #kawsay-hud-container > #kawsay-explanation.is-explore-attention {
+    animation: none !important;
+    transform: none !important;
+    box-shadow: 5px 5px 0 #D5A43D, 0 0 0 2px rgba(255,229,163,.14), 0 0 14px rgba(244,199,94,.25) !important;
+  }
+}
+`;
+  html = replaceRequired(html, '</style>\n</head>', `${interactionCss}</style>\n</head>`, 'l1-attention-css');
+
+  html = replaceRequired(
+    html,
+    '<button id="kawsay-explanation" class="kawsay-hud-button is-recommended" type="button">EXPLORAR</button>',
+    '<button id="kawsay-explanation" class="kawsay-hud-button is-recommended is-explore-attention" type="button">EXPLORAR</button>',
+    'l1-explore-attention-class',
+  );
+  html = replaceRequired(
+    html,
+    '    </nav>\n\n    <button id="kawsay-journal"',
+    '    </nav>\n    <div id="kawsay-explore-attention" aria-hidden="true"></div>\n\n    <button id="kawsay-journal"',
+    'l1-explore-arrow-dom',
+  );
+
+  html = replaceRequired(
+    html,
+    '  const guideButton = document.getElementById("kawsay-guide");',
+    '  const guideButton = document.getElementById("kawsay-guide");\n  const exploreAttention = document.getElementById("kawsay-explore-attention");',
+    'l1-explore-arrow-ref',
+  );
+  html = replaceRequired(
+    html,
+    '  let cameraTween = null;',
+    '  let cameraTween = null;\n  let exploreAttentionDismissed = false;\n  let exploreCompleted = false;',
+    'l1-explore-state',
+  );
+
+  // EXPLORAR: 11 pantallas -> exactamente 4 focos conceptuales.
+  html = replaceBlock(
+    html,
+    '  const guidedExplanation = [',
+    '  // Halo de enfoque:',
+    `  // NIVEL 1 · EXPLORAR 4 PASOS
+  const guidedExplanation = [
+    {
+      focus: "battery-overview",
+      title: "¿QUÉ VAMOS A MEDIR?",
+      text: "La batería tiene dos terminales: + y −. El voltaje nos ayuda a comparar la energía entre esos dos puntos.",
+      view: { position: [2.45, 6.1, -0.25], target: [2.45, -0.55, -0.25] }
+    },
+    {
+      focus: "multimeter",
+      title: "EL MULTÍMETRO",
+      text: "El multímetro es nuestra herramienta de medición. Para medir voltaje debe estar encendido y preparado en V⎓.",
+      view: { position: [-3.25, 6.25, 0.0], target: [-3.25, -0.55, 0.0] }
+    },
+    {
+      focus: "probes",
+      title: "DOS PUNTAS, DOS PUNTOS",
+      text: "Para medir voltaje necesitamos comparar dos puntos. Por eso usamos dos puntas.",
+      view: { position: [0.8, 6.2, 2.1], target: [0.8, -1.0, 2.1] }
+    },
+    {
+      focus: "overview",
+      title: "AHORA PRUÉBALO",
+      text: "Conecta las puntas y descubre qué lectura obtiene el multímetro.",
+      view: { position: [0, 13.1, 0.10], target: [0, -1.02, 0.10] }
+    }
+  ];
+
+`,
+    'l1-guided-explanation-four-steps',
+  );
+
+  html = replaceRequired(
+    html,
+    '  const focusVisualDefinitions = {',
+    '  const focusVisualDefinitions = {\n    "battery-overview": { position: [2.45, 0.72, -0.25], scale: [5.35, 2.95], color: 0xffd45a },',
+    'l1-battery-overview-focus',
+  );
+
+  // Etiqueta MULTÍMETRO: reutiliza exactamente el generador de PUNTA ROJA/NEGRA.
+  html = replaceRequired(
+    html,
+    '  const redConnectedEnd = createPortPlug(',
+    '  addLooseLabel(scene, "MULTÍMETRO", new THREE.Vector3(-3.25, 0.34, -2.02), "#ffd43b", null);\n\n  const redConnectedEnd = createPortPlug(',
+    'l1-multimeter-label',
+  );
+
+  // Durante el paso 2/4 se destaca el multímetro completo junto con POWER,
+  // pantalla y V⎓; durante 1/4 se destacan batería y terminales.
+  html = replaceRequired(
+    html,
+    '    const screenHighlighted = explanationMode && ["screen", "voltage"].includes(guideFocus);',
+    '    const screenHighlighted = explanationMode && ["screen", "voltage", "multimeter"].includes(guideFocus);',
+    'l1-multimeter-screen-focus',
+  );
+  html = replaceRequired(
+    html,
+    '    const dcvHighlighted = explanationMode && guideFocus === "dcv";',
+    '    const dcvHighlighted = explanationMode && ["dcv", "multimeter"].includes(guideFocus);',
+    'l1-multimeter-dcv-focus',
+  );
+  html = replaceRequired(
+    html,
+    '    const powerHighlighted = (explanationMode && guideFocus === "multimeter-power")',
+    '    const powerHighlighted = (explanationMode && ["multimeter-power", "multimeter"].includes(guideFocus))',
+    'l1-multimeter-power-focus',
+  );
+  html = replaceRequired(
+    html,
+    '      && ["terminals", "polarity", "voltage"].includes(guideFocus);',
+    '      && ["terminals", "polarity", "voltage", "battery-overview"].includes(guideFocus);',
+    'l1-battery-terminal-focus',
+  );
+
+  // GUÍA conserva el panel y la mecánica existentes; solo concentra el CÓMO.
+  html = replaceBlock(
+    html,
+    '  function updateGuide() {',
+    '  function announceStatus(title, text) {',
+    `  function updateGuide() {
+    if (!guideActive || explanationMode) return;
+
+    conceptPanel.classList.remove("is-compact");
+    conceptPanel.classList.add("is-guide");
+
+    if (challengeState === CHALLENGE_STATE.AWAITING_BATTERY_POWER) {
+      setHudContent(
+        "1 · ENCIENDE LA BATERÍA",
+        "Busca el botón POWER de la batería y presiónalo.",
+        "La batería debe estar encendida antes de medir."
+      );
+    } else if (challengeState === CHALLENGE_STATE.AWAITING_METER_POWER) {
+      setHudContent(
+        "2 · PREPARA EL MULTÍMETRO",
+        "Presiona POWER en el multímetro. Ya está preparado en V⎓; el cable negro está en COM y el rojo en VΩ.",
+        "Cuando la pantalla se encienda, el instrumento estará listo."
+      );
+    } else if (challengeState === CHALLENGE_STATE.READY) {
+      setHudContent(
+        "3 · USA LAS DOS PUNTAS",
+        "Acerca una punta a cada terminal para comparar dos puntos.",
+        "Observa la lectura: el signo también puede darte una pista."
+      );
+    } else if (challengeState === CHALLENGE_STATE.ONE_PROBE) {
+      setHudContent(
+        "4 · FALTA UN SEGUNDO PUNTO",
+        "Ya conectaste una punta. Lleva la otra al terminal libre.",
+        "Tenemos un punto. Para medir voltaje necesitamos comparar dos."
+      );
+    } else if (challengeState === CHALLENGE_STATE.REVERSED) {
+      setHudContent(
+        "EL SIGNO − ES UNA PISTA",
+        "La medición funciona. El signo − nos indica que las puntas están invertidas.",
+        "Intercámbialas y vuelve a observar la lectura."
+      );
+    } else if (challengeState === CHALLENGE_STATE.COMPLETED || challengeState === CHALLENGE_STATE.CORRECT) {
+      setHudContent(
+        "¡MEDICIÓN COMPLETADA!",
+        "28.0 V es la diferencia de voltaje entre los dos puntos que medimos."
+      );
+    }
+  }
+
+`,
+    'l1-guide-how-to',
+  );
+
+  html = replaceRequired(
+    html,
+    '          "La fuente y el multímetro están encendidos. Ahora compara los dos terminales: roja en + y negra en −."',
+    '          "La fuente y el multímetro están encendidos. Usa las dos puntas para comparar los dos terminales."',
+    'l1-ready-no-solution',
+  );
+  html = replaceRequired(
+    html,
+    '          "Ya tienes un punto",\n          "El voltaje compara dos puntos. Falta llevar la otra punta al terminal libre."',
+    '          "Tenemos un punto",\n          "Para medir voltaje necesitamos comparar dos."',
+    'l1-one-probe-feedback',
+  );
+  html = replaceRequired(
+    html,
+    '          "¡Mira el signo −!",\n          "−15.0 V no significa que la batería esté mal. Es una pista de polaridad: las puntas están invertidas. Cambia roja a + y negra a −."',
+    '          "La medición funciona",\n          "El signo − nos indica que las puntas están invertidas. Puedes corregirlas inmediatamente."',
+    'l1-reversed-feedback',
+  );
+  html = replaceRequired(
+    html,
+    '          "¡15.0 V! Medición correcta",\n          "Roja en + y negra en −. La lectura positiva confirma que mediste correctamente esta batería de práctica."',
+    '          "28.0 V",\n          "28.0 V es la diferencia de voltaje entre los dos puntos que medimos."',
+    'l1-correct-feedback',
+  );
+
+  // Atención inicial: desaparece al primer clic y no vuelve durante la sesión.
+  html = replaceBlock(
+    html,
+    '  function showExplanationStep() {',
+    '  function finishExplanation() {',
+    `  function dismissExploreAttention() {
+    if (exploreAttentionDismissed) return;
+    exploreAttentionDismissed = true;
+    if (exploreAttention) exploreAttention.hidden = true;
+    explanationButton.classList.remove("is-explore-attention", "is-recommended");
+  }
+
+  function showExplanationStep() {
+    enforceUiAnchors();
+    const step = guidedExplanation[explanationIndex];
+    explanationButton.textContent = "CONTINUAR";
+    explanationButton.setAttribute("aria-label", "Continuar recorrido");
+    explanationButton.classList.remove("is-recommended");
+    conceptPanel.classList.remove("is-guide");
+    sceneHint.textContent = "";
+    sceneHint.hidden = true;
+    setBatteryXray(Boolean(step.xray));
+    setHudContent(\`\${step.title} · \${explanationIndex + 1} / \${guidedExplanation.length}\`, step.text);
+    liveStatus.textContent = step.title + ". " + step.text;
+    moveCamera(step.view);
+  }
+
+`,
+    'l1-explore-attention-dismiss',
+  );
+  html = replaceRequired(
+    html,
+    '    explanationCompleted = true;\n    explanationIndex = -1;',
+    '    explanationCompleted = true;\n    exploreCompleted = true;\n    dismissExploreAttention();\n    explanationIndex = -1;',
+    'l1-explore-completed-state',
+  );
+  html = replaceRequired(
+    html,
+    '    if (!explanationMode) {\n      if (guideActive) setGuideMode(false);',
+    '    if (!explanationMode) {\n      dismissExploreAttention();\n      if (guideActive) setGuideMode(false);',
+    'l1-dismiss-on-click',
+  );
+
+  // La batería de práctica de esta revisión pedagógica se mide a 28.0 V.
+  html = replaceRequired(
+    html,
+    '  const PRACTICE_BATTERY_VOLTAGE = 15.0;',
+    '  const PRACTICE_BATTERY_VOLTAGE = 28.0;',
+    'l1-practice-voltage',
+  );
+  html = html.replaceAll('15.0 V', '28.0 V');
+  html = html.replaceAll('15.0 voltios', '28.0 voltios');
+  html = replaceRequired(
+    html,
+    '<div class="kawsay-journal-voltage">15.0 <span>V</span></div>',
+    '<div class="kawsay-journal-voltage">28.0 <span>V</span></div>',
+    'l1-journal-voltage',
+  );
+
+  return html;
 }
 
 function patchLevel2(source) {
@@ -186,6 +507,29 @@ function verifySemanticContract(level, html) {
     throw new Error(`mission01_semantic_missing:level${level}:data-apulab-level`);
   }
 
+  if (level === 1) {
+    const markers = [
+      'NIVEL 1 · EXPLORAR 4 PASOS',
+      '¿QUÉ VAMOS A MEDIR?',
+      'EL MULTÍMETRO',
+      'DOS PUNTAS, DOS PUNTOS',
+      'AHORA PRUÉBALO',
+      'kawsay-explore-attention',
+      'exploreAttentionDismissed',
+      'MULTÍMETRO',
+      'PRACTICE_BATTERY_VOLTAGE = 28.0',
+      'Tenemos un punto',
+      'La medición funciona',
+      '28.0 V es la diferencia de voltaje entre los dos puntos que medimos.',
+    ];
+    for (const marker of markers) {
+      if (!html.includes(marker)) throw new Error(`mission01_level1_missing:${marker}`);
+    }
+    if (html.includes('La reserva de energía · 1 / 11')) {
+      throw new Error('mission01_level1_old_explore_flow_present');
+    }
+  }
+
   const next = level + 1;
   if (level >= 3 && level <= 6 && !html.includes(`nextLevel:${next}`)) {
     throw new Error(`mission01_transition_missing:level${level}:next${next}`);
@@ -227,7 +571,8 @@ async function writeResult(level, html) {
 
 async function buildLegacyLevel(level, patch) {
   const html = patch(await unpackLevel(level));
-  integrity(level, html, FINAL_EXPECTED[level], 'final');
+  const expected = FINAL_EXPECTED[level];
+  if (expected) integrity(level, html, expected, 'final');
   return writeResult(level, html);
 }
 
