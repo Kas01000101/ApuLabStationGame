@@ -17,7 +17,7 @@ const stylePatch = `
   NIVEL 1 · EXPLORAR / GUÍA
   Conserva geometría y posición.
   EXPLORAR permanece amarillo ApuLab.
-  GUÍA vuelve a lavanda para recuperar la jerarquía visual original.
+  GUÍA permanece lavanda, pero usa el mismo lenguaje de líneas oscuras.
 */
 
 /* EXPLORAR · amarillo ApuLab. */
@@ -41,38 +41,59 @@ const stylePatch = `
     inset 0 0 0 1px rgba(23, 19, 58, 0.34) !important;
 }
 
-/* GUÍA · lavanda. Solo Nivel 1. */
+/* GUÍA · lavanda con borde e interior oscuros como EXPLORAR. Solo Nivel 1. */
 #kawsay-hud-container > #kawsay-guide,
 #kawsay-hud-container > #kawsay-guide:disabled,
 #kawsay-hud-container > #kawsay-guide.is-active {
   background: #8E7DCE !important;
-  border: 2px solid #B8A9F0 !important;
+  border: 2px solid #17133A !important;
   color: #FFFFFF !important;
   box-shadow:
     0 4px 0 #5E52A3,
-    0 7px 12px rgba(0, 0, 0, 0.18) !important;
+    0 7px 12px rgba(0, 0, 0, 0.18),
+    inset 0 0 0 1px rgba(23, 19, 58, 0.30) !important;
   filter: none !important;
 }
 
 #kawsay-hud-container > #kawsay-guide:hover,
 #kawsay-hud-container > #kawsay-guide:focus-visible {
   background: #9B8BDD !important;
-  border-color: #B8A9F0 !important;
+  border-color: #17133A !important;
   color: #FFFFFF !important;
   box-shadow:
     0 4px 0 #5E52A3,
-    0 7px 12px rgba(0, 0, 0, 0.18) !important;
+    0 7px 12px rgba(0, 0, 0, 0.18),
+    inset 0 0 0 1px rgba(23, 19, 58, 0.34) !important;
 }
 
 #kawsay-hud-container > #kawsay-guide:disabled {
   opacity: 0.76 !important;
 }
 
-/*
-  No se redefine .level1-guide-attention aquí.
-  Su aro pedagógico rosado conserva el estado específico definido
-  en level1-pedagogy-final-patch, evitando que GUÍA vuelva a amarillo.
-*/
+/* El triángulo blanco anterior NO pertenece al botón GUÍA. */
+#kawsay-hud-container > #kawsay-guide::before,
+#kawsay-hud-container > #kawsay-guide:disabled::before,
+#kawsay-hud-container > #kawsay-guide.is-active::before {
+  content: none !important;
+  display: none !important;
+  border: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+/* La atención pedagógica puede conservar su aro rosado exterior,
+   pero el borde físico del botón siempre sigue siendo negro. */
+#kawsay-hud-container > #kawsay-guide.level1-guide-attention {
+  background: #8E7DCE !important;
+  border-color: #17133A !important;
+  color: #FFFFFF !important;
+  box-shadow:
+    0 4px 0 #5E52A3,
+    0 7px 12px rgba(0, 0, 0, 0.18),
+    inset 0 0 0 1px rgba(23, 19, 58, 0.30),
+    0 0 12px rgba(142, 125, 206, 0.48),
+    0 0 0 2px rgba(255, 120, 183, 0.16) !important;
+}
 </style>`;
 
 if (!html.includes('</head>')) {
@@ -81,4 +102,4 @@ if (!html.includes('</head>')) {
 
 html = html.replace('</head>', `${stylePatch}\n</head>`);
 await writeFile(LEVEL1_PATH, html, 'utf8');
-console.info('[mission01] level 1 Explore yellow + Guide lavender styles applied');
+console.info('[mission01] level 1 Guide dark lines + no triangle applied');
