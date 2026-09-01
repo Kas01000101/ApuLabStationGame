@@ -70,15 +70,26 @@ const stylePatch = `
   opacity: 0.76 !important;
 }
 
-/* El triángulo blanco anterior NO pertenece al botón GUÍA. */
+/* GUÍA usa el mismo triángulo oscuro de EXPLORAR, ligeramente más pequeño. */
 #kawsay-hud-container > #kawsay-guide::before,
 #kawsay-hud-container > #kawsay-guide:disabled::before,
 #kawsay-hud-container > #kawsay-guide.is-active::before {
-  content: none !important;
-  display: none !important;
-  border: 0 !important;
-  background: none !important;
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  left: 12px !important;
+  top: 50% !important;
+  right: auto !important;
+  width: 0 !important;
+  height: 0 !important;
+  border-top: 6px solid transparent !important;
+  border-bottom: 6px solid transparent !important;
+  border-left: 9px solid #17133A !important;
+  background: transparent !important;
+  border-radius: 0 !important;
   box-shadow: none !important;
+  transform: translateY(-50%) !important;
+  pointer-events: none !important;
 }
 
 /* La atención pedagógica puede conservar su aro rosado exterior,
@@ -102,4 +113,4 @@ if (!html.includes('</head>')) {
 
 html = html.replace('</head>', `${stylePatch}\n</head>`);
 await writeFile(LEVEL1_PATH, html, 'utf8');
-console.info('[mission01] level 1 Guide dark lines + no triangle applied');
+console.info('[mission01] level 1 Guide dark lines + black triangle applied');
