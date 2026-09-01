@@ -14,14 +14,14 @@ if (html.includes('id="level1-hud-dark-lines-patch"')) {
 const stylePatch = `
 <style id="level1-hud-dark-lines-patch">
 /*
-  NIVEL 1 · GUÍA / EXPLORAR
-  Conserva geometría y posición. Solo corrige la jerarquía cromática:
-  amarillo ApuLab + borde oscuro + línea interior oscura.
+  NIVEL 1 · EXPLORAR / GUÍA
+  Conserva geometría y posición.
+  EXPLORAR permanece amarillo ApuLab.
+  GUÍA vuelve a lavanda para recuperar la jerarquía visual original.
 */
-#kawsay-hud-container > #kawsay-explanation,
-#kawsay-hud-container > #kawsay-guide,
-#kawsay-hud-container > #kawsay-guide:disabled,
-#kawsay-hud-container > #kawsay-guide.is-active {
+
+/* EXPLORAR · amarillo ApuLab. */
+#kawsay-hud-container > #kawsay-explanation {
   background: #F4C75E !important;
   border: 2px solid #17133A !important;
   color: #17133A !important;
@@ -32,9 +32,7 @@ const stylePatch = `
 }
 
 #kawsay-hud-container > #kawsay-explanation:hover,
-#kawsay-hud-container > #kawsay-explanation:focus-visible,
-#kawsay-hud-container > #kawsay-guide:hover,
-#kawsay-hud-container > #kawsay-guide:focus-visible {
+#kawsay-hud-container > #kawsay-explanation:focus-visible {
   background: #F7D06F !important;
   border-color: #17133A !important;
   color: #17133A !important;
@@ -43,21 +41,38 @@ const stylePatch = `
     inset 0 0 0 1px rgba(23, 19, 58, 0.34) !important;
 }
 
+/* GUÍA · lavanda. Solo Nivel 1. */
+#kawsay-hud-container > #kawsay-guide,
+#kawsay-hud-container > #kawsay-guide:disabled,
+#kawsay-hud-container > #kawsay-guide.is-active {
+  background: #8E7DCE !important;
+  border: 2px solid #B8A9F0 !important;
+  color: #FFFFFF !important;
+  box-shadow:
+    0 4px 0 #5E52A3,
+    0 7px 12px rgba(0, 0, 0, 0.18) !important;
+  filter: none !important;
+}
+
+#kawsay-hud-container > #kawsay-guide:hover,
+#kawsay-hud-container > #kawsay-guide:focus-visible {
+  background: #9B8BDD !important;
+  border-color: #B8A9F0 !important;
+  color: #FFFFFF !important;
+  box-shadow:
+    0 4px 0 #5E52A3,
+    0 7px 12px rgba(0, 0, 0, 0.18) !important;
+}
+
 #kawsay-hud-container > #kawsay-guide:disabled {
   opacity: 0.76 !important;
 }
 
-/* La señal pedagógica de GUÍA conserva su aro rosado, pero nunca un borde claro. */
-#kawsay-hud-container > #kawsay-guide.level1-guide-attention {
-  background: #F4C75E !important;
-  border-color: #17133A !important;
-  color: #17133A !important;
-  box-shadow:
-    5px 5px 0 #D5A43D,
-    inset 0 0 0 1px rgba(23, 19, 58, 0.30),
-    0 0 12px rgba(142, 125, 206, 0.48),
-    0 0 0 2px rgba(255, 120, 183, 0.16) !important;
-}
+/*
+  No se redefine .level1-guide-attention aquí.
+  Su aro pedagógico rosado conserva el estado específico definido
+  en level1-pedagogy-final-patch, evitando que GUÍA vuelva a amarillo.
+*/
 </style>`;
 
 if (!html.includes('</head>')) {
@@ -66,4 +81,4 @@ if (!html.includes('</head>')) {
 
 html = html.replace('</head>', `${stylePatch}\n</head>`);
 await writeFile(LEVEL1_PATH, html, 'utf8');
-console.info('[mission01] level 1 Guide/Explore dark inner lines applied');
+console.info('[mission01] level 1 Explore yellow + Guide lavender styles applied');
