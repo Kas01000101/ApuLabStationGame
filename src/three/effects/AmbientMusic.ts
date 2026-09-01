@@ -1,5 +1,5 @@
 const MUSIC_VOLUME_SETTING_KEY = 'apulab.settings.musicVolume';
-const AMBIENT_TRACK_URL = '/assets/audio/an-ocean-in-outer-space.mp3';
+const AMBIENT_TRACK_URL = '/assets/audio/specular-city.mp3';
 const DEFAULT_MUSIC_VOLUME = 35;
 const FADE_IN_MS = 900;
 const FADE_OUT_MS = 250;
