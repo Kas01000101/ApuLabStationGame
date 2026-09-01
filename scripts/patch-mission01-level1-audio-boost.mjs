@@ -7,7 +7,7 @@ let html = await readFile(LEVEL1_PATH, 'utf8');
 if (!html.includes('id="level1-feedback-audio-runtime"')) {
   throw new Error('mission01_level1_audio_boost_missing_runtime');
 }
-if (html.includes('LEVEL1_AUDIO_BOOST_V1')) {
+if (html.includes('LEVEL1_AUDIO_BOOST_V2')) {
   throw new Error('mission01_level1_audio_boost_already_present');
 }
 
@@ -33,7 +33,7 @@ html = replaceRequired(
 );
 
 const helpers = `
-  // LEVEL1_AUDIO_BOOST_V1
+  // LEVEL1_AUDIO_BOOST_V2
   const requestMusicDuck = (durationMs, volume = 10) => {
     if (window.parent === window) return;
     try {
@@ -46,36 +46,57 @@ const helpers = `
     }
   };
 
+  // Click corto y claro para BITÁCORA, EXPLORAR/CONTINUAR y GUÍA.
   const playUiClick = () => {
     const context = getAudioContext();
+    if (context.state === 'suspended') {
+      context.resume().then(() => playUiClick()).catch(() => {});
+      return;
+    }
     if (context.state !== 'running') return;
 
     const now = context.currentTime;
     const master = context.createGain();
-    master.gain.setValueAtTime(0.68, now);
+    master.gain.setValueAtTime(0.82, now);
     master.connect(context.destination);
 
     const tone = context.createOscillator();
     const gain = context.createGain();
     tone.type = 'triangle';
-    tone.frequency.setValueAtTime(510, now);
-    tone.frequency.exponentialRampToValueAtTime(650, now + 0.055);
+    tone.frequency.setValueAtTime(480, now);
+    tone.frequency.exponentialRampToValueAtTime(690, now + 0.052);
     gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.linearRampToValueAtTime(0.060, now + 0.005);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.075);
+    gain.gain.linearRampToValueAtTime(0.082, now + 0.004);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.082);
     tone.connect(gain);
     gain.connect(master);
     tone.start(now);
-    tone.stop(now + 0.085);
+    tone.stop(now + 0.09);
+
+    // Segundo toque muy breve: da sensación de botón físico sin sonar doble.
+    const snap = context.createOscillator();
+    const snapGain = context.createGain();
+    snap.type = 'square';
+    snap.frequency.setValueAtTime(1180, now + 0.014);
+    snapGain.gain.setValueAtTime(0.0001, now + 0.014);
+    snapGain.gain.linearRampToValueAtTime(0.018, now + 0.018);
+    snapGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.046);
+    snap.connect(snapGain);
+    snapGain.connect(master);
+    snap.start(now + 0.014);
+    snap.stop(now + 0.05);
   };
 
-  const handleUiClick = (event) => {
-    const target = event.target instanceof Element ? event.target.closest('button') : null;
-    if (!target || target.disabled) return;
+  const NAV_BUTTON_SELECTOR = '#kawsay-journal, #kawsay-explanation, #kawsay-guide';
+  const handleUiPointerDown = (event) => {
+    const target = event.target instanceof Element ? event.target.closest(NAV_BUTTON_SELECTOR) : null;
+    if (!target) return;
+    if (target.disabled || target.getAttribute('aria-disabled') === 'true') return;
     playUiClick();
   };
 
-  document.addEventListener('click', handleUiClick, true);
+  // pointerdown hace que el feedback se oiga justo al presionar el botón.
+  document.addEventListener('pointerdown', handleUiPointerDown, true);
 
 `;
 
@@ -103,9 +124,9 @@ html = replaceRequired(
 html = replaceRequired(
   html,
   "    window.removeEventListener('keydown', unlockAudio, { capture: true });",
-  "    window.removeEventListener('keydown', unlockAudio, { capture: true });\n    document.removeEventListener('click', handleUiClick, true);",
+  "    window.removeEventListener('keydown', unlockAudio, { capture: true });\n    document.removeEventListener('pointerdown', handleUiPointerDown, true);",
   'cleanup-click-listener',
 );
 
 await writeFile(LEVEL1_PATH, html, 'utf8');
-console.info('[mission01] Level 1 · click/tachado/confeti reforzados + music ducking');
+console.info('[mission01] Level 1 · BITÁCORA/CONTINUAR/GUÍA click inmediato + tachado/confeti reforzados');
