@@ -1,23 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="ApuLab Station">
   <defs>
-    <linearGradient id="bg" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+    <linearGradient id="bg" x1="8" y1="5" x2="56" y2="59" gradientUnits="userSpaceOnUse">
       <stop stop-color="#4D4288"/>
-      <stop offset="1" stop-color="#2D2654"/>
+      <stop offset="1" stop-color="#17133A"/>
     </linearGradient>
-    <linearGradient id="a" x1="18" y1="16" x2="47" y2="50" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#72E5EE"/>
-      <stop offset="1" stop-color="#49C9D7"/>
+    <linearGradient id="a" x1="16" y1="15" x2="49" y2="50" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#C9F6F7"/>
+      <stop offset=".35" stop-color="#62DDE7"/>
+      <stop offset="1" stop-color="#2BA9C5"/>
     </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="2" stdDeviation="1.5" flood-color="#0B0E26" flood-opacity=".85"/>
-    </filter>
+    <linearGradient id="star" x1="25" y1="24" x2="40" y2="41" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF3C8"/>
+      <stop offset=".4" stop-color="#F4C75E"/>
+      <stop offset="1" stop-color="#DDA83A"/>
+    </linearGradient>
   </defs>
 
-  <path d="M15 4h34l11 11v34L49 60H15L4 49V15L15 4Z" fill="#17133A"/>
-  <path d="M16.5 7h31L57 16.5v31L47.5 57h-31L7 47.5v-31L16.5 7Z" fill="url(#bg)" stroke="#8E7DCE" stroke-width="2.5"/>
+  <path d="M15 3h34l12 12v34L49 61H15L3 49V15L15 3Z" fill="#0B0E26"/>
+  <path d="M16.5 6.5h31L57.5 16v32L48 57.5H16L6.5 48V16l10-9.5Z" fill="url(#bg)" stroke="#8E7DCE" stroke-width="2.5"/>
 
-  <path d="M31.9 14 49 48h-8.6l-3.8-8H27.1l-3.8 8H15L31.9 14Zm0 12.7-2.6 6h5.3l-2.7-6Z" fill="#17133A" stroke="#17133A" stroke-width="5" stroke-linejoin="round"/>
-  <path d="M31.9 14 49 48h-8.6l-3.8-8H27.1l-3.8 8H15L31.9 14Zm0 12.7-2.6 6h5.3l-2.7-6Z" fill="url(#a)" stroke="#74F4FA" stroke-width="1.4" stroke-linejoin="round" filter="url(#shadow)"/>
+  <path d="M12.5 49.5 26.3 17.2c1-2.4 3.1-3.8 5.7-3.8 2.5 0 4.7 1.4 5.7 3.8l13.8 32.3h-9.8l-3.1-7.4H25.4l-3.1 7.4h-9.8Zm16-15.7h7L32 25.1l-3.5 8.7Z" fill="#17133A" stroke="#17133A" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M12.5 49.5 26.3 17.2c1-2.4 3.1-3.8 5.7-3.8 2.5 0 4.7 1.4 5.7 3.8l13.8 32.3h-9.8l-3.1-7.4H25.4l-3.1 7.4h-9.8Zm16-15.7h7L32 25.1l-3.5 8.7Z" fill="url(#a)" stroke="#A8EDF1" stroke-width="1.4" stroke-linejoin="round"/>
 
-  <path d="m32 23.1 2.2 4.5 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5-3.6-3.5 5-.7 2.2-4.5Z" fill="#F4C75E" stroke="#FFF3C8" stroke-width="1" filter="url(#shadow)"/>
+  <path d="m32 26.1 2.2 4.5 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5-3.6-3.5 5-.7 2.2-4.5Z" fill="url(#star)" stroke="#FFF7E8" stroke-width="1.1" stroke-linejoin="round"/>
+  <circle cx="51.5" cy="13" r="3" fill="#F4C75E" stroke="#FFF3C8" stroke-width="1"/>
 </svg>
