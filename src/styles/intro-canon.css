@@ -1,1 +1,13 @@
-.intro-transition{position:absolute;inset:0;z-index:9;background:#0B0E26;opacity:0;pointer-events:none;will-change:opacity}.intro-overlay .intro-skip{z-index:12}.intro-dialogue{max-width:920px}.intro-speaker,.intro-dialogue-text{font-style:normal}
+.intro-transition{position:absolute;inset:0;z-index:9;background:#0B0E26;opacity:0;pointer-events:none;will-change:opacity}.intro-overlay .intro-skip{z-index:12}.intro-dialogue{max-width:920px;overflow:hidden}.intro-speaker,.intro-dialogue-text{font-style:normal}
+
+/* Identidad visual por personaje: misma familia ApuLab, lectura inmediata del hablante. */
+.intro-dialogue::before{content:"";position:absolute;left:0;top:0;bottom:0;width:7px;pointer-events:none}.intro-speaker{display:inline-flex;width:max-content;align-items:center;min-height:24px;margin-bottom:7px;padding:3px 9px;border:1px solid currentColor;border-radius:4px;font-size:12px;line-height:1;letter-spacing:.12em}.intro-dialogue-text{padding-left:2px}
+
+/* RUTH · científica / institucional: morado y lavanda. */
+.intro-dialogue[data-speaker="ruth"]{border-color:#8E7DCE;background:linear-gradient(100deg,#30285B 0%,#2D2654 58%,#241F4D 100%);box-shadow:6px 6px 0 #4D4288}.intro-dialogue[data-speaker="ruth"]::before{background:#8E7DCE}.intro-dialogue[data-speaker="ruth"] .intro-speaker{color:#D4C9FF;background:rgba(142,125,206,.14)}
+
+/* AYNI · rover presente: cyan tecnológico. */
+.intro-dialogue[data-speaker="ayni"]{border-color:#49C9D7;background:linear-gradient(100deg,#102C3C 0%,#162446 58%,#141938 100%);box-shadow:6px 6px 0 #269AAA}.intro-dialogue[data-speaker="ayni"]::before{background:#49C9D7}.intro-dialogue[data-speaker="ayni"] .intro-speaker{color:#A8EDF1;background:rgba(73,201,215,.13)}
+
+/* YACHAY · señal desde Marte: amarillo/dorado de exploración. */
+.intro-dialogue[data-speaker="yachay"]{border-color:#F4C75E;background:linear-gradient(100deg,#312B28 0%,#1D213F 52%,#141938 100%);box-shadow:6px 6px 0 #D5A43D}.intro-dialogue[data-speaker="yachay"]::before{background:#F4C75E}.intro-dialogue[data-speaker="yachay"] .intro-speaker{color:#FFF3C8;background:rgba(244,199,94,.13)}
