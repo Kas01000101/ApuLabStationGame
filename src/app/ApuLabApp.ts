@@ -35,7 +35,6 @@ export class ApuLabApp {
     this.engine = new ThreeEngine(roots.threeRoot);
     this.menu = new MenuScreen(roots.uiRoot, {
       onStart: () => this.openAccess(),
-      onCredits: () => window.alert('ApuLab Station · Three.js'),
     });
 
     // Mission01Screen maneja los niveles aún no integrados dentro de la propia
