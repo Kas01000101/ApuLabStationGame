@@ -50,11 +50,13 @@ const runtimePatch = `
   const title = document.getElementById('kawsay-concept-title');
   if (!panel || !title) return;
 
+  const exploreSuffixes = [' · 1 / 4', ' · 2 / 4', ' · 3 / 4', ' · 4 / 4'];
+
   const syncExplorePanel = () => {
     const text = title.textContent || '';
     const isExploreStep = !panel.hidden
       && !panel.classList.contains('is-guide')
-      && / · [1-4] \/ 4$/.test(text);
+      && exploreSuffixes.some((suffix) => text.endsWith(suffix));
 
     panel.classList.toggle('level1-explore-panel', isExploreStep);
   };
