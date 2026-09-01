@@ -4,8 +4,8 @@ import { resolve } from 'node:path';
 
 const LEVEL1_PATH = resolve(process.cwd(), 'public/missions/mission01/level1.html');
 const EXPECTED = Object.freeze({
-  bytes: 171166,
-  sha256: '6b8fe7d97f762c473f722e96802f0ccb221aa418c210f9ec1ea9e77e808a9b3f',
+  bytes: 171185,
+  sha256: 'a5e8335ca6c8f9c6f716f0fbb6b6e468fbb793373b0c14a43f3f62988e3ace51',
 });
 
 const html = await readFile(LEVEL1_PATH, 'utf8');
