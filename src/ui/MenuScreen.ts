@@ -25,8 +25,8 @@ export class MenuScreen {
 
           <div class="menu-settings-row">
             <div class="menu-settings-copy">
-              <strong>EFECTOS DE SONIDO</strong>
-              <span>Sonidos del juego</span>
+              <strong>SONIDO</strong>
+              <span>Música ambiental y efectos</span>
             </div>
             <button class="menu-settings-toggle" data-sfx-toggle type="button" aria-pressed="true">
               <span class="menu-settings-toggle-knob" aria-hidden="true"></span>

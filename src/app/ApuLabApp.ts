@@ -5,6 +5,7 @@ import { ThreeEngine } from '../three/ThreeEngine';
 import { SessionService } from '../systems/SessionService';
 import { GameState } from '../systems/GameState';
 import { IntroController } from '../story/IntroController';
+import { AmbientMusic } from '../three/effects/AmbientMusic';
 
 export type AppState = 'menu' | 'intro' | 'mission01' | 'final';
 
@@ -13,6 +14,7 @@ export class ApuLabApp {
   private readonly menu: MenuScreen;
   private readonly mission01: Mission01Screen;
   private readonly sessions = new SessionService();
+  private readonly ambientMusic = new AmbientMusic();
   private state: AppState = 'menu';
   private intro?: IntroController;
 
@@ -44,6 +46,7 @@ export class ApuLabApp {
   }
 
   start(): void {
+    this.ambientMusic.arm();
     this.engine.start((dt) => this.update(dt));
     this.goTo('menu');
   }
