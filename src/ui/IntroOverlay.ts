@@ -1,3 +1,5 @@
+import { resolveIntroDialogue } from '../story/IntroDialogueCopy';
+
 export interface IntroOverlayOptions {
   onSkip?: () => void;
 }
@@ -66,7 +68,16 @@ export class IntroOverlay {
   }
 
   markIntroSeen():void{safeSet('apulabIntroSeen','1');this.skipButton.style.display='block';}
-  showDialogue(key:string,speaker:string,text:string):void{if(this.lastDialogueKey!==key){this.lastDialogueKey=key;this.speaker.textContent=speaker;this.dialogueText.textContent=text;}this.dialogue.classList.add('show');}
+  showDialogue(key:string,speaker:string,text:string):void{
+    const resolved=resolveIntroDialogue(key,speaker,text);
+    this.dialogue.dataset.speaker=resolved.speaker.toLowerCase();
+    if(this.lastDialogueKey!==resolved.key){
+      this.lastDialogueKey=resolved.key;
+      this.speaker.textContent=resolved.speaker;
+      this.dialogueText.textContent=resolved.text;
+    }
+    this.dialogue.classList.add('show');
+  }
   hideDialogue():void{this.dialogue.classList.remove('show');}
   showSfx(text:string,strength=1):void{this.sfx.textContent=text;this.sfx.style.opacity=String(Math.max(0,Math.min(1,strength)));this.sfx.style.transform=`translate(-50%,-50%) scale(${.82+.25*strength}) rotate(-2deg)`;}
   hideSfx():void{this.sfx.textContent='';this.sfx.style.opacity='0';}
