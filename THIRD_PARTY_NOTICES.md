@@ -27,3 +27,14 @@ Este documento es un índice informativo y no sustituye los textos de licencia i
 - @types/three: `DefinitelyTyped/DefinitelyTyped`
 
 Al redistribuir builds, paquetes o copias que incluyan código de terceros, deben conservarse los avisos y textos exigidos por las licencias correspondientes.
+
+## Música
+
+### “An Ocean in Outer Space” — HoliznaCC0
+
+- Fuente: https://freemusicarchive.org/music/holiznacc0/stranger-than-fiction-halloween-sci-fi/an-ocean-in-outer-space/
+- Licencia: CC0 1.0 Universal (dedicación al dominio público)
+- Texto de la licencia: https://creativecommons.org/publicdomain/zero/1.0/
+- Archivo local: `public/assets/audio/an-ocean-in-outer-space.ogg`
+
+La pista se utiliza como música ambiental de ApuLab Station, a volumen bajo y en reproducción continua.
