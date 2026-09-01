@@ -167,7 +167,7 @@ const runtimePatch = `
     const title = conceptTitle?.textContent || '';
     const isExploreStep = !conceptPanel.hidden
       && !conceptPanel.classList.contains('is-guide')
-      && / · [1-4] \/ 4$/.test(title);
+      && new RegExp(' · [1-4] / 4$').test(title);
 
     conceptPanel.classList.toggle('level1-explore-panel', isExploreStep);
 
