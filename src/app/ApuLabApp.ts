@@ -4,7 +4,7 @@ import { Mission01Screen } from '../ui/Mission01Screen';
 import { ThreeEngine } from '../three/ThreeEngine';
 import { SessionService } from '../systems/SessionService';
 import { GameState } from '../systems/GameState';
-import { IntroController } from '../story/IntroController';
+import { ReadableIntroController } from '../story/ReadableIntroController';
 import { AmbientMusic } from '../three/effects/AmbientMusic';
 
 export type AppState = 'menu' | 'intro' | 'mission01' | 'final';
@@ -16,7 +16,7 @@ export class ApuLabApp {
   private readonly sessions = new SessionService();
   private readonly ambientMusic = new AmbientMusic();
   private state: AppState = 'menu';
-  private intro?: IntroController;
+  private intro?: ReadableIntroController;
 
   /**
    * Los navegadores modernos deciden el texto de esta confirmación y no
@@ -100,7 +100,7 @@ export class ApuLabApp {
 
     if (state === 'intro') {
       this.intro?.destroy();
-      this.intro = new IntroController(this.engine, this.roots.uiRoot, {
+      this.intro = new ReadableIntroController(this.engine, this.roots.uiRoot, {
         onComplete: this.enterMission01,
       });
       this.intro.start();
