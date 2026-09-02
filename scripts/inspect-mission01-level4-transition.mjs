@@ -6,16 +6,21 @@ const html = await readFile(path, 'utf8');
 const patterns = [
   /parent\.apulabCompleteLevel\([^)]*\)/g,
   /postMessage\(\{type:'apulab-level-complete'[^}]*\}/g,
-  /apulab-level-complete/g,
-  /continue-btn[^\n]{0,180}/g,
-  /function goToNextLevel\(\)[\s\S]{0,650}/g,
-  /apulabLevelReady\([^)]*\)/g,
-  /apulab-level-ready[^\n]{0,120}/g,
+  /function goToNextLevel\(\)[\s\S]{0,700}/g,
+  /const stages=\[[\s\S]{0,1800}?\];/g,
+  /let stageIndex[^;]*;/g,
+  /let phase[^;]*;/g,
+  /function loadBoardStage\([^)]*\)[\s\S]{0,900}/g,
+  /async function handleRunSuccess\([^)]*\)[\s\S]{0,2600}/g,
+  /function completeLevel\([^)]*\)[\s\S]{0,1300}/g,
+  /overlay[^\n]{0,240}/g,
+  /NIVEL 4 COMPLETADO/g,
+  /CONTINUAR AL NIVEL 5/g,
 ];
 console.info('[inspect-l4-transition] BEGIN');
 for (const re of patterns) {
   const hits = html.match(re) || [];
   console.info(`[inspect-l4-transition] ${re} count=${hits.length}`);
-  hits.slice(0, 12).forEach((hit, i) => console.info(`[inspect-l4-transition] ${i + 1}: ${hit.replace(/\s+/g,' ').slice(0,900)}`));
+  hits.slice(0, 12).forEach((hit, i) => console.info(`[inspect-l4-transition] ${i + 1}: ${hit.replace(/\s+/g,' ').slice(0,2600)}`));
 }
 console.info('[inspect-l4-transition] END');
