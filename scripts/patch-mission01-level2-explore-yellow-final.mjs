@@ -93,3 +93,4 @@ console.info('[mission01] Level 2 · EXPLORAR 1/4–4/4 amarillo forzado con pri
 
 await import('./patch-mission01-level3-pre-normalize.mjs');
 await import('./patch-mission01-level3-redesign.mjs');
+await import('./patch-mission01-level3-approved-reference.mjs');
