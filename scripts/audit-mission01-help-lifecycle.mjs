@@ -97,7 +97,6 @@ function contractNativeLevels12(level, html) {
     fail('l12_explore_does_not_interrupt_camera', `l${level}`);
   }
 
-  // Mantener la cadencia nativa es parte del contrato de interacción de la mesa.
   if (!html.includes('lowPowerDevice ? 22 : 16')) fail('l12_native_frame_cadence', `l${level}`);
 
   if (level === 1) {
@@ -114,7 +113,6 @@ function contractNativeLevels12(level, html) {
   }
 
   if (level === 2) {
-    // Nivel 2 mantiene la mesa habilitada desde el inicio y las ayudas son opcionales.
     if (!html.includes('explanationButton.hidden = false;')) fail('l2_explore_visible');
     if (!html.includes('guideButton.disabled = false;')) fail('l2_guide_enabled');
     if (!html.includes('gameplayUnlocked = true;')) fail('l2_gameplay_not_unlocked');
