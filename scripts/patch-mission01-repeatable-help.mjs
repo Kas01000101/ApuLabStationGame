@@ -11,23 +11,89 @@ function required(source, before, after, label) {
   return source.replace(before, after);
 }
 
+function patchOwningModule(html, level) {
+  const startMarker = '/* APULAB_HELP_LIFECYCLE_START */';
+  const endMarker = '/* APULAB_HELP_LIFECYCLE_END */';
+  if (html.includes(startMarker) || html.includes(endMarker)) {
+    throw new Error(`mission01_repeatable_help_duplicate_module_patch:l${level}`);
+  }
+
+  const scriptPattern = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
+  let match;
+  let target = null;
+  while ((match = scriptPattern.exec(html))) {
+    const attrs = match[1] || '';
+    const code = match[2] || '';
+    if (!/\btype\s*=\s*["']module["']/i.test(attrs)) continue;
+    if (!code.includes('explanationButton.addEventListener("click", advanceExplanation)')) continue;
+    if (!code.includes('setGuideMode(!guideActive)')) continue;
+    target = { full: match[0], attrs, code };
+    break;
+  }
+  if (!target) throw new Error(`mission01_repeatable_help_owner_module_missing:l${level}`);
+
+  const anchor = 'explanationButton.addEventListener("click", advanceExplanation)';
+  const anchorIndex = target.code.indexOf(anchor);
+  if (anchorIndex < 0) throw new Error(`mission01_repeatable_help_owner_anchor_missing:l${level}`);
+
+  const lifecycle = `
+  ${startMarker}
+  const apulabHelpPanelClosed = () => {
+    if (conceptPanel.hidden) return true;
+    if (conceptPanel.getAttribute("aria-hidden") === "true") return true;
+    const style = getComputedStyle(conceptPanel);
+    return style.display === "none"
+      || style.visibility === "hidden"
+      || style.pointerEvents === "none"
+      || Number(style.opacity || 1) === 0;
+  };
+  const apulabResetExploreLifecycle = () => {
+    explanationMode = false;
+    explanationIndex = -1;
+  };
+  const apulabResetGuideLifecycle = () => {
+    guideActive = false;
+    guideButton.classList.remove("is-active");
+    guideButton.setAttribute("aria-label", "Abrir GUÍA");
+  };
+  explanationButton.addEventListener("click", () => {
+    if (!apulabHelpPanelClosed()) return;
+    apulabResetGuideLifecycle();
+    apulabResetExploreLifecycle();
+  }, { capture: true });
+  guideButton.addEventListener("click", () => {
+    if (!apulabHelpPanelClosed()) return;
+    apulabResetExploreLifecycle();
+    apulabResetGuideLifecycle();
+  }, { capture: true });
+  document.addEventListener("click", () => {
+    queueMicrotask(() => {
+      if (!apulabHelpPanelClosed()) return;
+      apulabResetExploreLifecycle();
+      apulabResetGuideLifecycle();
+    });
+  });
+  ${endMarker}
+
+  `;
+
+  const patchedCode = target.code.slice(0, anchorIndex) + lifecycle + target.code.slice(anchorIndex);
+  const patchedScript = `<script${target.attrs}>${patchedCode}</script>`;
+  return html.replace(target.full, patchedScript);
+}
+
 const outputs = new Map();
 
-// Niveles 1–2 ya poseen handlers reutilizables. Los validamos explícitamente
-// para impedir que futuros parches vuelvan a convertirlos en ayudas de un solo uso.
+// Niveles 1–2: el reset vive dentro del MISMO type="module" que posee
+// explanationMode/explanationIndex/guideActive. Así modifica el estado léxico real
+// en vez de intentar alcanzarlo desde un <script> global separado.
 for (const level of [1, 2]) {
   const path = resolve(OUT, `level${level}.html`);
-  const html = await readFile(path, 'utf8');
-  if (!html.includes('explanationButton.addEventListener("click", advanceExplanation)')) {
-    throw new Error(`mission01_repeatable_help_explore_handler:l${level}`);
-  }
-  if (!html.includes('setGuideMode(!guideActive)')) {
-    throw new Error(`mission01_repeatable_help_guide_toggle:l${level}`);
-  }
-  if (!html.includes('explanationIndex = -1;')) {
-    throw new Error(`mission01_repeatable_help_explore_reset:l${level}`);
-  }
-  console.info(`[mission01] Nivel ${level} · EXPLORAR/GUÍA verificadas como reutilizables`);
+  let html = await readFile(path, 'utf8');
+  html = patchOwningModule(html, level);
+  await writeFile(path, html, 'utf8');
+  outputs.set(level, html);
+  console.info(`[mission01] Nivel ${level} · lifecycle EXPLORAR/GUÍA integrado en su módulo propietario`);
 }
 
 // N3: cerrar EXPLORAR a mitad del recorrido debe permitir abrirlo otra vez desde 1/4.
@@ -43,7 +109,7 @@ for (const level of [1, 2]) {
   );
   await writeFile(path, html, 'utf8');
   outputs.set(level, html);
-  console.info('[mission01] Nivel 3 · cerrar EXPLORAR reinicia solo la ayuda; puede abrirse otra vez');
+  console.info('[mission01] Nivel 3 · closeInfo conserva reset interno de EXPLORAR');
 }
 
 // N4: misma regla; además GUÍA vuelve a empezar por su primera pista al cerrarla.
@@ -59,17 +125,16 @@ for (const level of [1, 2]) {
   );
   await writeFile(path, html, 'utf8');
   outputs.set(level, html);
-  console.info('[mission01] Nivel 4 · EXPLORAR/GUÍA pueden cerrarse y volver a abrirse');
+  console.info('[mission01] Nivel 4 · closeInfo conserva resets internos de EXPLORAR/GUÍA');
 }
 
-// N5 tenía la regresión principal: al terminar dejaba exploreIndex fijado en el
-// último paso. El siguiente clic volvía a entrar inmediatamente en la rama de cierre.
+// N5: al completar o cerrar EXPLORAR vuelve a -1; GUÍA vuelve a etapa 0.
 {
   const level = 5;
   const path = resolve(OUT, `level${level}.html`);
   let html = await readFile(path, 'utf8');
   const oldExplore = "document.getElementById('explore-btn').onclick=()=>{exploreIndex++;if(exploreIndex>=exploreSteps.length){exploreDone=true;exploreIndex=exploreSteps.length-1;info.classList.remove('visible');clearFocus();document.getElementById('explore-btn').classList.remove('is-recommended');document.getElementById('guide-btn').disabled=false;document.getElementById('guide-btn').classList.add('is-recommended');showStatus('EXPLORAR completado · ahora abre GUÍA.');return}const s=exploreSteps[exploreIndex];showInfo('EXPLORAR',s.title,s.text,s.hint,`${exploreIndex+1} / 5`);focusStep(s.focus)};";
-  const newExplore = "document.getElementById('explore-btn').onclick=()=>{exploreIndex++;if(exploreIndex>=exploreSteps.length){exploreDone=true;exploreIndex=-1;info.classList.remove('visible');infoProgress.classList.remove('visible');clearFocus();document.getElementById('explore-btn').classList.remove('is-recommended');document.getElementById('guide-btn').disabled=false;document.getElementById('guide-btn').classList.remove('is-recommended');showStatus('EXPLORAR completado. Puedes volver a abrirlo cuando quieras.');return}const s=exploreSteps[exploreIndex];showInfo('EXPLORAR',s.title,s.text,s.hint,`${exploreIndex+1} / ${exploreSteps.length}`);focusStep(s.focus)};";
+  const newExplore = "document.getElementById('explore-btn').onclick=()=>{exploreIndex++;if(exploreIndex>=exploreSteps.length){exploreDone=true;exploreIndex=-1;info.classList.remove('visible');infoProgress.classList.remove('visible');clearFocus();document.getElementById('explore-btn').classList.remove('is-recommended');document.getElementById('guide-btn').disabled=false;document.getElementById('guide-btn').classList.remove('is-recommended');showStatus('EXPLORAR completado. Puedes volver a abrirlo cuando quieras.');return}const s=exploreSteps[exploreIndex];info.classList.remove('apulab-guide-structured');showInfo('EXPLORAR',s.title,s.text,s.hint,`${exploreIndex+1} / ${exploreSteps.length}`);focusStep(s.focus)};";
   html = required(html, oldExplore, newExplore, 'l5-explore-cycle');
   html = required(
     html,
@@ -79,19 +144,7 @@ for (const level of [1, 2]) {
   );
   await writeFile(path, html, 'utf8');
   outputs.set(level, html);
-  console.info('[mission01] Nivel 5 · EXPLORAR 4/4 reparado y reutilizable · GUÍA reutilizable');
-}
-
-// QA semántico de los niveles modificados.
-for (const [level, html] of outputs) {
-  if (level === 3 || level === 4) {
-    if (!html.includes("if(kind==='EXPLORAR')")) throw new Error(`mission01_repeatable_help_close_qa:l${level}`);
-  }
-  if (level === 5) {
-    if (html.includes('exploreIndex=exploreSteps.length-1')) throw new Error('mission01_repeatable_help_l5_stuck_index');
-    if (html.includes('${exploreIndex+1} / 5')) throw new Error('mission01_repeatable_help_l5_old_progress');
-    if (!html.includes('${exploreIndex+1} / ${exploreSteps.length}')) throw new Error('mission01_repeatable_help_l5_dynamic_progress_missing');
-  }
+  console.info('[mission01] Nivel 5 · cierre conserva resets internos de EXPLORAR/GUÍA');
 }
 
 // Mantener hashes del manifest sincronizados con los HTML post-build.
@@ -105,4 +158,4 @@ for (const entry of manifest.levels || []) {
 }
 await writeFile(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
 
-console.info('[mission01] HELP QA OK · EXPLORAR/GUÍA pueden volver a abrirse en niveles 1–5');
+console.info('[mission01] HELP PATCH OK · resets ubicados en el scope propietario o closeInfo interno');
