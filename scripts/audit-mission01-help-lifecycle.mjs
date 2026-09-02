@@ -104,204 +104,97 @@ async function contractLevels12(level, html) {
       let explanationMode = false;
       let explanationIndex = -1;
       let guideActive = false;
-      const getComputedStyle = (node) => ({
-        display: node.hidden ? 'none' : 'block',
-        visibility: 'visible',
-        pointerEvents: 'auto',
-        opacity: '1',
-      });
+      const getComputedStyle = (node) => ({ display: node.hidden ? 'none' : 'block', visibility: 'visible', pointerEvents: 'auto', opacity: '1' });
       const queueMicrotask = globalThis.queueMicrotask;
       eval(lifecycle);
-
       explanationButton.addEventListener('click', () => {
-        if (!explanationMode) {
-          explanationMode = true;
-          explanationIndex = 0;
-          conceptPanel.hidden = false;
-          conceptPanel.setAttribute('aria-hidden', 'false');
-          return;
-        }
-        conceptPanel.hidden = true;
-        conceptPanel.setAttribute('aria-hidden', 'true');
+        if (!explanationMode) { explanationMode = true; explanationIndex = 0; conceptPanel.hidden = false; conceptPanel.setAttribute('aria-hidden', 'false'); return; }
+        conceptPanel.hidden = true; conceptPanel.setAttribute('aria-hidden', 'true');
       });
       guideButton.addEventListener('click', () => {
-        guideActive = !guideActive;
-        conceptPanel.hidden = !guideActive;
-        conceptPanel.setAttribute('aria-hidden', guideActive ? 'false' : 'true');
+        guideActive = !guideActive; conceptPanel.hidden = !guideActive; conceptPanel.setAttribute('aria-hidden', guideActive ? 'false' : 'true');
       });
-
-      const click = async (target) => {
-        await target.dispatch('click');
-        await document.dispatch('click');
-        await Promise.resolve();
-        await Promise.resolve();
-      };
-
-      conceptPanel.hidden = true;
-      conceptPanel.setAttribute('aria-hidden', 'true');
+      const click = async (target) => { await target.dispatch('click'); await document.dispatch('click'); await Promise.resolve(); await Promise.resolve(); };
+      conceptPanel.hidden = true; conceptPanel.setAttribute('aria-hidden', 'true');
       await click(explanationButton);
       if (!explanationMode || explanationIndex !== 0 || conceptPanel.hidden) throw new Error('explore_first_open');
-      conceptPanel.hidden = true;
-      conceptPanel.setAttribute('aria-hidden', 'true');
-      await document.dispatch('click');
-      await Promise.resolve();
+      conceptPanel.hidden = true; conceptPanel.setAttribute('aria-hidden', 'true'); await document.dispatch('click'); await Promise.resolve();
       if (explanationMode || explanationIndex !== -1) throw new Error('explore_close_reset');
       await click(explanationButton);
       if (!explanationMode || explanationIndex !== 0 || conceptPanel.hidden) throw new Error('explore_reopen');
-
-      conceptPanel.hidden = true;
-      conceptPanel.setAttribute('aria-hidden', 'true');
-      await document.dispatch('click');
-      await Promise.resolve();
+      conceptPanel.hidden = true; conceptPanel.setAttribute('aria-hidden', 'true'); await document.dispatch('click'); await Promise.resolve();
       await click(guideButton);
       if (!guideActive || conceptPanel.hidden) throw new Error('guide_first_open');
-      conceptPanel.hidden = true;
-      conceptPanel.setAttribute('aria-hidden', 'true');
-      await document.dispatch('click');
-      await Promise.resolve();
+      conceptPanel.hidden = true; conceptPanel.setAttribute('aria-hidden', 'true'); await document.dispatch('click'); await Promise.resolve();
       if (guideActive) throw new Error('guide_close_reset');
       await click(guideButton);
       if (!guideActive || conceptPanel.hidden) throw new Error('guide_reopen');
       return true;
     })();
   `);
-
-  try {
-    await execute(lifecycle, FakeTarget);
-  } catch (error) {
-    fail('cycle12', `l${level}:${error?.message || error}`);
-  }
+  try { await execute(lifecycle, FakeTarget); } catch (error) { fail('cycle12', `l${level}:${error?.message || error}`); }
 }
 
 async function contractLevels34(level, html) {
   const closeBody = balancedBody(html, 'function closeInfo()', `l${level}:closeInfo`);
   const exploreBody = balancedBody(html, "exploreBtn.addEventListener('click',()=>", `l${level}:explore`);
   const guideBody = balancedBody(html, "guideBtn.addEventListener('click',()=>", `l${level}:guide`);
-
   const execute = new Function('closeBody', 'exploreBody', 'guideBody', 'FakeTarget', `
     return (() => {
-      const info = new FakeTarget();
-      const infoProgress = new FakeTarget();
-      const exploreBtn = new FakeTarget();
-      const guideBtn = new FakeTarget();
-      const kicker = new FakeTarget();
-      const elements = new Map([
-        ['info-kicker', kicker], ['info-title', new FakeTarget()], ['info-text', new FakeTarget()],
-        ['info-hint', new FakeTarget()], ['info-progress', infoProgress], ['explore-btn', exploreBtn], ['guide-btn', guideBtn],
-      ]);
+      const info = new FakeTarget(), infoProgress = new FakeTarget(), exploreBtn = new FakeTarget(), guideBtn = new FakeTarget(), kicker = new FakeTarget();
+      const elements = new Map([['info-kicker', kicker],['info-title',new FakeTarget()],['info-text',new FakeTarget()],['info-hint',new FakeTarget()],['info-progress',infoProgress],['explore-btn',exploreBtn],['guide-btn',guideBtn]]);
       const document = { getElementById: (id) => elements.get(id) || new FakeTarget() };
-      let exploreActive = true;
-      let exploreIndex = 2;
-      let exploreDone = true;
-      let guideOpened = true;
-      let guideStage = 2;
-      let hintCount = 0;
-      const exploreSteps = [
-        { title:'A', text:'a', hint:'', focus:'board' },
-        { title:'B', text:'b', hint:'', focus:'board' },
-        { title:'C', text:'c', hint:'', focus:'board' },
-        { title:'D', text:'d', hint:'', focus:'board' },
-      ];
-      const clearFocus = () => {};
-      const showInfo = (kind) => { kicker.textContent = kind; info.classList.add('visible'); };
-      const focusStep = () => {};
-      const showStatus = () => {};
-      const telemetry = () => {};
-      const renderStructuredGuide = () => { kicker.textContent='GUÍA'; info.classList.add('visible'); };
-      eval('function closeInfo(){' + closeBody + '}');
-      const openExplore = new Function('state', 'body', 'with(state){ return eval("(()=>{" + body + "})()") }');
-      const openGuide = new Function('state', 'body', 'with(state){ return eval("(()=>{" + body + "})()") }');
-
-      kicker.textContent = 'EXPLORAR'; info.classList.add('visible');
-      closeInfo();
-      if (info.classList.contains('visible') || exploreActive || exploreIndex !== 0) throw new Error('explore_close_reset');
-      const state = { exploreActive, exploreIndex, exploreDone, guideOpened, guideStage, hintCount, exploreSteps, exploreBtn, guideBtn, info, infoProgress, document, clearFocus, showInfo, focusStep, showStatus, telemetry, renderStructuredGuide };
-      openExplore(state, exploreBody);
-      exploreActive = state.exploreActive; exploreIndex = state.exploreIndex;
-      if (!info.classList.contains('visible')) throw new Error('explore_reopen');
-
-      kicker.textContent = 'GUÍA'; info.classList.add('visible'); guideStage = 2;
-      closeInfo();
-      if (info.classList.contains('visible') || guideStage !== 0) throw new Error('guide_close_reset');
-      state.guideStage = guideStage; state.exploreDone = true;
-      openGuide(state, guideBody);
-      if (!info.classList.contains('visible')) throw new Error('guide_reopen');
+      let exploreActive=true, exploreIndex=2, exploreDone=true, guideOpened=true, guideStage=2, hintCount=0, collisionCount=0;
+      const exploreSteps=[{title:'A',text:'a',hint:'',focus:'board'},{title:'B',text:'b',hint:'',focus:'board'},{title:'C',text:'c',hint:'',focus:'board'},{title:'D',text:'d',hint:'',focus:'board'}];
+      const clearFocus=()=>{}, showInfo=(kind)=>{kicker.textContent=kind;info.classList.add('visible')}, focusStep=()=>{}, showStatus=()=>{}, telemetry=()=>{}, renderStructuredGuide=()=>{kicker.textContent='GUÍA';info.classList.add('visible')};
+      eval('function closeInfo(){'+closeBody+'}');
+      const openExplore=new Function('state','body','with(state){ return eval("(()=>{"+body+"})()") }');
+      const openGuide=new Function('state','body','with(state){ return eval("(()=>{"+body+"})()") }');
+      kicker.textContent='EXPLORAR';info.classList.add('visible');closeInfo();
+      if(info.classList.contains('visible')||exploreActive||exploreIndex!==0)throw new Error('explore_close_reset');
+      const state={exploreActive,exploreIndex,exploreDone,guideOpened,guideStage,hintCount,collisionCount,exploreSteps,exploreBtn,guideBtn,info,infoProgress,document,clearFocus,showInfo,focusStep,showStatus,telemetry,renderStructuredGuide};
+      openExplore(state,exploreBody); exploreActive=state.exploreActive; exploreIndex=state.exploreIndex;
+      if(!info.classList.contains('visible'))throw new Error('explore_reopen');
+      kicker.textContent='GUÍA';info.classList.add('visible');guideStage=2;closeInfo();
+      if(info.classList.contains('visible')||guideStage!==0)throw new Error('guide_close_reset');
+      state.guideStage=guideStage;state.exploreDone=true;state.collisionCount=0;openGuide(state,guideBody);
+      if(!info.classList.contains('visible'))throw new Error('guide_reopen');
       return true;
     })();
   `);
-
-  try {
-    execute(closeBody, exploreBody, guideBody, FakeTarget);
-  } catch (error) {
-    fail('cycle34', `l${level}:${error?.message || error}`);
-  }
+  try { execute(closeBody, exploreBody, guideBody, FakeTarget); } catch (error) { fail('cycle34', `l${level}:${error?.message || error}`); }
 }
 
 async function contractLevel5(html) {
   const closeBody = balancedBody(html, "document.getElementById('info-close').onclick=()=>", 'l5:close');
   const exploreBody = balancedBody(html, "document.getElementById('explore-btn').onclick=()=>", 'l5:explore');
   const guideBody = balancedBody(html, "document.getElementById('guide-btn').onclick=()=>", 'l5:guide');
-
-  const execute = new Function('closeBody', 'exploreBody', 'guideBody', 'FakeTarget', `
-    return (() => {
-      const info = new FakeTarget();
-      const infoProgress = new FakeTarget();
-      const kicker = new FakeTarget();
-      const exploreBtn = new FakeTarget();
-      const guideBtn = new FakeTarget();
-      const elements = new Map([
-        ['info-kicker', kicker], ['info-title', new FakeTarget()], ['info-text', new FakeTarget()],
-        ['info-hint', new FakeTarget()], ['info-progress', infoProgress], ['info-close', new FakeTarget()],
-        ['explore-btn', exploreBtn], ['guide-btn', guideBtn],
-      ]);
-      const document = { getElementById: (id) => elements.get(id) || new FakeTarget() };
-      let exploreIndex = 2;
-      let exploreDone = true;
-      let guideOpened = true;
-      let guideStage = 2;
-      let repeatUnlocked = true;
-      const exploreSteps = [
-        { title:'A', text:'a', hint:'', focus:'board' },
-        { title:'B', text:'b', hint:'', focus:'board' },
-        { title:'C', text:'c', hint:'', focus:'board' },
-        { title:'D', text:'d', hint:'', focus:'board' },
-      ];
-      const clearFocus = () => {};
-      const showInfo = (kind) => { kicker.textContent = kind; info.classList.add('visible'); };
-      const focusStep = () => {};
-      const showStatus = () => {};
-      const renderStructuredGuide = () => { kicker.textContent='GUÍA'; info.classList.add('visible'); };
-      const run = (body) => eval('(()=>{' + body + '})()');
-
-      kicker.textContent='EXPLORAR'; info.classList.add('visible'); run(closeBody);
-      if (info.classList.contains('visible') || exploreIndex !== -1) throw new Error('explore_close_reset');
-      run(exploreBody);
-      if (!info.classList.contains('visible') || exploreIndex !== 0) throw new Error('explore_reopen');
-
-      kicker.textContent='GUÍA'; info.classList.add('visible'); guideStage=2; run(closeBody);
-      if (info.classList.contains('visible') || guideStage !== 0) throw new Error('guide_close_reset');
-      run(guideBody);
-      if (!info.classList.contains('visible')) throw new Error('guide_reopen');
+  const execute = new Function('closeBody','exploreBody','guideBody','FakeTarget', `
+    return (()=>{
+      const info=new FakeTarget(),infoProgress=new FakeTarget(),kicker=new FakeTarget(),exploreBtn=new FakeTarget(),guideBtn=new FakeTarget();
+      const elements=new Map([['info-kicker',kicker],['info-title',new FakeTarget()],['info-text',new FakeTarget()],['info-hint',new FakeTarget()],['info-progress',infoProgress],['info-close',new FakeTarget()],['explore-btn',exploreBtn],['guide-btn',guideBtn]]);
+      const document={getElementById:(id)=>elements.get(id)||new FakeTarget()};
+      let exploreIndex=2,exploreDone=true,guideOpened=true,guideStage=2,repeatUnlocked=true;
+      const exploreSteps=[{title:'A',text:'a',hint:'',focus:'board'},{title:'B',text:'b',hint:'',focus:'board'},{title:'C',text:'c',hint:'',focus:'board'},{title:'D',text:'d',hint:'',focus:'board'}];
+      const clearFocus=()=>{},showInfo=(kind)=>{kicker.textContent=kind;info.classList.add('visible')},focusStep=()=>{},showStatus=()=>{},renderStructuredGuide=()=>{kicker.textContent='GUÍA';info.classList.add('visible')};
+      const run=(body)=>eval('(()=>{'+body+'})()');
+      kicker.textContent='EXPLORAR';info.classList.add('visible');run(closeBody);
+      if(info.classList.contains('visible')||exploreIndex!==-1)throw new Error('explore_close_reset');
+      run(exploreBody);if(!info.classList.contains('visible')||exploreIndex!==0)throw new Error('explore_reopen');
+      kicker.textContent='GUÍA';info.classList.add('visible');guideStage=2;run(closeBody);
+      if(info.classList.contains('visible')||guideStage!==0)throw new Error('guide_close_reset');
+      run(guideBody);if(!info.classList.contains('visible'))throw new Error('guide_reopen');
       return true;
     })();
   `);
-
-  try {
-    execute(closeBody, exploreBody, guideBody, FakeTarget);
-  } catch (error) {
-    fail('cycle5', error?.message || String(error));
-  }
+  try { execute(closeBody,exploreBody,guideBody,FakeTarget); } catch(error) { fail('cycle5',error?.message||String(error)); }
 }
 
-const levels = new Map();
-for (let level = 1; level <= 5; level += 1) {
-  levels.set(level, await readFile(resolve(OUT, `level${level}.html`), 'utf8'));
-}
-
-await contractLevels12(1, levels.get(1));
-await contractLevels12(2, levels.get(2));
-await contractLevels34(3, levels.get(3));
-await contractLevels34(4, levels.get(4));
+const levels=new Map();
+for(let level=1;level<=5;level+=1)levels.set(level,await readFile(resolve(OUT,`level${level}.html`),'utf8'));
+await contractLevels12(1,levels.get(1));
+await contractLevels12(2,levels.get(2));
+await contractLevels34(3,levels.get(3));
+await contractLevels34(4,levels.get(4));
 await contractLevel5(levels.get(5));
-
 console.info('[mission01] HELP LIFECYCLE CONTRACT OK · abrir → cerrar → reabrir ejecutado en niveles 1–5');
