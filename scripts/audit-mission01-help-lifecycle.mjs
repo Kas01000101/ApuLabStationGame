@@ -114,7 +114,7 @@ function contractNativeLevels12(level, html) {
   }
 
   if (level === 2) {
-    // Nivel 2 debe permitir manipular la mesa desde el inicio; las ayudas son opcionales.
+    // Nivel 2 mantiene la mesa habilitada desde el inicio y las ayudas son opcionales.
     if (!html.includes('explanationButton.hidden = false;')) fail('l2_explore_visible');
     if (!html.includes('guideButton.disabled = false;')) fail('l2_guide_enabled');
     if (!html.includes('gameplayUnlocked = true;')) fail('l2_gameplay_not_unlocked');
@@ -188,4 +188,4 @@ contractNativeLevels12(2,levels.get(2));
 contractLevels34(3,levels.get(3));
 contractLevels34(4,levels.get(4));
 contractLevel5(levels.get(5));
-console.info('[mission01] HELP LIFECYCLE CONTRACT OK · L1 GUÍA manual · L2 mesa desbloqueada/sin callback tardío · frame principal nativo · L3–L5 abrir → cerrar → reabrir');
+console.info('[mission01] HELP LIFECYCLE CONTRACT OK · L1 GUÍA manual · L2 mesa desbloqueada/sin callbacks tardíos · frame principal nativo · L3–L5 abrir → cerrar → reabrir');
