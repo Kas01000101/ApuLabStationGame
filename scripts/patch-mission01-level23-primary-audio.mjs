@@ -23,6 +23,22 @@ const stylePatch = `
 }
 </style>`;
 
+const level2ExploreCardStyle = `
+<style id="apulab-level2-explore-card-style">
+/* NIVEL 2 ÚNICAMENTE: los paneles 1/4–4/4 de EXPLORAR usan el mismo
+   amarillo del Nivel 1. BITÁCORA, GUÍA y 2/8 no se modifican. */
+.apulab-level2-explore-card-primary {
+  background: linear-gradient(180deg, #F7D06F 0%, #F4C75E 100%) !important;
+  color: #17133A !important;
+  border-color: #D8A64C !important;
+  box-shadow: 5px 5px 0 #D5A43D !important;
+}
+.apulab-level2-explore-card-primary,
+.apulab-level2-explore-card-primary * {
+  color: #17133A !important;
+}
+</style>`;
+
 const runtimePatch = `
 <script id="apulab-level23-primary-audio-runtime">
 (() => {
@@ -121,6 +137,57 @@ const runtimePatch = `
 })();
 </script>`;
 
+const level2ExploreCardRuntime = `
+<script id="apulab-level2-explore-card-runtime">
+(() => {
+  const stepPattern = /(?:^|\\s)[1-4]\\s*\\/\\s*4(?:\\s|$)/;
+
+  const resolveVisibleCard = (node) => {
+    let current = node;
+    for (let depth = 0; current && depth < 5; depth += 1, current = current.parentElement) {
+      if (!(current instanceof HTMLElement)) continue;
+      const rect = current.getBoundingClientRect();
+      const style = getComputedStyle(current);
+      const hasSurface = style.backgroundColor !== 'rgba(0, 0, 0, 0)'
+        || style.backgroundImage !== 'none'
+        || parseFloat(style.borderTopWidth || '0') > 0;
+      if (hasSurface && rect.width >= 180 && rect.width <= 620 && rect.height >= 45 && rect.height <= 240) {
+        return current;
+      }
+    }
+    return node instanceof HTMLElement ? node : null;
+  };
+
+  const markExploreCard = () => {
+    document.querySelectorAll('.apulab-level2-explore-card-primary').forEach((element) => {
+      element.classList.remove('apulab-level2-explore-card-primary');
+    });
+
+    const candidates = Array.from(document.querySelectorAll('div, section, aside'))
+      .filter((element) => {
+        const text = String(element.textContent || '').replace(/\\s+/g, ' ').trim();
+        return text.length > 0 && text.length < 420 && stepPattern.test(text);
+      })
+      .sort((a, b) => String(a.textContent || '').length - String(b.textContent || '').length);
+
+    if (!candidates.length) return;
+    const card = resolveVisibleCard(candidates[0]);
+    if (card) card.classList.add('apulab-level2-explore-card-primary');
+  };
+
+  markExploreCard();
+  const observer = new MutationObserver(markExploreCard);
+  observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+
+  const cleanup = () => observer.disconnect();
+  window.addEventListener('pagehide', cleanup, { once: true });
+  window.addEventListener('beforeunload', cleanup, { once: true });
+  window.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'apulab-dispose') cleanup();
+  });
+})();
+</script>`;
+
 for (const level of LEVELS) {
   const path = resolve(ROOT, `public/missions/mission01/level${level}.html`);
   let html = await readFile(path, 'utf8');
@@ -132,11 +199,15 @@ for (const level of LEVELS) {
     throw new Error(`mission01_level${level}_primary_audio_invalid_html`);
   }
 
-  html = html.replace('</head>', `${stylePatch}\n</head>`);
-  html = html.replace('</body>', `${runtimePatch}\n</body>`);
+  const styles = level === 2 ? `${stylePatch}\n${level2ExploreCardStyle}` : stylePatch;
+  const runtimes = level === 2 ? `${runtimePatch}\n${level2ExploreCardRuntime}` : runtimePatch;
+
+  html = html.replace('</head>', `${styles}\n</head>`);
+  html = html.replace('</body>', `${runtimes}\n</body>`);
   await writeFile(path, html, 'utf8');
 
   console.info(`[mission01] Level ${level} · EXPLORAR amarillo + clicks BITÁCORA/CONTINUAR/GUÍA`);
+  if (level === 2) console.info('[mission01] Level 2 · paneles EXPLORAR 1/4–4/4 en amarillo');
 }
 
 // Encadenado aquí para no modificar package.json ni la configuración global del proyecto.
