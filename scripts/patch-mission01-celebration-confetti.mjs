@@ -8,15 +8,15 @@ const hash = (text) => createHash('sha256').update(Buffer.from(text, 'utf8')).di
 const outputs = new Map();
 
 const STYLE = `<style id="apulab-celebration-confetti-style">
-#apulab-celebration-layer{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:190}
+#apulab-celebration-layer{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:2190}
 .apulab-celebration-piece{position:absolute;top:-42px;left:var(--x);width:var(--w);height:var(--h);background:var(--c);border-radius:var(--r);opacity:.98;box-shadow:0 0 6px rgba(255,255,255,.18);animation:apulabCelebrationFall var(--d) cubic-bezier(.18,.68,.32,1) var(--delay) forwards;will-change:transform,opacity}
 @keyframes apulabCelebrationFall{0%{transform:translate3d(0,-35px,0) rotate(0deg);opacity:1}82%{opacity:1}100%{transform:translate3d(var(--drift),1030px,0) rotate(var(--rot));opacity:.92}}
 @media (prefers-reduced-motion:reduce){.apulab-celebration-piece{animation-duration:1.8s!important}}
 </style>`;
 
 const SCRIPT = `<script id="apulab-celebration-confetti-runtime">(()=>{
-  const stage=document.getElementById('stage')||document.body;
-  const success=document.getElementById('success-overlay');
+  const stage=document.getElementById('stage')||document.querySelector('.kawsay-stage')||document.body;
+  const success=document.getElementById('success-overlay')||document.getElementById('kawsay-success-overlay');
   if(!stage||!success)return;
   let layer=document.getElementById('apulab-celebration-layer');
   if(!layer){layer=document.createElement('div');layer.id='apulab-celebration-layer';stage.appendChild(layer)}
@@ -51,8 +51,9 @@ const SCRIPT = `<script id="apulab-celebration-confetti-runtime">(()=>{
     timers.push(setTimeout(()=>wave(low?60:90,6),620));
     timers.push(setTimeout(()=>layer.replaceChildren(),5600));
   }
+  function isSuccessVisible(){return success.classList.contains('visible')||success.classList.contains('is-visible')||success.getAttribute('aria-hidden')==='false'}
   function sync(){
-    const now=success.classList.contains('visible');
+    const now=isSuccessVisible();
     if(now&&!visible)celebrate();
     visible=now;
   }
@@ -68,7 +69,9 @@ const SCRIPT = `<script id="apulab-celebration-confetti-runtime">(()=>{
 for (const level of [1,2,3,4,5]) {
   const path = resolve(OUT, `level${level}.html`);
   let html = await readFile(path, 'utf8');
-  if (!html.includes('id="success-overlay"')) throw new Error(`mission01_confetti_missing_success_overlay:l${level}`);
+  if (!/id=["']?(?:success-overlay|kawsay-success-overlay)["']?/i.test(html)) {
+    throw new Error(`mission01_confetti_missing_success_overlay:l${level}`);
+  }
   html = html.replace(/<style id="apulab-celebration-confetti-style">[\s\S]*?<\/style>/g, '');
   html = html.replace(/<script id="apulab-celebration-confetti-runtime">[\s\S]*?<\/script>/g, '');
   html = html.replace('</head>', `${STYLE}\n</head>`);
