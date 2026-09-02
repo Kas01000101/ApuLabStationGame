@@ -29,8 +29,6 @@ function migrateMission01LocalProgressOnce(): void {
       localStorage.removeItem(oldKey);
     };
 
-    // Los niveles de programación son los únicos que guardan continuidad local
-    // por número en el código integrado actual.
     moveKey('apulab.level4.successProgram', 'apulab.level3.successProgram');
     moveKey('apulab.level5.finalProgram', 'apulab.level4.finalProgram');
 
@@ -158,8 +156,8 @@ export class Mission01Screen {
     const incoming = this.frames[frameIndex];
     const path = this.levelPath(level);
 
-    // El frame anterior de reserva se limpia antes de reutilizarlo. No tocamos
-    // el nivel visible: permanece en pantalla hasta que el nuevo confirme READY.
+    // El iframe de reserva puede disparar un load tardío de about:blank al ser
+    // reciclado. Ese load NO debe confirmar la transición al siguiente nivel.
     this.disposeFrame(incoming, true);
     incoming.classList.remove('is-active', 'is-leaving', 'is-entering');
     incoming.classList.add('is-loading');
@@ -167,12 +165,26 @@ export class Mission01Screen {
     incoming.title = `ApuLab · Misión 01 · Nivel ${level} de ${TOTAL_LEVELS}`;
 
     const onLoad = (): void => {
-      // Fallback para niveles antiguos que todavía no envían apulab-level-ready.
+      const pending = this.pending;
+      if (!pending || pending.token !== token || pending.level !== level || pending.frameIndex !== frameIndex) {
+        return;
+      }
+
+      let loadedPath = '';
+      try {
+        loadedPath = incoming.contentWindow?.location.pathname || '';
+      } catch (_) {
+        return;
+      }
+
+      // Solo el documento solicitado puede activar el fallback de READY.
+      if (loadedPath !== path) return;
+      incoming.removeEventListener('load', onLoad);
       this.markPendingReady(token, level, frameIndex);
     };
 
     this.pending = { level, frameIndex, token, ready: false, onLoad };
-    incoming.addEventListener('load', onLoad, { once: true });
+    incoming.addEventListener('load', onLoad);
     incoming.src = path;
   }
 
@@ -184,8 +196,9 @@ export class Mission01Screen {
     if (pending.ready) return;
     pending.ready = true;
 
-    // Dos frames permiten que el iframe pinte al menos un frame real antes del
-    // crossfade. Así nunca mostramos el fondo oscuro mientras Three.js arranca.
+    const frame = this.frames[frameIndex];
+    frame.removeEventListener('load', pending.onLoad);
+
     requestAnimationFrame(() => {
       requestAnimationFrame(() => this.commitTransition(token));
     });
@@ -198,6 +211,15 @@ export class Mission01Screen {
     const oldFrameIndex = this.activeFrameIndex;
     const oldFrame = this.frames[oldFrameIndex];
     const incoming = this.frames[pending.frameIndex];
+
+    // Última defensa: nunca promover un iframe que no sea realmente el nivel
+    // solicitado. Esto impide que about:blank o un documento anterior se vea como
+    // un "reinicio" del nivel recién completado.
+    try {
+      if (incoming.contentWindow?.location.pathname !== this.levelPath(pending.level)) return;
+    } catch (_) {
+      return;
+    }
 
     incoming.classList.remove('is-loading');
     incoming.classList.add('is-active', 'is-entering');
@@ -313,16 +335,15 @@ export class Mission01Screen {
 
     if (payload.type !== 'apulab-level-complete') return;
 
-    // Solo el iframe realmente visible puede avanzar. Los mensajes tardíos del
-    // nivel que se está desmontando quedan descartados automáticamente.
     const activeFrame = this.frames[this.activeFrameIndex];
     if (event.source !== activeFrame.contentWindow) return;
 
     const completedLevel = Number(payload.level);
-    const nextLevel = Number(payload.nextLevel);
-    if (!Number.isInteger(nextLevel)) return;
-    if (Number.isInteger(completedLevel) && completedLevel !== this.activeLevel) return;
+    if (!Number.isInteger(completedLevel) || completedLevel !== this.activeLevel) return;
 
-    this.requestLevel(nextLevel);
+    // La secuencia es lineal. El padre es la autoridad: un nivel completado solo
+    // puede avanzar a activeLevel + 1. Ignoramos nextLevel heredado del iframe.
+    const expectedNextLevel = this.activeLevel + 1;
+    this.requestLevel(expectedNextLevel);
   };
 }
