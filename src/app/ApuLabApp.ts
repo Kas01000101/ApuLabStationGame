@@ -17,6 +17,7 @@ export class ApuLabApp {
   private readonly ambientMusic = new AmbientMusic();
   private state: AppState = 'menu';
   private intro?: ReadableIntroController;
+  private engineRunning = false;
 
   /**
    * Los navegadores modernos deciden el texto de esta confirmación y no
@@ -46,8 +47,20 @@ export class ApuLabApp {
 
   start(): void {
     this.ambientMusic.arm();
-    this.engine.start((dt) => this.update(dt));
+    this.startThreeEngine();
     this.goTo('menu');
+  }
+
+  private startThreeEngine(): void {
+    if (this.engineRunning) return;
+    this.engine.start((dt) => this.update(dt));
+    this.engineRunning = true;
+  }
+
+  private stopThreeEngine(): void {
+    if (!this.engineRunning) return;
+    this.engine.stop();
+    this.engineRunning = false;
   }
 
   private openAccess(): void {
@@ -97,6 +110,12 @@ export class ApuLabApp {
     this.menu.setVisible(state === 'menu');
     this.mission01.setVisible(state === 'mission01');
     this.roots.threeRoot.style.visibility = state === 'mission01' ? 'hidden' : 'visible';
+
+    // Durante los niveles el iframe ya mantiene su propio loop WebGL.
+    // Detener el ThreeEngine principal evita renderizar una segunda escena 3D
+    // invisible a 60 FPS mientras se juega Misión 01.
+    if (state === 'mission01') this.stopThreeEngine();
+    else this.startThreeEngine();
 
     if (state === 'intro') {
       this.intro?.destroy();
