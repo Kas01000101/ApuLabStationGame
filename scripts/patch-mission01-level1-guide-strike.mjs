@@ -16,25 +16,14 @@ const stylePatch = `
 /* ==========================================================
    NIVEL 1 · GUÍA · TACHADO ANIMADO DE TAREAS
    Misma caja existente. Sin check, checkbox ni subrayado.
-   Caja más alta, más estrecha y situada más arriba.
    ========================================================== */
 #kawsay-guide-container > #kawsay-concept-panel.level1-guide-task-panel.is-guide {
-  top: 32px !important;
-  left: 76px !important;
-  right: auto !important;
-  bottom: auto !important;
-  width: 286px !important;
-  min-width: 286px !important;
-  max-width: 286px !important;
-  min-height: 228px !important;
-  height: auto !important;
-  padding: 14px 14px 12px !important;
-  border-radius: 10px !important;
-  box-sizing: border-box !important;
+  padding-top: 13px !important;
+  padding-bottom: 13px !important;
 }
 
 #kawsay-guide-container > #kawsay-concept-panel.level1-guide-task-panel.is-guide > #kawsay-concept-title {
-  margin: 0 0 10px 0 !important;
+  margin: 0 0 9px 0 !important;
   color: #FFFFFF !important;
   font-size: 15px !important;
   font-weight: 800 !important;
@@ -49,14 +38,14 @@ const stylePatch = `
 
 .guide-task-list {
   display: grid !important;
-  gap: 8px !important;
-  margin: 0 0 12px 0 !important;
+  gap: 5px !important;
+  margin: 0 !important;
 }
 
 .guide-task {
   position: relative;
   display: block !important;
-  min-height: 24px;
+  min-height: 29px;
   padding: 5px 8px !important;
   border-left: 3px solid transparent;
   border-radius: 3px;
@@ -79,7 +68,7 @@ const stylePatch = `
   font-style: normal !important;
   font-size: 13px !important;
   font-weight: 700 !important;
-  line-height: 1.2 !important;
+  line-height: 1.28 !important;
   letter-spacing: 0 !important;
 }
 
@@ -130,12 +119,11 @@ const stylePatch = `
 
 /* La pista inferior conserva el detalle de la tarea activa dentro de LA MISMA caja. */
 #kawsay-guide-container > #kawsay-concept-panel.level1-guide-task-panel.is-guide > #kawsay-hint {
-  margin-top: 0 !important;
-  padding-top: 10px !important;
+  margin-top: 8px !important;
+  padding-top: 7px !important;
   border-top: 1px solid rgba(255,255,255,0.14) !important;
   color: #DCD7F3 !important;
   opacity: 1 !important;
-  line-height: 1.35 !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -253,4 +241,4 @@ html = html.replace('</head>', `${stylePatch}\n</head>`);
 html = html.replace('</body>', `${runtimePatch}\n</body>`);
 
 await writeFile(LEVEL1_PATH, html, 'utf8');
-console.info('[mission01] level 1 guide animated strike-through applied · vertical 286×228 @ 76,32');
+console.info('[mission01] level 1 guide animated strike-through applied');
