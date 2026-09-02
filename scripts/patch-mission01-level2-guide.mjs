@@ -11,7 +11,7 @@ if (!html.includes('MIDE LAS 3 BATERÍAS')) {
   throw new Error('mission01_level2_progress_guide_missing_original_copy');
 }
 
-// Exponemos únicamente un getter de lectura. La lógica original y el Map no cambian.
+// Getter de solo lectura: no modifica la lógica original de medición.
 const measuredValuesPattern = /((?:const|let)\s+measuredValues\s*=\s*new\s+Map(?:<[^;>]+>)?\s*\(\s*\)\s*;?)/;
 if (!measuredValuesPattern.test(html)) {
   throw new Error('mission01_level2_progress_guide_missing_measured_values');
@@ -23,8 +23,13 @@ html = html.replace(
 
 const css = `
 <style id="apulab-level2-progress-guide-style">
-/* NIVEL 2 ÚNICAMENTE · guía progresiva con el mismo lenguaje visual del Nivel 1. */
-.apulab-l2-guide-shell{display:flex;flex-direction:column;gap:0;font-family:"Poppins",sans-serif;font-style:normal;color:#fff}
+/* NIVEL 2 ÚNICAMENTE · guía progresiva, sin reemplazar el DOM nativo. */
+#kawsay-concept-panel.apulab-l2-guide-enhanced > .apulab-l2-guide-shell{display:none}
+#kawsay-concept-panel.apulab-l2-guide-enhanced.is-guide > #kawsay-concept-title,
+#kawsay-concept-panel.apulab-l2-guide-enhanced.is-guide > #kawsay-concept-text,
+#kawsay-concept-panel.apulab-l2-guide-enhanced.is-guide > #kawsay-hint{display:none !important}
+#kawsay-concept-panel.apulab-l2-guide-enhanced.is-guide > .apulab-l2-guide-shell{display:flex}
+.apulab-l2-guide-shell{flex-direction:column;gap:0;font-family:"Poppins",sans-serif;font-style:normal;color:#fff}
 .apulab-l2-guide-kicker{margin:0 0 9px;font-size:13px;font-weight:800;line-height:1;color:#fff}
 .apulab-l2-guide-steps{display:flex;flex-direction:column;gap:7px;margin:0 0 10px}
 .apulab-l2-guide-step{position:relative;box-sizing:border-box;min-height:25px;padding:5px 8px;border-left:3px solid transparent;font-size:12px;font-weight:800;line-height:1.2;color:#f8f9fa;overflow:hidden}
@@ -43,16 +48,18 @@ const css = `
 const runtime = `
 <script id="apulab-level2-progress-guide-runtime">
 (() => {
-  // NIVEL 2 · GUÍA B: medir una → medir las otras dos → comparar y elegir.
-  const normalize = (value) => String(value || '')
-    .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')
-    .replace(/\\s+/g, ' ').trim().toUpperCase();
+  // NIVEL 2 · GUÍA B. No usa MutationObserver global ni sustituye innerHTML del panel nativo.
+  const panel = document.getElementById('kawsay-concept-panel');
+  if (!panel) return;
 
-  const originalNeedle = 'MIDE LAS 3 BATERIAS';
-  const originalDetailNeedle = 'AHORA SI TRABAJAREMOS CON EL PROBLEMA DEL ROVER YACHAY';
-  let guideHost = null;
+  panel.classList.add('apulab-l2-guide-enhanced');
+  const shell = document.createElement('div');
+  shell.className = 'apulab-l2-guide-shell';
+  shell.setAttribute('aria-hidden', 'true');
+  panel.appendChild(shell);
+
+  let previousCount = -1;
   let previousStage = -1;
-  let completed = false;
   let audioContext = null;
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
 
@@ -97,17 +104,6 @@ const runtime = `
     else play();
   };
 
-  const findGuideHost = () => {
-    const all = Array.from(document.querySelectorAll('div,section,aside'));
-    const candidates = all.filter((el) => {
-      const text = normalize(el.textContent);
-      return text.includes(originalNeedle) && text.includes(originalDetailNeedle);
-    });
-    if (!candidates.length) return null;
-    candidates.sort((a, b) => (a.textContent?.length || 0) - (b.textContent?.length || 0));
-    return candidates[0];
-  };
-
   const getCount = () => {
     try {
       const value = Number(window.__apulabLevel2MeasuredCount?.() ?? 0);
@@ -115,37 +111,13 @@ const runtime = `
     } catch (_) { return 0; }
   };
 
-  const outsideGuideText = () => {
-    if (!guideHost) return normalize(document.body.innerText);
-    const old = guideHost.style.display;
-    guideHost.style.display = 'none';
-    const text = normalize(document.body.innerText);
-    guideHost.style.display = old;
-    return text;
-  };
-
-  const detectCompletion = () => {
-    if (getCount() < 3) return false;
-    const text = outsideGuideText();
-    return text.includes('ELECCION CORRECTA')
-      || text.includes('BATERIA CORRECTA')
-      || text.includes('BATERIA ADECUADA')
-      || text.includes('COMPARACION COMPLETADA')
-      || text.includes('NIVEL 2 COMPLETADO')
-      || text.includes('CONTINUAR AL NIVEL 3');
-  };
-
-  const stepClass = (index, stage, done) => {
-    if (done || index < stage) return 'is-complete';
+  const stepClass = (index, stage) => {
+    if (index < stage) return 'is-complete';
     if (index === stage) return 'is-active';
     return 'is-pending';
   };
 
-  const copyFor = (count, done) => {
-    if (done) return {
-      title: 'COMPARACIÓN COMPLETADA',
-      body: 'Usaste tus mediciones para tomar una decisión.'
-    };
+  const copyFor = (count) => {
     if (count === 0) return {
       title: 'MIDE LAS 3 BATERÍAS',
       body: 'Usa el multímetro para medirlas una por una. El dato de misión se desbloquea cuando completes <span class="apulab-l2-guide-count">3 / 3</span>. Puedes medirlas en el orden que prefieras.'
@@ -164,41 +136,37 @@ const runtime = `
     };
   };
 
-  const render = () => {
-    if (!guideHost || !document.contains(guideHost)) guideHost = findGuideHost();
-    if (!guideHost) return;
-
+  const render = (force = false) => {
     const count = getCount();
-    completed = completed || detectCompletion();
-    const stage = completed ? 3 : count === 0 ? 0 : count < 3 ? 1 : 2;
-    const copy = copyFor(count, completed);
+    if (!force && count === previousCount) return;
 
+    const stage = count === 0 ? 0 : count < 3 ? 1 : 2;
+    const copy = copyFor(count);
     if (previousStage >= 0 && stage > previousStage) playGuideTick();
-    previousStage = stage;
 
-    guideHost.innerHTML = \`
-      <div class="apulab-l2-guide-shell">
-        <div class="apulab-l2-guide-kicker">GUÍA · 3 PASOS</div>
-        <div class="apulab-l2-guide-steps">
-          <div class="apulab-l2-guide-step \${stepClass(0, stage, completed)}">1 · MIDE UNA BATERÍA</div>
-          <div class="apulab-l2-guide-step \${stepClass(1, stage, completed)}">2 · MIDE LAS OTRAS DOS</div>
-          <div class="apulab-l2-guide-step \${stepClass(2, stage, completed)}">3 · COMPARA Y ELIGE</div>
-        </div>
-        <div class="apulab-l2-guide-copy">
-          <strong>\${copy.title}</strong>
-          <p>\${copy.body}</p>
-        </div>
-      </div>\`;
+    shell.innerHTML =
+      '<div class="apulab-l2-guide-kicker">GUÍA · 3 PASOS</div>' +
+      '<div class="apulab-l2-guide-steps">' +
+        '<div class="apulab-l2-guide-step ' + stepClass(0, stage) + '">1 · MIDE UNA BATERÍA</div>' +
+        '<div class="apulab-l2-guide-step ' + stepClass(1, stage) + '">2 · MIDE LAS OTRAS DOS</div>' +
+        '<div class="apulab-l2-guide-step ' + stepClass(2, stage) + '">3 · COMPARA Y ELIGE</div>' +
+      '</div>' +
+      '<div class="apulab-l2-guide-copy"><strong>' + copy.title + '</strong><p>' + copy.body + '</p></div>';
+
+    previousCount = count;
+    previousStage = stage;
   };
 
-  const observer = new MutationObserver(() => render());
-  observer.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true });
+  // 300 ms, lectura de un Map y solo re-renderiza cuando cambia 0/1/2/3.
+  const timer = window.setInterval(() => render(false), 300);
+  render(true);
 
-  const timer = window.setInterval(render, 250);
-  render();
+  const syncAria = () => {
+    shell.setAttribute('aria-hidden', panel.classList.contains('is-guide') ? 'false' : 'true');
+  };
+  document.getElementById('kawsay-guide')?.addEventListener('click', () => window.setTimeout(syncAria, 0));
 
   const cleanup = () => {
-    observer.disconnect();
     window.clearInterval(timer);
     if (audioContext && audioContext.state !== 'closed') audioContext.close().catch(() => {});
   };
@@ -216,4 +184,7 @@ if (!html.includes('</head>') || !html.includes('</body>')) {
 html = html.replace('</head>', `${css}\n</head>`);
 html = html.replace('</body>', `${runtime}\n</body>`);
 await writeFile(LEVEL2_PATH, html, 'utf8');
-console.info('[mission01] Level 2 · GUÍA progresiva 3 pasos aplicada sobre measuredValues');
+console.info('[mission01] Level 2 · GUÍA progresiva optimizada sin MutationObserver global');
+
+// Último parche: EXPLORAR 4/4 pasa directamente a GUÍA en Niveles 1 y 2.
+await import('./patch-mission01-level12-auto-guide.mjs');
