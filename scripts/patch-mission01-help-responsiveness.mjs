@@ -13,8 +13,9 @@ function required(source, before, after, label) {
 
 const outputs = new Map();
 
-// Nivel 1: un click en EXPLORAR debe tener prioridad sobre una transición de cámara
-// que aún esté terminando. El siguiente showExplanationStep() crea su propio tween.
+// Nivel 1: EXPLORAR no debe perder el click por una transición de cámara previa.
+// Se conserva intacta la cadencia original de la escena principal para no degradar
+// el arrastre ni la sensación de respuesta de los componentes de la mesa.
 {
   const level = 1;
   const path = resolve(OUT, 'level1.html');
@@ -27,17 +28,8 @@ const outputs = new Map();
     'l1-explore-camera-guard',
   );
 
-  // La escena principal no necesita 60 FPS para este tablero estático. Reducir el
-  // ritmo evita picos de GPU sin cambiar tiempos de interacción ni animaciones lógicas.
-  html = required(
-    html,
-    `const minFrameInterval = modalOpen ? 100 : (lowPowerDevice ? 22 : 16);`,
-    `const minFrameInterval = modalOpen ? 100 : (lowPowerDevice ? 30 : 20);`,
-    'l1-frame-budget',
-  );
-
-  // La flecha 3D es una señal visual secundaria; ~20 FPS es suficiente y evita
-  // mantener un segundo renderer al mismo ritmo que la escena principal.
+  // La flecha 3D sí es un renderer separado y puramente decorativo. Limitar solo
+  // esta señal visual reduce trabajo extra sin tocar el loop interactivo principal.
   html = required(
     html,
     `    let frameId = 0;\n    let disposed = false;\n\n    const render = () => {\n      if (disposed) return;`,
@@ -47,12 +39,12 @@ const outputs = new Map();
 
   await writeFile(path, html, 'utf8');
   outputs.set(level, html);
-  console.info('[mission01] Nivel 1 · EXPLORAR no pierde clicks por cameraTween · render 50/33 FPS · flecha 3D ~20 FPS');
+  console.info('[mission01] Nivel 1 · EXPLORAR no pierde clicks · frame principal nativo · flecha 3D ~20 FPS');
 }
 
-// Nivel 2: GUÍA y el carrusel usan transiciones de cámara. Antes, advanceExplanation
-// descartaba el click por completo si cualquiera seguía activa. Ahora cancela solo el
-// tween de cámara; si el carrusel está desplazándose, conserva un único click pendiente.
+// Nivel 2: una transición de cámara tampoco debe tragarse EXPLORAR. Si el carrusel
+// está desplazándose se conserva un único intento, pero nunca se dispara mientras
+// GUÍA esté abierta porque eso cerraría la ayuda y bloquearía la interacción.
 {
   const level = 2;
   const path = resolve(OUT, 'level2.html');
@@ -68,20 +60,13 @@ const outputs = new Map();
   html = required(
     html,
     `  function advanceExplanation() {\n    if (cameraTween || batterySwapAnimating) return;`,
-    `  function advanceExplanation() {\n    // No descartamos EXPLORAR porque GUÍA/cámara todavía estén regresando.\n    if (cameraTween) cameraTween = null;\n    if (batterySwapAnimating) {\n      if (!pendingExploreAfterSwap) {\n        pendingExploreAfterSwap = true;\n        window.setTimeout(() => {\n          pendingExploreAfterSwap = false;\n          if (!batterySwapAnimating) advanceExplanation();\n        }, 460);\n      }\n      return;\n    }`,
+    `  function advanceExplanation() {\n    // No descartamos EXPLORAR porque la cámara todavía esté regresando.\n    if (cameraTween) cameraTween = null;\n    if (batterySwapAnimating) {\n      if (!pendingExploreAfterSwap) {\n        pendingExploreAfterSwap = true;\n        window.setTimeout(() => {\n          pendingExploreAfterSwap = false;\n          // Nunca abrir EXPLORAR por detrás de una GUÍA que la usuaria acaba de abrir.\n          if (!batterySwapAnimating && !guideActive && !explanationMode) advanceExplanation();\n        }, 460);\n      }\n      return;\n    }`,
     'l2-explore-animation-guard',
-  );
-
-  html = required(
-    html,
-    `const minFrameInterval = modalOpen ? 100 : (lowPowerDevice ? 22 : 16);`,
-    `const minFrameInterval = modalOpen ? 100 : (lowPowerDevice ? 30 : 20);`,
-    'l2-frame-budget',
   );
 
   await writeFile(path, html, 'utf8');
   outputs.set(level, html);
-  console.info('[mission01] Nivel 2 · EXPLORAR conserva click durante cámara/carrusel · render 50/33 FPS');
+  console.info('[mission01] Nivel 2 · EXPLORAR conserva click de forma segura · frame principal nativo');
 }
 
 const manifest = JSON.parse(await readFile(MANIFEST, 'utf8'));
@@ -94,4 +79,4 @@ for (const entry of manifest.levels || []) {
 }
 await writeFile(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
 
-console.info('[mission01] HELP RESPONSIVENESS QA PATCH OK · clicks preservados + frame budget reducido');
+console.info('[mission01] HELP RESPONSIVENESS QA PATCH OK · clicks preservados · loop interactivo principal intacto');
