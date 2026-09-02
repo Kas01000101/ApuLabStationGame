@@ -238,8 +238,8 @@ const runtimePatch = `
   };
 
   const syncFlow = () => {
-    const titleText = conceptTitle?.textContent || '';
-    const finalStepVisible = !conceptPanel.hidden && titleText.includes('AHORA PRUÉBALO · 4 / 4');
+    const text = document.body.textContent || '';
+    const finalStepVisible = text.includes('AHORA PRUÉBALO · 4 / 4');
 
     if (finalStepVisible) finalExploreSeen = true;
     if (finalExploreSeen && !finalStepVisible && !guideOpened) activateGuideAttention();
@@ -261,16 +261,8 @@ const runtimePatch = `
     });
   }, { passive: true });
 
-  // Antes se observaba document.body completo. La señal pedagógica depende
-  // únicamente del panel/título contextual, así que acotamos el observer aquí.
   const flowObserver = new MutationObserver(syncFlow);
-  flowObserver.observe(conceptPanel, {
-    attributes: true,
-    attributeFilter: ['class', 'hidden'],
-    childList: true,
-    subtree: true,
-    characterData: true,
-  });
+  flowObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
   syncFlow();
 
   const cleanup = () => {
@@ -297,4 +289,4 @@ html = html.replace('</head>', `${stylePatch}\n</head>`);
 html = html.replace('</body>', `${runtimePatch}\n</body>`);
 
 await writeFile(LEVEL1_PATH, html, 'utf8');
-console.info('[mission01] level 1 pedagogical guidance patch applied with scoped observer');
+console.info('[mission01] level 1 pedagogical guidance patch applied');
