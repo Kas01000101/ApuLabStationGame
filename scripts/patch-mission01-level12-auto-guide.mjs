@@ -98,3 +98,4 @@ async function patchLevel2() {
 
 await patchLevel1();
 await patchLevel2();
+await import('./patch-mission01-level2-explore-yellow-final.mjs');
