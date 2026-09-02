@@ -17,6 +17,7 @@ for (const level of [1,2,3,4,5]) {
   const html = await readFile(resolve(OUT, `level${level}.html`), 'utf8');
   console.info(`[guide-audit] LEVEL ${level}`);
   const markers = level <= 2 ? [
+    'id="kawsay-concept-panel"',
     'explanationButton.addEventListener',
     'guideButton.addEventListener',
     'function finishExplanation()',
@@ -24,6 +25,7 @@ for (const level of [1,2,3,4,5]) {
     'function advanceExplanation(',
     'guideOpenedOnce',
   ] : [
+    'id="info-panel"',
     'exploreBtn.addEventListener',
     "document.getElementById('explore-btn').onclick",
     'guideBtn.addEventListener',
