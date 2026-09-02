@@ -4,9 +4,6 @@ export interface IntroOverlayOptions {
   onSkip?: () => void;
 }
 
-function safeGet(key: string): string | null {
-  try { return localStorage.getItem(key); } catch { return null; }
-}
 function safeSet(key: string, value: string): void {
   try { localStorage.setItem(key, value); } catch { /* storage can be blocked */ }
 }
@@ -59,7 +56,7 @@ export class IntroOverlay {
     this.nicknameError=this.require<HTMLDivElement>('.nickname-error');
     this.hideDialogue();this.hideSfx();this.hideLocation();this.hideBeat();this.hideMission();this.setTransition(0);
     this.nicknamePanel.classList.remove('show');
-    this.skipButton.style.display=safeGet('apulabIntroSeen')==='1'?'block':'none';
+    this.skipButton.style.display='block';
     this.skipButton.addEventListener('click',()=>options.onSkip?.());
     this.require<HTMLButtonElement>('.nickname-continue').addEventListener('click',()=>this.commitNickname());
     this.nicknameInput.addEventListener('keydown',(event)=>{event.stopPropagation();if(event.key==='Enter'){event.preventDefault();this.commitNickname();}});
