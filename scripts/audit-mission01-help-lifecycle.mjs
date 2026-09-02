@@ -78,9 +78,6 @@ function contractNativeLevels12(level, html) {
   const finish = balancedBody(html, 'function finishExplanation()', `l${level}:finishExplanation`);
   const guide = balancedBody(html, 'function setGuideMode(enabled)', `l${level}:setGuideMode`);
 
-  // Contrato del código propietario: abrir EXPLORAR establece estado activo;
-  // terminarlo lo libera para una nueva apertura; GUÍA siempre asigna su estado
-  // desde el argumento y por eso alternar true→false→true es reutilizable.
   if (!advance.includes('explanationMode = true;') || !advance.includes('explanationIndex = 0;')) {
     fail('l12_explore_open', `l${level}`);
   }
@@ -93,12 +90,33 @@ function contractNativeLevels12(level, html) {
   }
   if (!html.includes('setGuideMode(!guideActive)')) fail('l12_guide_toggle', `l${level}`);
 
+  // EXPLORAR no debe perder un click por una transición visual de cámara.
+  if (advance.includes('if (cameraTween) return;') || advance.includes('if (cameraTween || batterySwapAnimating) return;')) {
+    fail('l12_explore_drops_click_during_animation', `l${level}`);
+  }
+  if (!advance.includes('if (cameraTween) cameraTween = null;')) {
+    fail('l12_explore_does_not_interrupt_camera', `l${level}`);
+  }
+
+  // Presupuesto de render: evita volver a 60 FPS permanentes en estas escenas pesadas.
+  if (!html.includes('lowPowerDevice ? 30 : 20')) fail('l12_frame_budget', `l${level}`);
+
   // L1 bloquea GUÍA durante EXPLORAR pero debe reactivarla al terminar.
-  if (level === 1 && !finish.includes('guideButton.disabled = false;')) fail('l1_guide_reenable');
-  // L2 debe arrancar con ambas ayudas disponibles por ser opcionales.
+  if (level === 1) {
+    if (!finish.includes('guideButton.disabled = false;')) fail('l1_guide_reenable');
+    if (!html.includes('lastArrowRenderAt') || !html.includes('timestamp - lastArrowRenderAt < 50')) {
+      fail('l1_arrow_frame_budget');
+    }
+  }
+
+  // L2 debe arrancar con ambas ayudas disponibles y conservar un click de EXPLORAR
+  // si el carrusel está justo en mitad de su desplazamiento.
   if (level === 2) {
     if (!html.includes('explanationButton.hidden = false;')) fail('l2_explore_visible');
     if (!html.includes('guideButton.disabled = false;')) fail('l2_guide_enabled');
+    if (!html.includes('pendingExploreAfterSwap = true;') || !advance.includes('window.setTimeout')) {
+      fail('l2_explore_swap_retry');
+    }
   }
 }
 
@@ -165,4 +183,4 @@ contractNativeLevels12(2,levels.get(2));
 contractLevels34(3,levels.get(3));
 contractLevels34(4,levels.get(4));
 contractLevel5(levels.get(5));
-console.info('[mission01] HELP LIFECYCLE CONTRACT OK · L1–L2 handlers nativos sin interceptores · L3–L5 abrir → cerrar → reabrir');
+console.info('[mission01] HELP LIFECYCLE CONTRACT OK · L1–L2 clicks preservados durante animaciones · frame budget controlado · L3–L5 abrir → cerrar → reabrir');
