@@ -91,4 +91,5 @@ html = html.replace('</body>', `${runtime}\n</body>`);
 await writeFile(LEVEL2_PATH, html, 'utf8');
 console.info('[mission01] Level 2 · EXPLORAR 1/4–4/4 amarillo forzado con prioridad inline');
 
+await import('./patch-mission01-level3-pre-normalize.mjs');
 await import('./patch-mission01-level3-redesign.mjs');
