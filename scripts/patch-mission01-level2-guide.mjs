@@ -180,13 +180,13 @@ const runtime = `
       <div class="apulab-l2-guide-shell">
         <div class="apulab-l2-guide-kicker">GUÍA · 3 PASOS</div>
         <div class="apulab-l2-guide-steps">
-          <div class="apulab-l2-guide-step \\${stepClass(0, stage, completed)}">1 · MIDE UNA BATERÍA</div>
-          <div class="apulab-l2-guide-step \\${stepClass(1, stage, completed)}">2 · MIDE LAS OTRAS DOS</div>
-          <div class="apulab-l2-guide-step \\${stepClass(2, stage, completed)}">3 · COMPARA Y ELIGE</div>
+          <div class="apulab-l2-guide-step \${stepClass(0, stage, completed)}">1 · MIDE UNA BATERÍA</div>
+          <div class="apulab-l2-guide-step \${stepClass(1, stage, completed)}">2 · MIDE LAS OTRAS DOS</div>
+          <div class="apulab-l2-guide-step \${stepClass(2, stage, completed)}">3 · COMPARA Y ELIGE</div>
         </div>
         <div class="apulab-l2-guide-copy">
-          <strong>\\${copy.title}</strong>
-          <p>\\${copy.body}</p>
+          <strong>\${copy.title}</strong>
+          <p>\${copy.body}</p>
         </div>
       </div>\`;
   };
