@@ -138,3 +138,6 @@ for (const level of LEVELS) {
 
   console.info(`[mission01] Level ${level} · EXPLORAR amarillo + clicks BITÁCORA/CONTINUAR/GUÍA`);
 }
+
+// Encadenado aquí para no modificar package.json ni la configuración global del proyecto.
+await import('./patch-mission01-level2-guide.mjs');
