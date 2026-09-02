@@ -170,8 +170,17 @@ const arrowJs = `  // NIVEL 1 ÚNICAMENTE · Flecha 3D inspirada en la composici
       glowTexture.dispose();
       glowMaterial.dispose();
       renderer.dispose();
+      renderer.domElement.remove();
     };
+
+    // La flecha desaparece al primer uso de EXPLORAR; liberar su contexto WebGL
+    // en ese mismo instante evita mantener un segundo renderer durante el nivel.
+    document.getElementById("kawsay-explanation")?.addEventListener("click", disposeArrow, { once: true });
     window.addEventListener("pagehide", disposeArrow, { once: true });
+    window.addEventListener("beforeunload", disposeArrow, { once: true });
+    window.addEventListener("message", (event) => {
+      if (event.data && event.data.type === "apulab-dispose") disposeArrow();
+    });
   }
 
   createExploreAttentionThreeArrow();
@@ -183,6 +192,7 @@ html = html.replace(JS_MARKER, `${arrowJs}${JS_MARKER}`);
 if (!html.includes('createExploreAttentionThreeArrow();')) throw new Error('level1_three_arrow_failed:js');
 if (!html.includes('new THREE.ExtrudeGeometry(shape')) throw new Error('level1_three_arrow_failed:geometry');
 if (!html.includes('color: 0x111111')) throw new Error('level1_three_arrow_failed:black-edge');
+if (!html.includes('addEventListener("click", disposeArrow, { once: true })')) throw new Error('level1_three_arrow_failed:early-dispose');
 
 await writeFile(LEVEL1_PATH, html, 'utf8');
-console.info('[mission01] Level 1 · flecha EXPLORAR reemplazada por Three.js 3D');
+console.info('[mission01] Level 1 · flecha EXPLORAR Three.js con dispose inmediato al usarla');
