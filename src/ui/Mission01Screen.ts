@@ -7,6 +7,7 @@ type PendingTransition = {
   frameIndex: number;
   token: number;
   ready: boolean;
+  startedAt: number;
   onLoad: () => void;
 };
 
@@ -16,7 +17,15 @@ const TOTAL_LEVELS = 7;
 const MAX_AVAILABLE_LEVEL = 5;
 const TRANSITION_MS = 240;
 const DISPOSE_GRACE_MS = 48;
+const LEVEL_CURTAIN_MIN_MS = 760;
 const SEQUENCE_MIGRATION_KEY = 'apulab.mission01.sequence7.v1';
+const LEVEL_TITLES: Record<number, string> = {
+  1: 'MEDIR',
+  2: 'COMPARAR',
+  3: 'ENTRENAMIENTO DE MOVIMIENTO',
+  4: 'PLANIFICAR Y CORREGIR',
+  5: 'PATRONES Y BUCLES',
+};
 
 function migrateMission01LocalProgressOnce(): void {
   try {
@@ -42,12 +51,16 @@ export class Mission01Screen {
   private readonly element = document.createElement('section');
   private readonly frames: HTMLIFrameElement[] = [];
   private readonly unavailableToast = document.createElement('div');
+  private readonly transitionCurtain = document.createElement('div');
+  private readonly transitionLevel = document.createElement('strong');
+  private readonly transitionTitle = document.createElement('span');
   private activeFrameIndex = 0;
   private activeLevel = 1;
   private visible = false;
   private transitionToken = 0;
   private pending?: PendingTransition;
   private transitionTimer?: number;
+  private curtainTimer?: number;
   private unavailableTimer?: number;
   private prefetchLink?: HTMLLinkElement;
 
@@ -65,11 +78,21 @@ export class Mission01Screen {
     this.frames[0].setAttribute('aria-hidden', 'false');
     this.frames[1].setAttribute('aria-hidden', 'true');
 
+    this.transitionCurtain.className = 'mission01-level-transition';
+    this.transitionCurtain.setAttribute('aria-hidden', 'true');
+    this.transitionCurtain.setAttribute('role', 'status');
+    this.transitionCurtain.setAttribute('aria-live', 'polite');
+    const transitionKicker = document.createElement('small');
+    transitionKicker.textContent = 'MISIÓN 01';
+    this.transitionLevel.className = 'mission01-level-transition__level';
+    this.transitionTitle.className = 'mission01-level-transition__title';
+    this.transitionCurtain.append(transitionKicker, this.transitionLevel, this.transitionTitle);
+
     this.unavailableToast.className = 'mission01-unavailable-toast';
     this.unavailableToast.setAttribute('role', 'status');
     this.unavailableToast.setAttribute('aria-live', 'polite');
 
-    this.element.append(...this.frames, this.unavailableToast);
+    this.element.append(...this.frames, this.transitionCurtain, this.unavailableToast);
     this.root.appendChild(this.element);
     window.addEventListener('message', this.handleMessage);
   }
@@ -142,6 +165,24 @@ export class Mission01Screen {
     return `/missions/mission01/level${level}.html`;
   }
 
+  private showLevelTransition(level: number): void {
+    if (this.curtainTimer) window.clearTimeout(this.curtainTimer);
+    this.curtainTimer = undefined;
+    this.transitionLevel.textContent = `NIVEL ${level}`;
+    this.transitionTitle.textContent = LEVEL_TITLES[level] ?? 'SIGUIENTE RETO';
+    this.transitionCurtain.classList.add('show');
+    this.transitionCurtain.setAttribute('aria-hidden', 'false');
+  }
+
+  private hideLevelTransition(delay = 0): void {
+    if (this.curtainTimer) window.clearTimeout(this.curtainTimer);
+    this.curtainTimer = window.setTimeout(() => {
+      this.transitionCurtain.classList.remove('show');
+      this.transitionCurtain.setAttribute('aria-hidden', 'true');
+      this.curtainTimer = undefined;
+    }, Math.max(0, delay));
+  }
+
   private requestLevel(level: number): void {
     if (!this.isAvailable(level)) {
       this.showUnavailableLevel(level);
@@ -155,6 +196,9 @@ export class Mission01Screen {
     const frameIndex = this.activeFrameIndex === 0 ? 1 : 0;
     const incoming = this.frames[frameIndex];
     const path = this.levelPath(level);
+    const startedAt = performance.now();
+
+    this.showLevelTransition(level);
 
     // El iframe de reserva puede disparar un load tardío de about:blank al ser
     // reciclado. Ese load NO debe confirmar la transición al siguiente nivel.
@@ -183,7 +227,7 @@ export class Mission01Screen {
       this.markPendingReady(token, level, frameIndex);
     };
 
-    this.pending = { level, frameIndex, token, ready: false, onLoad };
+    this.pending = { level, frameIndex, token, ready: false, startedAt, onLoad };
     incoming.addEventListener('load', onLoad);
     incoming.src = path;
   }
@@ -231,8 +275,10 @@ export class Mission01Screen {
 
     this.activeFrameIndex = pending.frameIndex;
     this.activeLevel = pending.level;
+    const curtainElapsed = performance.now() - pending.startedAt;
     this.pending = undefined;
     this.prefetchLevel(this.activeLevel + 1);
+    this.hideLevelTransition(Math.max(140, LEVEL_CURTAIN_MIN_MS - curtainElapsed));
 
     if (this.transitionTimer) window.clearTimeout(this.transitionTimer);
     this.transitionTimer = window.setTimeout(() => {
@@ -253,6 +299,7 @@ export class Mission01Screen {
     frame.setAttribute('aria-hidden', 'true');
     this.disposeFrame(frame, true);
     this.pending = undefined;
+    this.hideLevelTransition();
   }
 
   private disposeFrame(frame: HTMLIFrameElement, immediate = false): void {
@@ -313,8 +360,10 @@ export class Mission01Screen {
 
   private clearTimers(): void {
     if (this.transitionTimer) window.clearTimeout(this.transitionTimer);
+    if (this.curtainTimer) window.clearTimeout(this.curtainTimer);
     if (this.unavailableTimer) window.clearTimeout(this.unavailableTimer);
     this.transitionTimer = undefined;
+    this.curtainTimer = undefined;
     this.unavailableTimer = undefined;
   }
 
