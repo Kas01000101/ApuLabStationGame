@@ -7,6 +7,11 @@ const needles=[
   'function advanceExplanation',
   'explanationButton.addEventListener',
   'guideButton.addEventListener',
+  'conceptPanel.hidden',
+  'conceptPanel.classList',
+  'kawsay-concept-close',
+  'concept-close',
+  'Cerrar explicación',
   "document.getElementById('explore-btn')",
   "document.getElementById('guide-btn')",
   'function closeInfo',
@@ -17,12 +22,12 @@ for (const level of [1,2,3,4,5]) {
   console.info(`\n[help-final] ===== LEVEL ${level} =====`);
   for (const needle of needles) {
     let from=0, count=0;
-    while (count<4) {
+    while (count<6) {
       const i=html.indexOf(needle, from);
       if (i<0) break;
       count++;
-      const start=Math.max(0,i-300);
-      const end=Math.min(html.length,i+2600);
+      const start=Math.max(0,i-500);
+      const end=Math.min(html.length,i+3200);
       console.info(`[help-final] ${needle} #${count}: ${html.slice(start,end).replace(/\s+/g,' ')}`);
       from=i+needle.length;
     }
