@@ -14,7 +14,7 @@
   },
   "allowScripts": {
     "esbuild@0.28.2": true,
-    "fsevents@0.28.2": false
+    "fsevents@2.3.3": false
   },
   "overrides": {
     "esbuild": "0.28.2"
