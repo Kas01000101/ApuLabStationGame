@@ -42,23 +42,14 @@ const level2ExploreCardStyle = `
 const runtimePatch = `
 <script id="apulab-level23-primary-audio-runtime">
 (() => {
-  // NIVEL 2–3 ÚNICAMENTE · amarillo de EXPLORAR + click UI.
+  // NIVEL 2–3 ÚNICAMENTE · amarillo persistente + click UI.
   const normalizeLabel = (value) => String(value || '')
     .replace(/\\s+/g, ' ')
     .trim()
     .toUpperCase();
 
-  const markExploreButton = () => {
-    document.querySelectorAll('button').forEach((button) => {
-      if (button.classList.contains('apulab-level23-explore-primary')) return;
-      const label = normalizeLabel(button.textContent);
-      if (label === 'EXPLORAR') button.classList.add('apulab-level23-explore-primary');
-    });
-  };
-
-  markExploreButton();
-  const buttonObserver = new MutationObserver(markExploreButton);
-  buttonObserver.observe(document.body, { childList: true, subtree: true });
+  // El mismo botón cambia de EXPLORAR a CONTINUAR; se marca una sola vez.
+  document.getElementById('kawsay-explanation')?.classList.add('apulab-level23-explore-primary');
 
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   let audioContext = null;
@@ -122,7 +113,6 @@ const runtimePatch = `
   document.addEventListener('pointerdown', handlePointerDown, true);
 
   const cleanup = () => {
-    buttonObserver.disconnect();
     document.removeEventListener('pointerdown', handlePointerDown, true);
     if (audioContext && audioContext.state !== 'closed') {
       audioContext.close().catch(() => {});
@@ -140,44 +130,31 @@ const runtimePatch = `
 const level2ExploreCardRuntime = `
 <script id="apulab-level2-explore-card-runtime">
 (() => {
+  const panel = document.getElementById('kawsay-concept-panel');
+  const title = document.getElementById('kawsay-concept-title');
+  if (!panel || !title) return;
+
   const stepPattern = /(?:^|\\s)[1-4]\\s*\\/\\s*4(?:\\s|$)/;
 
-  const resolveVisibleCard = (node) => {
-    let current = node;
-    for (let depth = 0; current && depth < 5; depth += 1, current = current.parentElement) {
-      if (!(current instanceof HTMLElement)) continue;
-      const rect = current.getBoundingClientRect();
-      const style = getComputedStyle(current);
-      const hasSurface = style.backgroundColor !== 'rgba(0, 0, 0, 0)'
-        || style.backgroundImage !== 'none'
-        || parseFloat(style.borderTopWidth || '0') > 0;
-      if (hasSurface && rect.width >= 180 && rect.width <= 620 && rect.height >= 45 && rect.height <= 240) {
-        return current;
-      }
+  const sync = () => {
+    const text = String(title.textContent || '').replace(/\\s+/g, ' ').trim();
+    const shouldBeYellow = !panel.hidden && !panel.classList.contains('is-guide') && stepPattern.test(text);
+    const isYellow = panel.classList.contains('apulab-level2-explore-card-primary');
+    if (shouldBeYellow !== isYellow) {
+      panel.classList.toggle('apulab-level2-explore-card-primary', shouldBeYellow);
     }
-    return node instanceof HTMLElement ? node : null;
   };
 
-  const markExploreCard = () => {
-    document.querySelectorAll('.apulab-level2-explore-card-primary').forEach((element) => {
-      element.classList.remove('apulab-level2-explore-card-primary');
-    });
-
-    const candidates = Array.from(document.querySelectorAll('div, section, aside'))
-      .filter((element) => {
-        const text = String(element.textContent || '').replace(/\\s+/g, ' ').trim();
-        return text.length > 0 && text.length < 420 && stepPattern.test(text);
-      })
-      .sort((a, b) => String(a.textContent || '').length - String(b.textContent || '').length);
-
-    if (!candidates.length) return;
-    const card = resolveVisibleCard(candidates[0]);
-    if (card) card.classList.add('apulab-level2-explore-card-primary');
-  };
-
-  markExploreCard();
-  const observer = new MutationObserver(markExploreCard);
-  observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+  sync();
+  // Observa solo el panel contextual, no todo el documento.
+  const observer = new MutationObserver(sync);
+  observer.observe(panel, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+    attributes: true,
+    attributeFilter: ['class', 'hidden']
+  });
 
   const cleanup = () => observer.disconnect();
   window.addEventListener('pagehide', cleanup, { once: true });
@@ -207,7 +184,7 @@ for (const level of LEVELS) {
   await writeFile(path, html, 'utf8');
 
   console.info(`[mission01] Level ${level} · EXPLORAR amarillo + clicks BITÁCORA/CONTINUAR/GUÍA`);
-  if (level === 2) console.info('[mission01] Level 2 · paneles EXPLORAR 1/4–4/4 en amarillo');
+  if (level === 2) console.info('[mission01] Level 2 · paneles EXPLORAR 1/4–4/4 en amarillo, observer acotado');
 }
 
 // Encadenado aquí para no modificar package.json ni la configuración global del proyecto.
