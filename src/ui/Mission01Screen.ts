@@ -10,9 +10,35 @@ type PendingTransition = {
   onLoad: () => void;
 };
 
-const MAX_AVAILABLE_LEVEL = 6;
+const TOTAL_LEVELS = 7;
+// En esta rama existen fuentes reales hasta el antiguo Nivel 6, que tras retirar
+// el antiguo Nivel 3 corresponde al nuevo Nivel 5. No se inventan niveles 6/7.
+const MAX_AVAILABLE_LEVEL = 5;
 const TRANSITION_MS = 240;
 const DISPOSE_GRACE_MS = 48;
+const SEQUENCE_MIGRATION_KEY = 'apulab.mission01.sequence7.v1';
+
+function migrateMission01LocalProgressOnce(): void {
+  try {
+    if (localStorage.getItem(SEQUENCE_MIGRATION_KEY) === '1') return;
+
+    const moveKey = (oldKey: string, newKey: string): void => {
+      const oldValue = localStorage.getItem(oldKey);
+      if (oldValue === null) return;
+      if (localStorage.getItem(newKey) === null) localStorage.setItem(newKey, oldValue);
+      localStorage.removeItem(oldKey);
+    };
+
+    // Los niveles de programación son los únicos que guardan continuidad local
+    // por número en el código integrado actual.
+    moveKey('apulab.level4.successProgram', 'apulab.level3.successProgram');
+    moveKey('apulab.level5.finalProgram', 'apulab.level4.finalProgram');
+
+    localStorage.setItem(SEQUENCE_MIGRATION_KEY, '1');
+  } catch (_) {
+    // El juego sigue funcionando cuando localStorage está bloqueado.
+  }
+}
 
 export class Mission01Screen {
   private readonly element = document.createElement('section');
@@ -31,6 +57,8 @@ export class Mission01Screen {
     private readonly root: HTMLElement,
     private readonly callbacks: Mission01Callbacks = {},
   ) {
+    migrateMission01LocalProgressOnce();
+
     this.element.className = 'mission01-screen hidden';
     this.element.setAttribute('aria-label', 'Misión 01');
 
@@ -64,7 +92,7 @@ export class Mission01Screen {
     activeFrame.classList.remove('is-loading', 'is-leaving', 'is-entering');
     activeFrame.classList.add('is-active');
     activeFrame.setAttribute('aria-hidden', 'false');
-    activeFrame.title = `ApuLab · Misión 01 · Nivel ${level} de 8`;
+    activeFrame.title = `ApuLab · Misión 01 · Nivel ${level} de ${TOTAL_LEVELS}`;
 
     if (activeFrame.getAttribute('src') !== path) {
       activeFrame.addEventListener(
@@ -136,7 +164,7 @@ export class Mission01Screen {
     incoming.classList.remove('is-active', 'is-leaving', 'is-entering');
     incoming.classList.add('is-loading');
     incoming.setAttribute('aria-hidden', 'true');
-    incoming.title = `ApuLab · Misión 01 · Nivel ${level} de 8`;
+    incoming.title = `ApuLab · Misión 01 · Nivel ${level} de ${TOTAL_LEVELS}`;
 
     const onLoad = (): void => {
       // Fallback para niveles antiguos que todavía no envían apulab-level-ready.
@@ -253,7 +281,7 @@ export class Mission01Screen {
     this.callbacks.onUnavailableLevel?.(level);
 
     if (this.unavailableTimer) window.clearTimeout(this.unavailableTimer);
-    this.unavailableToast.textContent = `NIVEL ${level} · AÚN NO ESTÁ INTEGRADO`;
+    this.unavailableToast.textContent = `NIVEL ${level} DE ${TOTAL_LEVELS} · AÚN NO ESTÁ INTEGRADO`;
     this.unavailableToast.classList.add('show');
     this.unavailableTimer = window.setTimeout(() => {
       this.unavailableToast.classList.remove('show');

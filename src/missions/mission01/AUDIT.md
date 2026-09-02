@@ -1,19 +1,28 @@
-# Misión 01 · Integridad de niveles
+# Misión 01 · Auditoría de secuencia 1–7
 
-La Misión 01 está definida con **8 niveles**. En esta entrega solo están disponibles los niveles **1, 2 y 3**.
+La Misión 01 fue renumerada conceptualmente a **7 niveles** después de eliminar por completo el antiguo Nivel 3.
 
-## Salidas canónicas esperadas
+## Correspondencia
 
-| Nivel | Progreso | Bytes UTF-8 | SHA-256 |
-| --- | --- | ---: | --- |
-| 1 | 1 / 8 | 162855 | `ae79c89d4c5ca52bf854b42b3d847b5b3d8e779bf0e2e87ebc9f279118cd18fb` |
-| 2 | 2 / 8 | 206358 | `e6a93e42ddb2d3e561b09d95ae4416f8d9b1dd0e03e77d16b8891e7d2be3f29c` |
-| 3 | 3 / 8 | 216199 | `9ffbca00d019fcad5de92c6b44d8f171cc67c9a7ddc08173a6b98df6d70fc9c8` |
+| Antes | Ahora |
+| --- | --- |
+| Nivel 1 | Nivel 1 |
+| Nivel 2 | Nivel 2 |
+| Nivel 3 | ELIMINADO |
+| Nivel 4 | Nivel 3 |
+| Nivel 5 | Nivel 4 |
+| Nivel 6 | Nivel 5 |
+| Nivel 7 | Nivel 6 |
+| Nivel 8 | Nivel 7 |
 
-`scripts/build-mission01.mjs` reconstruye los tres HTML antes de `vite build` y aborta el build si el tamaño o SHA-256 no coincide.
+## Estado real de esta rama
 
-## Nivel 3
+Las fuentes integradas existentes son los antiguos niveles **1, 2, 4, 5 y 6**. Por lo tanto, después del remapeo quedan disponibles los nuevos niveles **1–5**. Los antiguos niveles 7 y 8 nunca fueron integrados en este repositorio, así que los nuevos niveles 6 y 7 quedan reservados/no disponibles hasta que existan sus fuentes reales.
 
-Flujo aprobado: `EXPLORAR → GUÍA → TP1 → TP2 → TP3 → localizar la falla → corregir el Conector de seguridad → volver a medir TP3 → AYNI recupera alimentación`.
+No se inventa gameplay para completar posiciones faltantes.
 
-El Nivel 4 y siguientes no forman parte de esta entrega. El final de Nivel 3 muestra `NIVEL 4 · PRÓXIMAMENTE` y no navega a contenido provisional.
+## Regla de regresión
+
+La jugabilidad interna de los niveles conservados no se modifica. El pipeline solo cambia numeración visible, metadata de nivel, navegación, desbloqueos y claves de continuidad cuyo nombre depende del número de nivel.
+
+El antiguo Nivel 3 y sus parches de TP1/TP2/TP3, rastreo y source harness fueron retirados del pipeline activo y del árbol de fuentes.

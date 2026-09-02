@@ -2,11 +2,11 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 const ROOT = process.cwd();
-const LEVELS = [2, 3];
+const LEVELS = [2];
 
 const stylePatch = `
 <style id="apulab-level23-primary-audio-style">
-/* Nivel 2–3 únicamente: el botón que inicia como EXPLORAR adopta
+/* Nivel 2 únicamente: el botón que inicia como EXPLORAR adopta
    el mismo lenguaje visual amarillo del Nivel 1. No altera layout. */
 .apulab-level23-explore-primary {
   background: linear-gradient(180deg, #F7D06F 0%, #F4C75E 100%) !important;
@@ -42,7 +42,7 @@ const level2ExploreCardStyle = `
 const runtimePatch = `
 <script id="apulab-level23-primary-audio-runtime">
 (() => {
-  // NIVEL 2–3 ÚNICAMENTE · amarillo persistente + click UI.
+  // NIVEL 2 ÚNICAMENTE · amarillo persistente + click UI.
   const normalizeLabel = (value) => String(value || '')
     .replace(/\\s+/g, ' ')
     .trim()
@@ -176,15 +176,15 @@ for (const level of LEVELS) {
     throw new Error(`mission01_level${level}_primary_audio_invalid_html`);
   }
 
-  const styles = level === 2 ? `${stylePatch}\n${level2ExploreCardStyle}` : stylePatch;
-  const runtimes = level === 2 ? `${runtimePatch}\n${level2ExploreCardRuntime}` : runtimePatch;
+  const styles = `${stylePatch}\n${level2ExploreCardStyle}`;
+  const runtimes = `${runtimePatch}\n${level2ExploreCardRuntime}`;
 
   html = html.replace('</head>', `${styles}\n</head>`);
   html = html.replace('</body>', `${runtimes}\n</body>`);
   await writeFile(path, html, 'utf8');
 
   console.info(`[mission01] Level ${level} · EXPLORAR amarillo + clicks BITÁCORA/CONTINUAR/GUÍA`);
-  if (level === 2) console.info('[mission01] Level 2 · paneles EXPLORAR 1/4–4/4 en amarillo, observer acotado');
+  console.info('[mission01] Level 2 · paneles EXPLORAR 1/4–4/4 en amarillo, observer acotado');
 }
 
 // Encadenado aquí para no modificar package.json ni la configuración global del proyecto.
