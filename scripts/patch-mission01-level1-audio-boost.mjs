@@ -131,6 +131,6 @@ html = replaceRequired(
 await writeFile(LEVEL1_PATH, html, 'utf8');
 console.info('[mission01] Level 1 · BITÁCORA/CONTINUAR/GUÍA click inmediato + tachado/confeti reforzados');
 
-// El comando de build permanece intacto; este módulo ya se ejecuta siempre y
-// encadena únicamente el parche visual/sonoro solicitado para los niveles 2 y 3.
+// Estos parches se ejecutan después del verificador de integridad del Nivel 1.
+await import('./patch-mission01-level1-guide-layout.mjs');
 await import('./patch-mission01-level23-primary-audio.mjs');
