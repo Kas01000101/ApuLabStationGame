@@ -7,14 +7,6 @@ function fail(code, detail = '') {
   throw new Error(`mission01_help_lifecycle_contract:${code}${detail ? `:${detail}` : ''}`);
 }
 
-function between(source, start, end, label) {
-  const a = source.indexOf(start);
-  if (a < 0) fail('marker_start', label);
-  const b = source.indexOf(end, a + start.length);
-  if (b < 0) fail('marker_end', label);
-  return source.slice(a + start.length, b);
-}
-
 function balancedBody(source, anchor, label) {
   const anchorIndex = source.indexOf(anchor);
   if (anchorIndex < 0) fail('anchor', label);
@@ -66,79 +58,55 @@ class FakeClassList {
 
 class FakeTarget {
   constructor() {
-    this.listeners = new Map();
     this.classList = new FakeClassList();
     this.attrs = new Map();
     this.hidden = false;
     this.textContent = '';
     this.disabled = false;
-    this.onclick = null;
-  }
-  addEventListener(type, fn, options = {}) {
-    const list = this.listeners.get(type) || [];
-    list.push({ fn, capture: Boolean(options && options.capture) });
-    this.listeners.set(type, list);
   }
   setAttribute(name, value) { this.attrs.set(name, String(value)); }
   getAttribute(name) { return this.attrs.get(name) ?? null; }
   removeAttribute(name) { this.attrs.delete(name); }
-  async dispatch(type) {
-    const list = this.listeners.get(type) || [];
-    for (const listener of list.filter((x) => x.capture)) listener.fn({ type, target: this });
-    if (type === 'click' && typeof this.onclick === 'function') this.onclick({ type, target: this });
-    for (const listener of list.filter((x) => !x.capture)) listener.fn({ type, target: this });
+}
+
+function contractNativeLevels12(level, html) {
+  if (html.includes('APULAB_HELP_LIFECYCLE_START') || html.includes('apulabHelpPanelClosed')) {
+    fail('l12_interceptor_present', `l${level}`);
+  }
+
+  const advance = balancedBody(html, 'function advanceExplanation()', `l${level}:advanceExplanation`);
+  const finish = balancedBody(html, 'function finishExplanation()', `l${level}:finishExplanation`);
+  const guide = balancedBody(html, 'function setGuideMode(enabled)', `l${level}:setGuideMode`);
+
+  // Contrato del código propietario: abrir EXPLORAR establece estado activo;
+  // terminarlo lo libera para una nueva apertura; GUÍA siempre asigna su estado
+  // desde el argumento y por eso alternar true→false→true es reutilizable.
+  if (!advance.includes('explanationMode = true;') || !advance.includes('explanationIndex = 0;')) {
+    fail('l12_explore_open', `l${level}`);
+  }
+  if (!finish.includes('explanationMode = false;') || !finish.includes('explanationIndex = -1;')) {
+    fail('l12_explore_finish_reset', `l${level}`);
+  }
+  if (!guide.includes('guideActive = enabled;')) fail('l12_guide_assignment', `l${level}`);
+  if (!html.includes('explanationButton.addEventListener("click", advanceExplanation)')) {
+    fail('l12_explore_listener', `l${level}`);
+  }
+  if (!html.includes('setGuideMode(!guideActive)')) fail('l12_guide_toggle', `l${level}`);
+
+  // L1 bloquea GUÍA durante EXPLORAR pero debe reactivarla al terminar.
+  if (level === 1 && !finish.includes('guideButton.disabled = false;')) fail('l1_guide_reenable');
+  // L2 debe arrancar con ambas ayudas disponibles por ser opcionales.
+  if (level === 2) {
+    if (!html.includes('explanationButton.hidden = false;')) fail('l2_explore_visible');
+    if (!html.includes('guideButton.disabled = false;')) fail('l2_guide_enabled');
   }
 }
 
-async function contractLevels12(level, html) {
-  const start = '/* APULAB_HELP_LIFECYCLE_START */';
-  const end = '/* APULAB_HELP_LIFECYCLE_END */';
-  const lifecycle = between(html, start, end, `l${level}`);
-
-  const execute = new Function('lifecycle', 'FakeTarget', `
-    return (async () => {
-      const explanationButton = new FakeTarget();
-      const guideButton = new FakeTarget();
-      const conceptPanel = new FakeTarget();
-      const document = new FakeTarget();
-      let explanationMode = false;
-      let explanationIndex = -1;
-      let guideActive = false;
-      const getComputedStyle = (node) => ({ display: node.hidden ? 'none' : 'block', visibility: 'visible', pointerEvents: 'auto', opacity: '1' });
-      const queueMicrotask = globalThis.queueMicrotask;
-      eval(lifecycle);
-      explanationButton.addEventListener('click', () => {
-        if (!explanationMode) { explanationMode = true; explanationIndex = 0; conceptPanel.hidden = false; conceptPanel.setAttribute('aria-hidden', 'false'); return; }
-        conceptPanel.hidden = true; conceptPanel.setAttribute('aria-hidden', 'true');
-      });
-      guideButton.addEventListener('click', () => {
-        guideActive = !guideActive; conceptPanel.hidden = !guideActive; conceptPanel.setAttribute('aria-hidden', guideActive ? 'false' : 'true');
-      });
-      const click = async (target) => { await target.dispatch('click'); await document.dispatch('click'); await Promise.resolve(); await Promise.resolve(); };
-      conceptPanel.hidden = true; conceptPanel.setAttribute('aria-hidden', 'true');
-      await click(explanationButton);
-      if (!explanationMode || explanationIndex !== 0 || conceptPanel.hidden) throw new Error('explore_first_open');
-      conceptPanel.hidden = true; conceptPanel.setAttribute('aria-hidden', 'true'); await document.dispatch('click'); await Promise.resolve();
-      if (explanationMode || explanationIndex !== -1) throw new Error('explore_close_reset');
-      await click(explanationButton);
-      if (!explanationMode || explanationIndex !== 0 || conceptPanel.hidden) throw new Error('explore_reopen');
-      conceptPanel.hidden = true; conceptPanel.setAttribute('aria-hidden', 'true'); await document.dispatch('click'); await Promise.resolve();
-      await click(guideButton);
-      if (!guideActive || conceptPanel.hidden) throw new Error('guide_first_open');
-      conceptPanel.hidden = true; conceptPanel.setAttribute('aria-hidden', 'true'); await document.dispatch('click'); await Promise.resolve();
-      if (guideActive) throw new Error('guide_close_reset');
-      await click(guideButton);
-      if (!guideActive || conceptPanel.hidden) throw new Error('guide_reopen');
-      return true;
-    })();
-  `);
-  try { await execute(lifecycle, FakeTarget); } catch (error) { fail('cycle12', `l${level}:${error?.message || error}`); }
-}
-
-async function contractLevels34(level, html) {
+function contractLevels34(level, html) {
   const closeBody = balancedBody(html, 'function closeInfo()', `l${level}:closeInfo`);
   const exploreBody = balancedBody(html, "exploreBtn.addEventListener('click',()=>", `l${level}:explore`);
   const guideBody = balancedBody(html, "guideBtn.addEventListener('click',()=>", `l${level}:guide`);
+
   const execute = new Function('closeBody', 'exploreBody', 'guideBody', 'FakeTarget', `
     return (() => {
       const info = new FakeTarget(), infoProgress = new FakeTarget(), exploreBtn = new FakeTarget(), guideBtn = new FakeTarget(), kicker = new FakeTarget();
@@ -165,7 +133,7 @@ async function contractLevels34(level, html) {
   try { execute(closeBody, exploreBody, guideBody, FakeTarget); } catch (error) { fail('cycle34', `l${level}:${error?.message || error}`); }
 }
 
-async function contractLevel5(html) {
+function contractLevel5(html) {
   const closeBody = balancedBody(html, "document.getElementById('info-close').onclick=()=>", 'l5:close');
   const exploreBody = balancedBody(html, "document.getElementById('explore-btn').onclick=()=>", 'l5:explore');
   const guideBody = balancedBody(html, "document.getElementById('guide-btn').onclick=()=>", 'l5:guide');
@@ -192,9 +160,9 @@ async function contractLevel5(html) {
 
 const levels=new Map();
 for(let level=1;level<=5;level+=1)levels.set(level,await readFile(resolve(OUT,`level${level}.html`),'utf8'));
-await contractLevels12(1,levels.get(1));
-await contractLevels12(2,levels.get(2));
-await contractLevels34(3,levels.get(3));
-await contractLevels34(4,levels.get(4));
-await contractLevel5(levels.get(5));
-console.info('[mission01] HELP LIFECYCLE CONTRACT OK · abrir → cerrar → reabrir ejecutado en niveles 1–5');
+contractNativeLevels12(1,levels.get(1));
+contractNativeLevels12(2,levels.get(2));
+contractLevels34(3,levels.get(3));
+contractLevels34(4,levels.get(4));
+contractLevel5(levels.get(5));
+console.info('[mission01] HELP LIFECYCLE CONTRACT OK · L1–L2 handlers nativos sin interceptores · L3–L5 abrir → cerrar → reabrir');
