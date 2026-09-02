@@ -196,3 +196,6 @@ if (!html.includes('addEventListener("click", disposeArrow, { once: true })')) t
 
 await writeFile(LEVEL1_PATH, html, 'utf8');
 console.info('[mission01] Level 1 · flecha EXPLORAR Three.js con dispose inmediato al usarla');
+
+// Optimización post-verificación: el hash bloqueado del Nivel 1 no se toca.
+await import('./patch-mission01-level1-observer-opt.mjs');
