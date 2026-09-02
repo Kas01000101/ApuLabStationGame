@@ -97,6 +97,7 @@ function contractNativeLevels12(level, html) {
     fail('l12_explore_does_not_interrupt_camera', `l${level}`);
   }
 
+  // Mantener la cadencia nativa es parte del contrato de interacción de la mesa.
   if (!html.includes('lowPowerDevice ? 22 : 16')) fail('l12_native_frame_cadence', `l${level}`);
 
   if (level === 1) {
@@ -105,7 +106,6 @@ function contractNativeLevels12(level, html) {
     if (!finish.includes('setGuideMode(false)')) fail('l1_guide_not_normalized_after_explore');
 
     const guideClick = balancedBody(html, 'guideButton.addEventListener("click", () =>', 'l1:guideClick');
-    console.info('[mission01][inspect] L1 GUIDE CLICK BODY >>> ' + guideClick.replace(/\s+/g, ' ').trim() + ' <<<');
     if (!guideClick.includes('setGuideMode(!guideActive)')) fail('l1_guide_click_missing_toggle');
 
     if (!html.includes('lastArrowRenderAt') || !html.includes('timestamp - lastArrowRenderAt < 50')) {
@@ -114,8 +114,10 @@ function contractNativeLevels12(level, html) {
   }
 
   if (level === 2) {
+    // Nivel 2 debe permitir manipular la mesa desde el inicio; las ayudas son opcionales.
     if (!html.includes('explanationButton.hidden = false;')) fail('l2_explore_visible');
     if (!html.includes('guideButton.disabled = false;')) fail('l2_guide_enabled');
+    if (!html.includes('gameplayUnlocked = true;')) fail('l2_gameplay_not_unlocked');
     if (!html.includes('pendingExploreAfterSwap = true;') || !advance.includes('window.setTimeout')) {
       fail('l2_explore_swap_retry');
     }
@@ -188,4 +190,4 @@ contractNativeLevels12(2,levels.get(2));
 contractLevels34(3,levels.get(3));
 contractLevels34(4,levels.get(4));
 contractLevel5(levels.get(5));
-console.info('[mission01] HELP LIFECYCLE CONTRACT OK · L1 GUÍA manual · frame principal nativo · L3–L5 abrir → cerrar → reabrir');
+console.info('[mission01] HELP LIFECYCLE CONTRACT OK · L1 GUÍA manual · L2 mesa desbloqueada · frame principal nativo · L3–L5 abrir → cerrar → reabrir');
