@@ -6,11 +6,15 @@ const needles = [
   'let guideActive',
   'let explanationIndex',
   'let explanationMode',
+  'function advanceExplanation',
+  'function setGuideMode',
+  'explanationButton.disabled',
+  'guideButton.disabled',
+  'explanationButton.hidden',
   'APULAB_HELP_LIFECYCLE_START',
   'explanationButton.addEventListener("click", advanceExplanation)',
   'guideButton.addEventListener',
   'setGuideMode(!guideActive)',
-  'conceptPanel',
 ];
 
 for (const level of [1, 2]) {
@@ -23,11 +27,11 @@ for (const level of [1, 2]) {
       const i = html.indexOf(needle, from);
       if (i < 0) break;
       n += 1;
-      const start = Math.max(0, i - 1200);
-      const end = Math.min(html.length, i + needle.length + 2600);
+      const start = Math.max(0, i - 1800);
+      const end = Math.min(html.length, i + needle.length + 4200);
       console.info(`[runtime-help] needle=${JSON.stringify(needle)} hit=${n}\n${html.slice(start, end)}\n[runtime-help] END`);
       from = i + needle.length;
-      if (n >= 4) break;
+      if (n >= 5) break;
     }
   }
 }
