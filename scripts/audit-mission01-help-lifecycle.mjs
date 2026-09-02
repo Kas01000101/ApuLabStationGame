@@ -91,7 +91,7 @@ function contractNativeLevels12(level, html) {
   if (!html.includes('setGuideMode(!guideActive)')) fail('l12_guide_toggle', `l${level}`);
 
   if (advance.includes('if (cameraTween) return;') || advance.includes('if (cameraTween || batterySwapAnimating) return;')) {
-    fail('l12_explore_drops_click_during_animation', `l${level}`);
+    fail('l12_explore_drops_click_during_camera', `l${level}`);
   }
   if (!advance.includes('if (cameraTween) cameraTween = null;')) {
     fail('l12_explore_does_not_interrupt_camera', `l${level}`);
@@ -118,11 +118,9 @@ function contractNativeLevels12(level, html) {
     if (!html.includes('explanationButton.hidden = false;')) fail('l2_explore_visible');
     if (!html.includes('guideButton.disabled = false;')) fail('l2_guide_enabled');
     if (!html.includes('gameplayUnlocked = true;')) fail('l2_gameplay_not_unlocked');
-    if (!html.includes('pendingExploreAfterSwap = true;') || !advance.includes('window.setTimeout')) {
-      fail('l2_explore_swap_retry');
-    }
-    if (!advance.includes('!guideActive && !explanationMode')) {
-      fail('l2_pending_explore_can_close_guide');
+    if (!advance.includes('if (batterySwapAnimating) return;')) fail('l2_swap_guard_missing');
+    if (html.includes('pendingExploreAfterSwap') || advance.includes('window.setTimeout')) {
+      fail('l2_delayed_explore_callback_present');
     }
   }
 }
@@ -190,4 +188,4 @@ contractNativeLevels12(2,levels.get(2));
 contractLevels34(3,levels.get(3));
 contractLevels34(4,levels.get(4));
 contractLevel5(levels.get(5));
-console.info('[mission01] HELP LIFECYCLE CONTRACT OK · L1 GUÍA manual · L2 mesa desbloqueada · frame principal nativo · L3–L5 abrir → cerrar → reabrir');
+console.info('[mission01] HELP LIFECYCLE CONTRACT OK · L1 GUÍA manual · L2 mesa desbloqueada/sin callback tardío · frame principal nativo · L3–L5 abrir → cerrar → reabrir');
