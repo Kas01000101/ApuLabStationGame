@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "prepare:missions": "node scripts/build-mission01-seven-source.mjs && node scripts/patch-mission01-level1-pedagogy.mjs && node scripts/patch-mission01-level1-explore-panel.mjs && node scripts/patch-mission01-level1-hud-dark-lines.mjs && node scripts/patch-mission01-level1-guide-strike.mjs && node scripts/patch-mission01-level1-audio.mjs && node scripts/verify-mission01-level1-output.mjs && node scripts/patch-mission01-level1-three-arrow.mjs && node scripts/patch-mission01-level1-audio-boost.mjs && node scripts/patch-mission01-programming-flow.mjs",
+    "prepare:missions": "node scripts/build-mission01-seven-source.mjs && node scripts/patch-mission01-level1-pedagogy.mjs && node scripts/patch-mission01-level1-explore-panel.mjs && node scripts/patch-mission01-level1-hud-dark-lines.mjs && node scripts/patch-mission01-level1-guide-strike.mjs && node scripts/patch-mission01-level1-audio.mjs && node scripts/verify-mission01-level1-output.mjs && node scripts/patch-mission01-level1-three-arrow.mjs && node scripts/patch-mission01-level1-audio-boost.mjs && node scripts/patch-mission01-programming-flow.mjs && node scripts/inspect-mission01-level2-gates.mjs",
     "dev": "npm run prepare:missions && vite",
     "build": "npm run prepare:missions && tsc -b && vite build",
     "preview": "vite preview"
@@ -14,7 +14,7 @@
   },
   "allowScripts": {
     "esbuild@0.28.2": true,
-    "fsevents@2.3.3": false
+    "fsevents@0.28.2": false
   },
   "overrides": {
     "esbuild": "0.28.2"
