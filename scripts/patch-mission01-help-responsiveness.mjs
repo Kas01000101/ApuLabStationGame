@@ -42,9 +42,9 @@ const outputs = new Map();
   console.info('[mission01] Nivel 1 · EXPLORAR no pierde clicks · frame principal nativo · flecha 3D ~20 FPS');
 }
 
-// Nivel 2: una transición de cámara tampoco debe tragarse EXPLORAR. Si el carrusel
-// está desplazándose se conserva un único intento, pero nunca se dispara mientras
-// GUÍA esté abierta porque eso cerraría la ayuda y bloquearía la interacción.
+// Nivel 2: una transición de cámara tampoco debe tragarse EXPLORAR. Durante el
+// desplazamiento del carrusel no se fuerza una apertura posterior: el usuario
+// conserva control total sobre GUÍA, EXPLORAR y la mesa cuando termina la animación.
 {
   const level = 2;
   const path = resolve(OUT, 'level2.html');
@@ -52,21 +52,14 @@ const outputs = new Map();
 
   html = required(
     html,
-    `  let batterySwapAnimating = false;`,
-    `  let batterySwapAnimating = false;\n  let pendingExploreAfterSwap = false;`,
-    'l2-pending-explore-state',
-  );
-
-  html = required(
-    html,
     `  function advanceExplanation() {\n    if (cameraTween || batterySwapAnimating) return;`,
-    `  function advanceExplanation() {\n    // No descartamos EXPLORAR porque la cámara todavía esté regresando.\n    if (cameraTween) cameraTween = null;\n    if (batterySwapAnimating) {\n      if (!pendingExploreAfterSwap) {\n        pendingExploreAfterSwap = true;\n        window.setTimeout(() => {\n          pendingExploreAfterSwap = false;\n          // Nunca abrir EXPLORAR por detrás de una GUÍA que la usuaria acaba de abrir.\n          if (!batterySwapAnimating && !guideActive && !explanationMode) advanceExplanation();\n        }, 460);\n      }\n      return;\n    }`,
+    `  function advanceExplanation() {\n    // La cámara no debe tragarse el click; el carrusel sí protege su transición\n    // activa, pero no deja callbacks pendientes que puedan interferir con GUÍA.\n    if (cameraTween) cameraTween = null;\n    if (batterySwapAnimating) return;`,
     'l2-explore-animation-guard',
   );
 
   await writeFile(path, html, 'utf8');
   outputs.set(level, html);
-  console.info('[mission01] Nivel 2 · EXPLORAR conserva click de forma segura · frame principal nativo');
+  console.info('[mission01] Nivel 2 · EXPLORAR no choca con GUÍA/carrusel · frame principal nativo');
 }
 
 const manifest = JSON.parse(await readFile(MANIFEST, 'utf8'));
@@ -79,4 +72,4 @@ for (const entry of manifest.levels || []) {
 }
 await writeFile(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
 
-console.info('[mission01] HELP RESPONSIVENESS QA PATCH OK · clicks preservados · loop interactivo principal intacto');
+console.info('[mission01] HELP RESPONSIVENESS QA PATCH OK · ayuda sin callbacks pendientes · loop interactivo principal intacto');
