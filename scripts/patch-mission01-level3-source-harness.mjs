@@ -40,8 +40,8 @@ const makeFixedHarnessTrace = (points, material, radius=0.038) => {
 };
 
 const sourcePlusHarnessMat = new THREE.MeshStandardMaterial({
-  color:0xF4C75E,
-  emissive:0xD5A43D,
+  color:0xE74C5B,
+  emissive:0xA92F3B,
   emissiveIntensity:0.16,
   metalness:0.28,
   roughness:0.42
@@ -81,7 +81,7 @@ const connectorBody = new THREE.Mesh(new THREE.BoxGeometry(0.92,0.11,0.34), conn
 connectorBody.position.y = 0.03;
 connectorBody.castShadow = true;
 sourceHarnessConnector.add(connectorBody);
-const plusPortMat = new THREE.MeshStandardMaterial({color:0xF4C75E,emissive:0xD5A43D,emissiveIntensity:0.22});
+const plusPortMat = new THREE.MeshStandardMaterial({color:0xE74C5B,emissive:0xA92F3B,emissiveIntensity:0.22});
 const minusPortMat = new THREE.MeshStandardMaterial({color:0x1A1F30,emissive:0x0B0E26,emissiveIntensity:0.04});
 const makeHarnessPort = (x,mat) => {
   const port = new THREE.Mesh(new THREE.CylinderGeometry(0.105,0.105,0.075,28),mat);
@@ -120,7 +120,7 @@ const sourceReturnTrace = makeFixedHarnessTrace([
 ], sourceInternalReturnMat, 0.027);
 
 // Etiquetas mínimas: aclaran polaridad sin competir con las puntas del multímetro.
-const sourcePlusLabel = makeSpriteLabel('+28 V',300,78,'#17133A','rgba(244,199,94,.96)');
+const sourcePlusLabel = makeSpriteLabel('+28 V',300,78,'#FFFFFF','rgba(231,76,91,.96)');
 sourcePlusLabel.position.copy(sourcePlusEntry).add(new THREE.Vector3(-0.20,0.34,0));
 sourcePlusLabel.scale.set(0.54,0.14,1);
 scene.add(sourcePlusLabel);
@@ -154,4 +154,4 @@ for (const marker of required) {
 }
 
 await writeFile(path, html, 'utf8');
-console.info('[mission01] Level 3 · fuente 28 V conectada por harness fijo +/− · pistas internas · sin cables flexibles extra');
+console.info('[mission01] Level 3 · fuente 28 V conectada por harness fijo rojo/negro + pistas internas · sin cables flexibles extra');
