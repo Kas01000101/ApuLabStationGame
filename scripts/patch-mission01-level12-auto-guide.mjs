@@ -76,8 +76,7 @@ async function patchLevel2() {
     guideButton.disabled = false;
     setBatteryXray(false);
 
-    // EXPLORAR 4/4 termina directamente en GUÍA: este bloque se conserva
-    // como etapa intermedia porque el parche opcional de Nivel 2 lo sustituye después.
+    // EXPLORAR 4/4 termina directamente en GUÍA: no pedimos "abre GUÍA".
     guideButton.classList.remove("is-recommended");
     guideButton.setAttribute("aria-label", "Cerrar GUÍA");
     setGuideMode(true);
