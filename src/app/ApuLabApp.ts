@@ -4,7 +4,7 @@ import { Mission01Screen } from '../ui/Mission01Screen';
 import { ThreeEngine } from '../three/ThreeEngine';
 import { SessionService } from '../systems/SessionService';
 import { GameState } from '../systems/GameState';
-import { IntroController } from '../story/IntroController';
+import { ReadableIntroController } from '../story/ReadableIntroController';
 import { AmbientMusic } from '../three/effects/AmbientMusic';
 
 export type AppState = 'menu' | 'intro' | 'mission01' | 'final';
@@ -16,7 +16,8 @@ export class ApuLabApp {
   private readonly sessions = new SessionService();
   private readonly ambientMusic = new AmbientMusic();
   private state: AppState = 'menu';
-  private intro?: IntroController;
+  private intro?: ReadableIntroController;
+  private engineRunning = false;
 
   /**
    * Los navegadores modernos deciden el texto de esta confirmación y no
@@ -35,7 +36,6 @@ export class ApuLabApp {
     this.engine = new ThreeEngine(roots.threeRoot);
     this.menu = new MenuScreen(roots.uiRoot, {
       onStart: () => this.openAccess(),
-      onCredits: () => window.alert('ApuLab Station · Three.js'),
     });
 
     // Mission01Screen maneja los niveles aún no integrados dentro de la propia
@@ -47,8 +47,20 @@ export class ApuLabApp {
 
   start(): void {
     this.ambientMusic.arm();
-    this.engine.start((dt) => this.update(dt));
+    this.startThreeEngine();
     this.goTo('menu');
+  }
+
+  private startThreeEngine(): void {
+    if (this.engineRunning) return;
+    this.engine.start((dt) => this.update(dt));
+    this.engineRunning = true;
+  }
+
+  private stopThreeEngine(): void {
+    if (!this.engineRunning) return;
+    this.engine.stop();
+    this.engineRunning = false;
   }
 
   private openAccess(): void {
@@ -99,9 +111,15 @@ export class ApuLabApp {
     this.mission01.setVisible(state === 'mission01');
     this.roots.threeRoot.style.visibility = state === 'mission01' ? 'hidden' : 'visible';
 
+    // Durante los niveles el iframe ya mantiene su propio loop WebGL.
+    // Detener el ThreeEngine principal evita renderizar una segunda escena 3D
+    // invisible a 60 FPS mientras se juega Misión 01.
+    if (state === 'mission01') this.stopThreeEngine();
+    else this.startThreeEngine();
+
     if (state === 'intro') {
       this.intro?.destroy();
-      this.intro = new IntroController(this.engine, this.roots.uiRoot, {
+      this.intro = new ReadableIntroController(this.engine, this.roots.uiRoot, {
         onComplete: this.enterMission01,
       });
       this.intro.start();

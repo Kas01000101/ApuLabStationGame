@@ -1,10 +1,9 @@
+import { resolveIntroDialogue } from '../story/IntroDialogueCopy';
+
 export interface IntroOverlayOptions {
   onSkip?: () => void;
 }
 
-function safeGet(key: string): string | null {
-  try { return localStorage.getItem(key); } catch { return null; }
-}
 function safeSet(key: string, value: string): void {
   try { localStorage.setItem(key, value); } catch { /* storage can be blocked */ }
 }
@@ -57,7 +56,7 @@ export class IntroOverlay {
     this.nicknameError=this.require<HTMLDivElement>('.nickname-error');
     this.hideDialogue();this.hideSfx();this.hideLocation();this.hideBeat();this.hideMission();this.setTransition(0);
     this.nicknamePanel.classList.remove('show');
-    this.skipButton.style.display=safeGet('apulabIntroSeen')==='1'?'block':'none';
+    this.skipButton.style.display='block';
     this.skipButton.addEventListener('click',()=>options.onSkip?.());
     this.require<HTMLButtonElement>('.nickname-continue').addEventListener('click',()=>this.commitNickname());
     this.nicknameInput.addEventListener('keydown',(event)=>{event.stopPropagation();if(event.key==='Enter'){event.preventDefault();this.commitNickname();}});
@@ -66,7 +65,16 @@ export class IntroOverlay {
   }
 
   markIntroSeen():void{safeSet('apulabIntroSeen','1');this.skipButton.style.display='block';}
-  showDialogue(key:string,speaker:string,text:string):void{if(this.lastDialogueKey!==key){this.lastDialogueKey=key;this.speaker.textContent=speaker;this.dialogueText.textContent=text;}this.dialogue.classList.add('show');}
+  showDialogue(key:string,speaker:string,text:string):void{
+    const resolved=resolveIntroDialogue(key,speaker,text);
+    this.dialogue.dataset.speaker=resolved.speaker.toLowerCase();
+    if(this.lastDialogueKey!==resolved.key){
+      this.lastDialogueKey=resolved.key;
+      this.speaker.textContent=resolved.speaker;
+      this.dialogueText.textContent=resolved.text;
+    }
+    this.dialogue.classList.add('show');
+  }
   hideDialogue():void{this.dialogue.classList.remove('show');}
   showSfx(text:string,strength=1):void{this.sfx.textContent=text;this.sfx.style.opacity=String(Math.max(0,Math.min(1,strength)));this.sfx.style.transform=`translate(-50%,-50%) scale(${.82+.25*strength}) rotate(-2deg)`;}
   hideSfx():void{this.sfx.textContent='';this.sfx.style.opacity='0';}

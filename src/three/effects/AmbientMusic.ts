@@ -1,10 +1,14 @@
 const MUSIC_VOLUME_SETTING_KEY = 'apulab.settings.musicVolume';
-const AMBIENT_TRACK_URL = '/assets/audio/an-ocean-in-outer-space.mp3';
-const DEFAULT_MUSIC_VOLUME = 35;
+const AMBIENT_TRACK_URL = '/assets/audio/specular-city.mp3';
+const DEFAULT_MUSIC_VOLUME = 15;
 const FADE_IN_MS = 900;
 const FADE_OUT_MS = 250;
+const INTRO_DUCK_VOLUME = 10;
+const INTRO_DUCK_FADE_MS = 110;
+const INTRO_DUCK_RESTORE_MS = 420;
 
 type SettingsChangedDetail = { musicVolume?: number };
+type IntroMusicDuckDetail = { durationMs?: number; volume?: number };
 
 /**
  * Música ambiental global de ApuLab Station.
@@ -23,6 +27,7 @@ export class AmbientMusic {
   private fadeDuration = 0;
   private pauseAfterFade = false;
   private armed = false;
+  private duckRestoreTimer?: number;
 
   constructor() {
     this.audio.loop = true;
@@ -30,6 +35,7 @@ export class AmbientMusic {
     this.audio.volume = 0;
 
     window.addEventListener('apulab-settings-changed', this.handleSettingsChanged as EventListener);
+    window.addEventListener('apulab-intro-music-duck', this.handleIntroMusicDuck as EventListener);
     document.addEventListener('visibilitychange', this.handleVisibilityChange);
   }
 
@@ -42,11 +48,13 @@ export class AmbientMusic {
 
   destroy(): void {
     this.cancelFade();
+    this.clearDuckRestoreTimer();
     this.disarm();
     this.audio.pause();
     this.audio.removeAttribute('src');
     this.audio.load();
     window.removeEventListener('apulab-settings-changed', this.handleSettingsChanged as EventListener);
+    window.removeEventListener('apulab-intro-music-duck', this.handleIntroMusicDuck as EventListener);
     document.removeEventListener('visibilitychange', this.handleVisibilityChange);
   }
 
@@ -57,6 +65,7 @@ export class AmbientMusic {
   };
 
   private readonly handleSettingsChanged = (event: CustomEvent<SettingsChangedDetail>): void => {
+    this.clearDuckRestoreTimer();
     const targetVolume = this.normalizeVolume(event.detail?.musicVolume ?? this.readVolumeSetting());
     if (targetVolume === 0) {
       this.fadeTo(0, FADE_OUT_MS, true);
@@ -71,15 +80,41 @@ export class AmbientMusic {
     }
   };
 
-  private readonly handleVisibilityChange = (): void => {
-    if (document.hidden) {
-      this.cancelFade();
-      this.audio.pause();
-      this.audio.volume = 0;
-      return;
-    }
+  /**
+   * Los golpes importantes de la intro pueden pedir espacio en la mezcla.
+   * Nunca subimos la música: si la jugadora ya la tiene por debajo del 10%,
+   * conservamos ese nivel. Después restauramos su volumen configurado.
+   */
+  private readonly handleIntroMusicDuck = (event: CustomEvent<IntroMusicDuckDetail>): void => {
+    if (!this.hasUserInteraction || this.audio.paused) return;
 
-    if (this.hasUserInteraction && this.getTargetVolume() > 0) void this.playWithFade();
+    this.clearDuckRestoreTimer();
+    const requestedPercent = Number.isFinite(event.detail?.volume)
+      ? Math.max(0, Math.min(100, Number(event.detail.volume)))
+      : INTRO_DUCK_VOLUME;
+    const userTarget = this.getTargetVolume();
+    const duckTarget = Math.min(userTarget, this.normalizeVolume(requestedPercent));
+    const durationMs = Math.max(250, event.detail?.durationMs ?? 900);
+
+    this.fadeTo(duckTarget, INTRO_DUCK_FADE_MS);
+    this.duckRestoreTimer = window.setTimeout(() => {
+      this.duckRestoreTimer = undefined;
+      if (!this.audio.paused) this.fadeTo(this.getTargetVolume(), INTRO_DUCK_RESTORE_MS);
+    }, durationMs);
+  };
+
+  private readonly handleVisibilityChange = (): void => {
+    // No pausamos la música al cambiar de pestaña. Los elementos HTMLAudio
+    // pueden seguir reproduciéndose en segundo plano y así evitamos que el
+    // navegador exija un gesto nuevo al volver a ApuLab Station.
+    if (document.hidden) return;
+
+    // Si el navegador suspendió el audio por su cuenta, intentamos reanudarlo
+    // al recuperar la pestaña. Si la política de autoplay lo impide,
+    // playWithFade vuelve a armar el siguiente gesto de la jugadora.
+    if (this.hasUserInteraction && this.getTargetVolume() > 0 && this.audio.paused) {
+      void this.playWithFade();
+    }
   };
 
   private async playWithFade(): Promise<void> {
@@ -125,6 +160,11 @@ export class AmbientMusic {
     if (this.fadeFrame !== undefined) cancelAnimationFrame(this.fadeFrame);
     this.fadeFrame = undefined;
     this.pauseAfterFade = false;
+  }
+
+  private clearDuckRestoreTimer(): void {
+    if (this.duckRestoreTimer !== undefined) window.clearTimeout(this.duckRestoreTimer);
+    this.duckRestoreTimer = undefined;
   }
 
   private disarm(): void {

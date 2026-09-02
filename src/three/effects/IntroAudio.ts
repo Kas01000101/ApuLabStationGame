@@ -1,5 +1,7 @@
 const SFX_SETTING_KEY = 'apulab.settings.sfx';
 
+type IntroMusicDuckDetail = { durationMs: number; volume: number };
+
 export class IntroAudio {
   private ctx?: AudioContext;
   private master?: GainNode;
@@ -11,7 +13,9 @@ export class IntroAudio {
     if (!this.ctx) {
       this.ctx = new AudioContext();
       this.master = this.ctx.createGain();
-      this.master.gain.value = 0.52;
+      // Un poco más de presencia para los efectos de la cinemática sin
+      // convertirlos en un control de volumen global de los niveles.
+      this.master.gain.value = 0.58;
       this.master.connect(this.ctx.destination);
     }
     if (this.ctx.state === 'suspended') void this.ctx.resume();
@@ -51,11 +55,41 @@ export class IntroAudio {
   }
 
   beep(high = false): void { this.tone(high ? 940 : 720, high ? 1180 : 860, 0.10, 'sine', 0.11); }
-  clank(): void { this.tone(330, 170, 0.18, 'triangle', 0.12); this.tone(510, 230, 0.13, 'square', 0.035, 0.012); this.noise(0.075, 0.09); }
+
+  /** Golpe metálico de avería / entrada de Ayni. */
+  clank(): void {
+    this.duckMusic(800);
+    this.tone(330, 170, 0.20, 'triangle', 0.15);
+    this.tone(510, 230, 0.15, 'square', 0.045, 0.012);
+    this.noise(0.085, 0.115);
+  }
+
   clink(): void { this.tone(860, 560, 0.09, 'triangle', 0.055); this.tone(1210, 890, 0.07, 'sine', 0.03, 0.015); }
-  pff(): void { this.noise(0.18, 0.075); }
-  whoosh(): void { this.noise(0.48, 0.11, 2800, 240); this.tone(180, 86, 0.42, 'sine', 0.05); }
-  boom(): void { this.tone(82, 30, 0.42, 'sine', 0.30); this.tone(150, 55, 0.24, 'triangle', 0.14); this.noise(0.34, 0.18, 1200, 80); this.tone(240, 120, 0.18, 'square', 0.045, 0.02); this.tone(390, 180, 0.12, 'triangle', 0.032, 0.035); this.tone(52, 28, 0.55, 'sine', 0.12, 0.03); }
+
+  /** Escape/fallo de Yachay: debe leerse por encima de la música. */
+  pff(): void {
+    this.duckMusic(700);
+    this.noise(0.20, 0.115);
+  }
+
+  /** Caída de Ayni antes del impacto. */
+  whoosh(): void {
+    this.duckMusic(950);
+    this.noise(0.50, 0.145, 2800, 240);
+    this.tone(180, 86, 0.44, 'sine', 0.065);
+  }
+
+  /** Impacto de Ayni: es el golpe más fuerte de la intro. */
+  boom(): void {
+    this.duckMusic(1250);
+    this.tone(82, 30, 0.44, 'sine', 0.36);
+    this.tone(150, 55, 0.26, 'triangle', 0.17);
+    this.noise(0.36, 0.22, 1200, 80);
+    this.tone(240, 120, 0.20, 'square', 0.055, 0.02);
+    this.tone(390, 180, 0.14, 'triangle', 0.04, 0.035);
+    this.tone(52, 28, 0.58, 'sine', 0.145, 0.03);
+  }
+
   telemetry(): void { this.tone(540, 860, 0.12, 'sine', 0.055); this.tone(760, 1060, 0.10, 'sine', 0.045, 0.15); this.tone(940, 1280, 0.09, 'sine', 0.035, 0.30); }
   transition(): void { this.tone(420, 620, 0.46, 'sine', 0.06); this.tone(620, 920, 0.46, 'triangle', 0.045, 0.04); }
   success(): void { this.tone(520, 720, 0.18, 'sine', 0.06); this.tone(660, 920, 0.20, 'sine', 0.05, 0.10); this.tone(820, 1180, 0.28, 'triangle', 0.045, 0.20); }
@@ -66,6 +100,12 @@ export class IntroAudio {
     } catch {
       return true;
     }
+  }
+
+  private duckMusic(durationMs: number): void {
+    if (!this.isEnabled()) return;
+    const detail: IntroMusicDuckDetail = { durationMs, volume: 10 };
+    window.dispatchEvent(new CustomEvent('apulab-intro-music-duck', { detail }));
   }
 
   private tone(startHz: number, endHz: number, duration: number, type: OscillatorType, gainValue: number, delay = 0): void {
