@@ -42,9 +42,8 @@ async function patchLevel1() {
     guideButton.disabled = false;
     setBatteryXray(false);
 
-    // Flujo correcto del Nivel 1: EXPLORAR termina y GUÍA queda disponible.
-    // No la abrimos por código porque el click real de GUÍA es quien completa
-    // el ciclo pedagógico y desbloquea la interacción de la mesa.
+    // EXPLORAR termina con GUÍA cerrada. La señal visual pedagógica puede
+    // recomendar GUÍA, pero abrirla/cerrarla siempre depende del click real.
     guideButton.setAttribute("aria-label", "Abrir GUÍA");
     setGuideMode(false);
   }`;
@@ -57,7 +56,7 @@ async function patchLevel1() {
   html = html.replaceAll('GUÍA disponible al terminar EXPLORAR', 'GUÍA no disponible durante EXPLORAR');
 
   await writeFile(path, html, 'utf8');
-  console.info('[mission01] Level 1 · EXPLORAR termina → GUÍA disponible/brilla → click real desbloquea juego');
+  console.info('[mission01] Level 1 · EXPLORAR termina → GUÍA disponible/brilla → apertura solo por click');
 }
 
 async function patchLevel2() {
