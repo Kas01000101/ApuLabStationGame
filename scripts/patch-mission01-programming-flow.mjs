@@ -98,14 +98,21 @@ function patch3(html) {
   return addYellowExplore(addFace(html, 3), 3);
 }
 
+function removeOptionalGates(html) {
+  // Con o sin llaves, con cualquier espaciado: a partir de N4 ninguna condición
+  // exploreDone/guideOpened puede bloquear el editor ni INICIAR PRUEBA.
+  html = html.replace(/if\s*\(\s*!exploreDone\s*\)\s*\{[^{}]*\}/g, '');
+  html = html.replace(/if\s*\(\s*!guideOpened\s*\)\s*\{[^{}]*\}/g, '');
+  html = html.replace(/if\s*\(\s*!exploreDone\s*\)\s*return(?:\s+[^;]+)?;/g, '');
+  html = html.replace(/if\s*\(\s*!guideOpened\s*\)\s*return(?:\s+[^;]+)?;/g, '');
+  return html;
+}
+
 function patchOptional(html, level) {
   html = replaceArray(html, 'const exploreSteps=', STEPS[level], `l${level}-steps`);
   html = html.replace('<button id="explore-btn" class="btn btn-yellow btn-explore is-recommended">▶ EXPLORAR</button>','<button id="explore-btn" class="btn btn-yellow btn-explore">▶ EXPLORAR</button>');
   html = html.replace('<button id="guide-btn" class="btn btn-purple btn-guide" disabled>▶ GUÍA</button>','<button id="guide-btn" class="btn btn-purple btn-guide">▶ GUÍA</button>');
-
-  html = html.replace("if(!exploreDone){showStatus('Primero completa EXPLORAR y abre GUÍA.');return}if(!guideOpened){showStatus('Abre GUÍA antes de iniciar.');return}",'');
-  html = html.replace("if(!exploreDone)return showStatus('Primero completa EXPLORAR.'); if(!guideOpened)return showStatus('Abre GUÍA antes de iniciar.');",'');
-  html = html.replaceAll('if(!exploreDone)return;','');
+  html = removeOptionalGates(html);
   html = html.replaceAll("showStatus('Ahora abre GUÍA.',1800)","showStatus('EXPLORAR completado. Puedes seguir jugando; GUÍA es opcional.',1700)");
   return addYellowExplore(addFace(html, level), level);
 }
@@ -126,11 +133,11 @@ function qa(level, html) {
     if (!html.includes('¡NIVEL 3 COMPLETADO!') || html.includes('¡NIVEL 2 COMPLETADO!')) throw new Error('mission01_programming_qa_l3_success');
     if (!html.includes('CONTINUAR AL NIVEL 4')) throw new Error('mission01_programming_qa_l3_continue');
     if (!html.includes("if(!exploreDone){showStatus('Primero completa EXPLORAR.');return}")) throw new Error('mission01_programming_qa_l3_required_explore');
-    if (html.includes("showStatus('Abre GUÍA antes de iniciar.')")) throw new Error('mission01_programming_qa_l3_guide_gate');
+    if (/if\s*\(\s*!guideOpened\s*\)/.test(html)) throw new Error('mission01_programming_qa_l3_guide_gate');
   } else {
     if (html.includes('id="guide-btn" class="btn btn-purple btn-guide" disabled')) throw new Error(`mission01_programming_qa_guide_disabled:l${level}`);
-    if (html.includes("showStatus('Abre GUÍA antes de iniciar.')") || html.includes("showStatus('Primero completa EXPLORAR.')") || html.includes("showStatus('Primero completa EXPLORAR y abre GUÍA.')")) throw new Error(`mission01_programming_qa_optional_gate:l${level}`);
-    if (html.includes('if(!exploreDone)return;')) throw new Error(`mission01_programming_qa_guide_explore_gate:l${level}`);
+    if (/if\s*\(\s*!exploreDone\s*\)/.test(html)) throw new Error(`mission01_programming_qa_explore_gate:l${level}`);
+    if (/if\s*\(\s*!guideOpened\s*\)/.test(html)) throw new Error(`mission01_programming_qa_guide_gate:l${level}`);
   }
 }
 
