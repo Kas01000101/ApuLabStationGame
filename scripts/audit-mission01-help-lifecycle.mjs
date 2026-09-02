@@ -98,24 +98,33 @@ function contractNativeLevels12(level, html) {
     fail('l12_explore_does_not_interrupt_camera', `l${level}`);
   }
 
-  // Presupuesto de render: evita volver a 60 FPS permanentes en estas escenas pesadas.
-  if (!html.includes('lowPowerDevice ? 30 : 20')) fail('l12_frame_budget', `l${level}`);
+  // La cadencia principal debe seguir siendo la nativa. Reducirla aquí degrada
+  // el arrastre y hace que el juego se perciba lageado.
+  if (!html.includes('lowPowerDevice ? 22 : 16')) fail('l12_native_frame_cadence', `l${level}`);
 
-  // L1 bloquea GUÍA durante EXPLORAR pero debe reactivarla al terminar.
   if (level === 1) {
     if (!finish.includes('guideButton.disabled = false;')) fail('l1_guide_reenable');
+    // EXPLORAR termina y deja GUÍA cerrada para que el click real haga el desbloqueo.
+    if (finish.includes('setGuideMode(true)')) fail('l1_guide_auto_open_regression');
+    if (!finish.includes('setGuideMode(false)')) fail('l1_guide_not_normalized_after_explore');
+
+    const guideClick = balancedBody(html, 'guideButton.addEventListener("click", () =>', 'l1:guideClick');
+    if (!guideClick.includes('guideOpenedOnce = true;')) fail('l1_guide_click_does_not_mark_opened');
+    if (!guideClick.includes('gameplayUnlocked = true;')) fail('l1_guide_click_does_not_unlock_gameplay');
+
     if (!html.includes('lastArrowRenderAt') || !html.includes('timestamp - lastArrowRenderAt < 50')) {
       fail('l1_arrow_frame_budget');
     }
   }
 
-  // L2 debe arrancar con ambas ayudas disponibles y conservar un click de EXPLORAR
-  // si el carrusel está justo en mitad de su desplazamiento.
   if (level === 2) {
     if (!html.includes('explanationButton.hidden = false;')) fail('l2_explore_visible');
     if (!html.includes('guideButton.disabled = false;')) fail('l2_guide_enabled');
     if (!html.includes('pendingExploreAfterSwap = true;') || !advance.includes('window.setTimeout')) {
       fail('l2_explore_swap_retry');
+    }
+    if (!advance.includes('!guideActive && !explanationMode')) {
+      fail('l2_pending_explore_can_close_guide');
     }
   }
 }
@@ -183,4 +192,4 @@ contractNativeLevels12(2,levels.get(2));
 contractLevels34(3,levels.get(3));
 contractLevels34(4,levels.get(4));
 contractLevel5(levels.get(5));
-console.info('[mission01] HELP LIFECYCLE CONTRACT OK · L1–L2 clicks preservados durante animaciones · frame budget controlado · L3–L5 abrir → cerrar → reabrir');
+console.info('[mission01] HELP LIFECYCLE CONTRACT OK · L1 GUÍA manual desbloquea juego · L1–L2 frame nativo · L3–L5 abrir → cerrar → reabrir');
