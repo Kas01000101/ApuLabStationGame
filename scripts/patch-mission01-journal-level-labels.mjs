@@ -9,12 +9,12 @@ const outputs = new Map();
 for (const [level, previous] of [[4, 3], [5, 4]]) {
   const path = resolve(OUT, `level${level}.html`);
   let html = await readFile(path, 'utf8');
-  const before = `<small>MISIÓN 01 · NIVEL ${previous}</small>`;
-  const after = `<small>REGISTRO ANTERIOR · NIVEL ${previous}</small>`;
+  const before = `MISIÓN 01 · NIVEL ${previous}`;
+  const after = `REGISTRO ANTERIOR · NIVEL ${previous}`;
   if (!html.includes(before)) {
     throw new Error(`mission01_journal_previous_label_missing:l${level}:prev${previous}`);
   }
-  html = html.replace(before, after);
+  html = html.replaceAll(before, after);
   await writeFile(path, html, 'utf8');
   outputs.set(level, html);
   console.info(`[mission01] Nivel ${level} · Bitácora previa rotulada como REGISTRO ANTERIOR · NIVEL ${previous}`);
