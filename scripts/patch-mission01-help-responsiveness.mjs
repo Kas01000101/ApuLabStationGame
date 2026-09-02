@@ -13,9 +13,6 @@ function required(source, before, after, label) {
 
 const outputs = new Map();
 
-// Nivel 1: EXPLORAR no debe perder el click por una transición de cámara previa.
-// Se conserva intacta la cadencia original de la escena principal para no degradar
-// el arrastre ni la sensación de respuesta de los componentes de la mesa.
 {
   const level = 1;
   const path = resolve(OUT, 'level1.html');
@@ -28,8 +25,6 @@ const outputs = new Map();
     'l1-explore-camera-guard',
   );
 
-  // La flecha 3D sí es un renderer separado y puramente decorativo. Limitar solo
-  // esta señal visual reduce trabajo extra sin tocar el loop interactivo principal.
   html = required(
     html,
     `    let frameId = 0;\n    let disposed = false;\n\n    const render = () => {\n      if (disposed) return;`,
@@ -42,9 +37,6 @@ const outputs = new Map();
   console.info('[mission01] Nivel 1 · EXPLORAR no pierde clicks · frame principal nativo · flecha 3D ~20 FPS');
 }
 
-// Nivel 2: una transición de cámara tampoco debe tragarse EXPLORAR. Durante el
-// desplazamiento del carrusel no se fuerza una apertura posterior: el usuario
-// conserva control total sobre GUÍA, EXPLORAR y la mesa cuando termina la animación.
 {
   const level = 2;
   const path = resolve(OUT, 'level2.html');
