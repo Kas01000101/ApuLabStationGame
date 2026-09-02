@@ -31,3 +31,11 @@ jobs:
 
       - name: Audit high severity vulnerabilities
         run: npm audit --audit-level=high
+
+      - name: Upload verified dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-dist
+          path: dist
+          if-no-files-found: error
+          retention-days: 1
