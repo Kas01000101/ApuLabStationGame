@@ -77,13 +77,16 @@ const source = await readFile(resolve(ROOT, 'src/ui/Mission01Screen.ts'), 'utf8'
 if (!source.includes('const MAX_AVAILABLE_LEVEL = 7;')) fail('screen_max7');
 if (!source.includes("6: 'MISIÓN CIENTÍFICA'")) fail('screen_title6');
 if (!source.includes("7: 'SENSORES Y BUCLES'")) fail('screen_title7');
-if (!source.includes('APULAB_TRANSITION_SINGLE_LIVE_V1')) fail('single_live');
-if (!source.includes('this.disposeFrame(outgoing);')) fail('outgoing_dispose');
+if (!source.includes('APULAB_TRANSITION_DISPOSE_HANDOFF_V2')) fail('handoff_v2');
+if (!source.includes('const DISPOSE_HANDOFF_MS = 120;')) fail('handoff_delay');
+if (!source.includes('this.signalFrameDispose(outgoing);')) fail('outgoing_dispose_signal');
+if (!source.includes('this.clearFrame(outgoing);\n      incoming.src = path;')) fail('serialized_next_load');
 if (!source.includes('this.prefetchLevel(this.activeLevel + 1);')) fail('prefetch_sequence');
 
 console.info('[mission01] FULL 1–7 AUDIT OK');
 console.info('[mission01] N1–N5 legacy/remapped contracts preserved');
 console.info('[mission01] N6 scientific loop: REPETIR + ESCANEAR + ANALIZAR + ENVIAR DATOS');
 console.info('[mission01] N7 sensor loop: two sensors + REPETIR + LEER/REGISTRAR + ENVIAR DATOS');
-console.info('[mission01] EXPLORAR =4 / GUÍA =3 checklist / ayudas opcionales / Three dispose / single-live transition');
+console.info('[mission01] EXPLORAR =4 / GUÍA =3 checklist / ayudas opcionales');
+console.info('[mission01] WEBGL HANDOFF V2 · dispose signal → 120ms release → about:blank → next level');
 console.info('[mission01] Navigation verified: 1→2→3→4→5→6→7');
