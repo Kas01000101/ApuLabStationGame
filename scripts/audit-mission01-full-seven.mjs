@@ -75,14 +75,13 @@ for (const level of [6,7]) {
 
 const source = await readFile(resolve(ROOT, 'src/ui/Mission01Screen.ts'), 'utf8');
 if (!source.includes('const MAX_AVAILABLE_LEVEL = 7;')) fail('screen_max7');
-if (!source.includes("6: 'MISIÓN CIENTÍFICA'")) fail('screen_title6');
-if (!source.includes("7: 'SENSORES Y BUCLES'")) fail('screen_title7');
 if (!source.includes('APULAB_TRANSITION_NATIVE_UNLOAD_V4')) fail('native_unload_transition');
 if (!source.includes("this.frames.push(this.createFrame('A'));")) fail('single_frame_creation');
 if (/createFrame\('B'\)/.test(source)) fail('second_frame_exists');
 if (!source.includes('const frameIndex = this.activeFrameIndex;')) fail('same_frame_transition');
 if (!source.includes('frame.src = path;')) fail('same_frame_navigation');
 if (!source.includes('this.prefetchLevel(this.activeLevel + 1);')) fail('prefetch_sequence');
+if (/mission01-level-transition|transitionCurtain|showLevelTransition|hideLevelTransition/.test(source)) fail('transition_card_reintroduced');
 
 const requestStart = source.indexOf('  private requestLevel(level: number): void {');
 const requestEnd = source.indexOf('  private markPendingReady(', requestStart);
@@ -95,4 +94,4 @@ console.info('[mission01] N1–N5 legacy/remapped contracts preserved');
 console.info('[mission01] N6 scientific loop: REPETIR + ESCANEAR + ANALIZAR + ENVIAR DATOS');
 console.info('[mission01] N7 sensor loop: two sensors + REPETIR + LEER/REGISTRAR + ENVIAR DATOS');
 console.info('[mission01] EXPLORAR =4 / GUÍA =3 checklist / ayudas opcionales');
-console.info('[mission01] Navigation verified: 1→2→3→4→5→6→7 · one iframe · native unload cleanup · no stale dispose');
+console.info('[mission01] Navigation verified: 1→2→3→4→5→6→7 · one iframe · direct switch · no transition card');

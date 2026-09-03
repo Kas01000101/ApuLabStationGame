@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 const ROOT = process.cwd();
 const OUT = resolve(ROOT, 'public/missions/mission01');
 const shell = await readFile(resolve(ROOT, 'src/ui/Mission01Screen.ts'), 'utf8');
+const shellCss = await readFile(resolve(ROOT, 'src/styles/mission01.css'), 'utf8');
 
 function fail(code, detail = '') {
   throw new Error(`mission01_transition_contract:${code}${detail ? `:${detail}` : ''}`);
@@ -15,6 +16,13 @@ if (/createFrame\('B'\)/.test(shell)) fail('reserve_frame_still_exists');
 if (!shell.includes('const frameIndex = this.activeFrameIndex;')) fail('same_frame_index');
 if (!shell.includes('frame.src = path;')) fail('same_frame_navigation');
 if (/DISPOSE_HANDOFF_MS|handoffTimer/.test(shell)) fail('legacy_handoff_still_present');
+
+// La transición entre niveles debe ser directa. No se permite volver a introducir
+// la tarjeta centrada "MISIÓN 01 / NIVEL X / título" ni su CSS.
+if (/mission01-level-transition|transitionCurtain|transitionLevel|transitionTitle|showLevelTransition|hideLevelTransition/.test(shell)) {
+  fail('level_transition_card_present');
+}
+if (/mission01-level-transition/.test(shellCss)) fail('level_transition_card_css_present');
 
 const requestBlockStart = shell.indexOf('  private requestLevel(level: number): void {');
 const requestBlockEnd = shell.indexOf('  private markPendingReady(', requestBlockStart);
@@ -31,8 +39,6 @@ const navigateAt = requestBlock.indexOf('frame.src = path;');
 if (!(pendingAt >= 0 && listenerAt > pendingAt && navigateAt > listenerAt)) fail('direct_navigation_sequence');
 
 if (!shell.includes('const MAX_AVAILABLE_LEVEL = 7;')) fail('available_level_contract');
-if (!shell.includes("6: 'MISIÓN CIENTÍFICA'")) fail('title6');
-if (!shell.includes("7: 'SENSORES Y BUCLES'")) fail('title7');
 
 for (let level = 1; level <= 7; level++) {
   const html = await readFile(resolve(OUT, `level${level}.html`), 'utf8');
@@ -81,4 +87,4 @@ for (const level of [6, 7]) {
 const l7 = await readFile(resolve(OUT, 'level7.html'), 'utf8');
 if (/nextLevel\s*:\s*8|CONTINUAR AL NIVEL 8/.test(l7)) fail('fake_level8');
 
-console.info('[mission01] TRANSITION CONTRACT V4 OK · 1→7 · single iframe · native unload cleanup · no stale dispose messages');
+console.info('[mission01] TRANSITION CONTRACT V4 OK · 1→7 · direct level switch · no transition card · native unload cleanup');
