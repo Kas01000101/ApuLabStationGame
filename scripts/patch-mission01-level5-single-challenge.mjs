@@ -13,7 +13,7 @@ let html = await readFile(LEVEL5, 'utf8');
 // N5 enseña un único concepto nuevo: usar REPETIR. No exige una secuencia
 // de dos o más instrucciones dentro del bucle; basta usar REPETIR correctamente
 // con al menos una instrucción para llegar a la meta.
-for (const marker of ["phase==='discover'", "phase==='compress'", "phase==='sequence'", 'function unlockRepeat()', 'function startSequenceStage()', 'function usesSequenceRepeat()']) {
+for (const marker of ["phase==='discover'", "phase==='compress'", "phase==='sequence'", 'function unlockRepeat()', 'function startSequenceStage()', 'function usesSequenceRepeat(']) {
   if (!html.includes(marker)) throw new Error(`mission01_level5_phase_marker_missing:${marker}`);
 }
 
@@ -35,19 +35,20 @@ html = html.replace(
   '<div id="repeat-palette" class="command-block block-repeat" data-kind="repeat">',
 );
 
-// Relaja el predicado legacy de "secuencia dentro de REPETIR" a "REPETIR con
-// al menos una instrucción". Preservamos el parser/modelo original del nivel.
-const predicateStart = html.indexOf('function usesSequenceRepeat()');
-const predicateEnd = html.indexOf('function ', predicateStart + 'function usesSequenceRepeat()'.length);
+// El runtime real declara usesSequenceRepeat(p=program). Cambiamos únicamente
+// el requisito del cuerpo del bucle: body.length > 1 pasa a body.length > 0.
+const predicateToken = 'function usesSequenceRepeat(';
+const predicateStart = html.indexOf(predicateToken);
+const predicateEnd = html.indexOf('function serialize(', predicateStart);
 if (predicateStart < 0 || predicateEnd < 0) throw new Error('mission01_level5_repeat_predicate_bounds_missing');
 const oldPredicate = html.slice(predicateStart, predicateEnd);
 let relaxedPredicate = oldPredicate
-  .replace(/\.length\s*>=\s*2/g, '.length>=1')
-  .replace(/\.length\s*>\s*1/g, '.length>0');
+  .replace(/\.body\.length\s*>=\s*2/g, '.body.length>=1')
+  .replace(/\.body\.length\s*>\s*1/g, '.body.length>0');
 if (relaxedPredicate === oldPredicate) {
   throw new Error('mission01_level5_repeat_predicate_not_relaxed');
 }
-if (/\.length\s*>=\s*2|\.length\s*>\s*1/.test(relaxedPredicate)) {
+if (/\.body\.length\s*>=\s*2|\.body\.length\s*>\s*1/.test(relaxedPredicate)) {
   throw new Error('mission01_level5_multi_instruction_requirement_remaining');
 }
 html = html.slice(0, predicateStart) + relaxedPredicate + html.slice(predicateEnd);
