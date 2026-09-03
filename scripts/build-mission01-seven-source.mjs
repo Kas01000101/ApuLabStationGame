@@ -19,7 +19,11 @@ function removeBlock(source, startMarker, endMarker, label) {
   return source.slice(0, start) + source.slice(end);
 }
 
-let source = await readFile(LEGACY_BUILD, 'utf8');
+// Git for Windows puede materializar archivos de texto con CRLF aunque el blob
+// del repositorio use LF. Este build aplica parches por coincidencia exacta, así
+// que normalizamos la plantilla histórica antes de buscar marcadores. Esto hace
+// que `npm run dev` y `npm run build` sean equivalentes en Windows/Linux/macOS.
+let source = (await readFile(LEGACY_BUILD, 'utf8')).replace(/\r\n?/g, '\n');
 
 // El antiguo Nivel 3 queda fuera del build activo. El archivo histórico se usa
 // únicamente como plantilla para conservar intactos los parches aprobados de
