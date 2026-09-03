@@ -16,14 +16,15 @@ if (!repeatTag) fail('repeat_palette_missing');
 if (!/\shidden(?:\s|>)/.test(repeatTag)) fail('repeat_not_hidden_initially');
 if (/\bis-new\b|apulab-explore-glow|apulabAttention/i.test(repeatTag)) fail('repeat_initial_attention_present');
 
-// El desbloqueo debe existir, pero REPETIR no debe empezar a brillar al aparecer.
+// El desbloqueo debe existir. Se permite remove('is-new') porque solo limpia un
+// residuo legacy; está prohibido añadir o activar atención sobre REPETIR.
 const unlockStart = html.indexOf('function unlockRepeat()');
 const predicateStart = html.indexOf('function usesSequenceRepeat(', unlockStart);
 if (unlockStart < 0 || predicateStart < 0) fail('unlock_bounds');
 const unlockBlock = html.slice(unlockStart, predicateStart);
 if (!/repeatUnlocked\s*=\s*true/.test(unlockBlock)) fail('unlock_state_missing');
 if (!/phase\s*=\s*['"]compress['"]/.test(unlockBlock)) fail('compress_phase_missing');
-if (/is-new|apulab-explore-glow|apulabAttention/i.test(unlockBlock)) fail('repeat_unlock_attention_present');
+if (/classList\.add\((['"])is-new\1\)|classList\.toggle\((['"])is-new\2\s*,\s*true\)|className\s*=\s*[^;\n]*is-new|apulab-explore-glow|apulabAttention/i.test(unlockBlock)) fail('repeat_unlock_attention_present');
 
 // Exactamente dos momentos: discover → unlock → compress → éxito.
 if (!html.includes("if(phase==='discover'){unlockRepeat();return}")) fail('discover_to_unlock_missing');
