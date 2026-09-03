@@ -9,16 +9,26 @@ function fail(code, detail = '') {
   throw new Error(`mission01_transition_contract:${code}${detail ? `:${detail}` : ''}`);
 }
 
-if (!shell.includes('APULAB_TRANSITION_DISPOSE_HANDOFF_V2')) fail('shell_handoff_marker');
-if (!shell.includes('const DISPOSE_HANDOFF_MS = 120;')) fail('handoff_delay');
-const showAt = shell.indexOf('this.showLevelTransition(level);');
-const signalAt = shell.indexOf('this.signalFrameDispose(outgoing);');
-const clearAt = shell.indexOf('this.clearFrame(outgoing);');
-const loadAt = shell.indexOf('incoming.src = path;');
-if (showAt < 0 || signalAt < 0 || clearAt < 0 || loadAt < 0) fail('shell_sequence_missing');
-if (!(showAt < signalAt && signalAt < clearAt && clearAt < loadAt)) fail('handoff_order');
-if (!shell.includes('this.handoffTimer = window.setTimeout(() => {')) fail('handoff_timer_missing');
-if (!shell.includes('this.signalFrameDispose(frame);\n    this.clearFrame(frame);')) fail('dispose_split_contract');
+if (!shell.includes('APULAB_TRANSITION_SINGLE_FRAME_V3')) fail('single_frame_marker');
+if (!shell.includes("this.frames.push(this.createFrame('A'));")) fail('single_frame_creation');
+if (/createFrame\('B'\)/.test(shell)) fail('reserve_frame_still_exists');
+if (!shell.includes('const frameIndex = this.activeFrameIndex;')) fail('same_frame_index');
+if (!shell.includes('this.signalFrameDispose(frame);')) fail('dispose_signal');
+if (!shell.includes('frame.src = path;')) fail('same_frame_navigation');
+if (!shell.includes('DISPOSE_HANDOFF_MS = 120')) fail('dispose_handoff');
+
+const signalAt = shell.indexOf('this.signalFrameDispose(frame);');
+const timerAt = shell.indexOf('this.handoffTimer = window.setTimeout');
+const navigateAt = shell.indexOf('frame.src = path;', timerAt);
+if (signalAt < 0 || timerAt < 0 || navigateAt < 0) fail('sequence_missing');
+if (!(signalAt < timerAt && timerAt < navigateAt)) fail('dispose_before_same_frame_navigation');
+
+const requestBlockStart = shell.indexOf('  private requestLevel(level: number): void {');
+const requestBlockEnd = shell.indexOf('  private markPendingReady(', requestBlockStart);
+const requestBlock = shell.slice(requestBlockStart, requestBlockEnd);
+if (requestBlock.includes("about:blank")) fail('about_blank_in_transition');
+if (/activeFrameIndex\s*===\s*0\s*\?\s*1\s*:\s*0/.test(requestBlock)) fail('iframe_swap_still_present');
+
 if (!shell.includes('const MAX_AVAILABLE_LEVEL = 7;')) fail('available_level_contract');
 if (!shell.includes("6: 'MISIÓN CIENTÍFICA'")) fail('title6');
 if (!shell.includes("7: 'SENSORES Y BUCLES'")) fail('title7');
@@ -66,5 +76,4 @@ for (const level of [6, 7]) {
 const l7 = await readFile(resolve(OUT, 'level7.html'), 'utf8');
 if (/nextLevel\s*:\s*8|CONTINUAR AL NIVEL 8/.test(l7)) fail('fake_level8');
 
-console.info('[mission01] TRANSITION HANDOFF V2 OK · dispose signal → 120ms WebGL release → about:blank → next level');
-console.info('[mission01] NAVIGATION OK · N1→N2→N3→N4→N5→N6→N7');
+console.info('[mission01] TRANSITION CONTRACT V3 OK · N1→N2→N3→N4→N5→N6→N7 · single iframe · no parallel WebGL');
