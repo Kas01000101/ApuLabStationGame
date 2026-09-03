@@ -75,10 +75,13 @@ export class Mission01Screen {
     this.element.className = 'mission01-screen hidden';
     this.element.setAttribute('aria-label', 'Misión 01');
 
-    this.frames.push(this.createFrame('A'), this.createFrame('B'));
+    // APULAB_TRANSITION_SINGLE_FRAME_V3
+    // Mission 01 usa un solo browsing context. Cada cambio de nivel navega este
+    // mismo iframe, de modo que el navegador descarga el documento/WebGL anterior
+    // antes de crear el siguiente. No existen dos escenas Three.js simultáneas.
+    this.frames.push(this.createFrame('A'));
     this.frames[0].classList.add('is-active');
     this.frames[0].setAttribute('aria-hidden', 'false');
-    this.frames[1].setAttribute('aria-hidden', 'true');
 
     this.transitionCurtain.className = 'mission01-level-transition';
     this.transitionCurtain.setAttribute('aria-hidden', 'true');
@@ -122,7 +125,7 @@ export class Mission01Screen {
       activeFrame.addEventListener(
         'load',
         () => {
-          if (this.activeFrameIndex === this.frames.indexOf(activeFrame) && this.activeLevel === level) {
+          if (this.activeFrameIndex === 0 && this.activeLevel === level) {
             this.prefetchLevel(level + 1);
           }
         },
@@ -194,31 +197,22 @@ export class Mission01Screen {
 
     this.cancelPendingTransition();
     const token = ++this.transitionToken;
-    const frameIndex = this.activeFrameIndex === 0 ? 1 : 0;
-    const outgoing = this.frames[this.activeFrameIndex];
-    const incoming = this.frames[frameIndex];
+    const frameIndex = this.activeFrameIndex;
+    const frame = this.frames[frameIndex];
     const path = this.levelPath(level);
     const startedAt = performance.now();
 
     this.showLevelTransition(level);
 
-    // APULAB_TRANSITION_DISPOSE_HANDOFF_V2
-    // No navegamos el iframe saliente a about:blank en el mismo task que envía
-    // apulab-dispose. postMessage es asíncrono: si destruimos el documento de
-    // inmediato, su handler puede no alcanzar a liberar RAF/renderer/WebGL.
-    // Durante esta ventana solo vive la escena saliente; el siguiente nivel aún
-    // NO se carga. Después del handoff, se desmonta por completo y recién entonces
-    // se inicia el siguiente documento.
-    outgoing.classList.remove('is-active', 'is-entering', 'is-leaving');
-    outgoing.setAttribute('aria-hidden', 'true');
-    this.signalFrameDispose(outgoing);
-
-    // El iframe de reserva debe estar limpio antes de recibir el siguiente nivel.
-    this.disposeFrame(incoming);
-    incoming.classList.remove('is-active', 'is-leaving', 'is-entering');
-    incoming.classList.add('is-loading');
-    incoming.setAttribute('aria-hidden', 'true');
-    incoming.title = `ApuLab · Misión 01 · Nivel ${level} de ${TOTAL_LEVELS}`;
+    // APULAB_TRANSITION_SINGLE_FRAME_V3
+    // 1) pedimos al nivel actual que apague RAF/renderer/WebGL;
+    // 2) damos una breve ventana al handler asíncrono;
+    // 3) navegamos EL MISMO iframe directamente al siguiente nivel.
+    // No usamos about:blank intermedio ni un iframe de reserva.
+    frame.classList.remove('is-active', 'is-entering', 'is-leaving');
+    frame.classList.add('is-loading');
+    frame.setAttribute('aria-hidden', 'true');
+    this.signalFrameDispose(frame);
 
     const onLoad = (): void => {
       const pending = this.pending;
@@ -226,17 +220,17 @@ export class Mission01Screen {
 
       let loadedPath = '';
       try {
-        loadedPath = incoming.contentWindow?.location.pathname || '';
+        loadedPath = frame.contentWindow?.location.pathname || '';
       } catch (_) {
         return;
       }
       if (loadedPath !== path) return;
-      incoming.removeEventListener('load', onLoad);
+      frame.removeEventListener('load', onLoad);
       this.markPendingReady(token, level, frameIndex);
     };
 
     this.pending = { level, frameIndex, token, ready: false, startedAt, onLoad };
-    incoming.addEventListener('load', onLoad);
+    frame.addEventListener('load', onLoad);
 
     if (this.handoffTimer) window.clearTimeout(this.handoffTimer);
     this.handoffTimer = window.setTimeout(() => {
@@ -244,9 +238,9 @@ export class Mission01Screen {
       const pending = this.pending;
       if (!pending || pending.token !== token || pending.level !== level || pending.frameIndex !== frameIndex) return;
 
-      // Ahora sí: el saliente ya tuvo tiempo de procesar apulab-dispose.
-      this.clearFrame(outgoing);
-      incoming.src = path;
+      // La navegación del mismo browsing context dispara pagehide/beforeunload del
+      // documento anterior antes de inicializar el nuevo WebGLRenderer.
+      frame.src = path;
     }, DISPOSE_HANDOFF_MS);
   }
 
@@ -267,16 +261,16 @@ export class Mission01Screen {
     const pending = this.pending;
     if (!pending || pending.token !== token || !pending.ready) return;
 
-    const incoming = this.frames[pending.frameIndex];
+    const frame = this.frames[pending.frameIndex];
     try {
-      if (incoming.contentWindow?.location.pathname !== this.levelPath(pending.level)) return;
+      if (frame.contentWindow?.location.pathname !== this.levelPath(pending.level)) return;
     } catch (_) {
       return;
     }
 
-    incoming.classList.remove('is-loading');
-    incoming.classList.add('is-active', 'is-entering');
-    incoming.setAttribute('aria-hidden', 'false');
+    frame.classList.remove('is-loading');
+    frame.classList.add('is-active', 'is-entering');
+    frame.setAttribute('aria-hidden', 'false');
 
     this.activeFrameIndex = pending.frameIndex;
     this.activeLevel = pending.level;
@@ -288,7 +282,7 @@ export class Mission01Screen {
 
     if (this.transitionTimer) window.clearTimeout(this.transitionTimer);
     this.transitionTimer = window.setTimeout(() => {
-      incoming.classList.remove('is-entering');
+      frame.classList.remove('is-entering');
       this.transitionTimer = undefined;
     }, TRANSITION_MS);
   }
@@ -304,9 +298,9 @@ export class Mission01Screen {
 
     const frame = this.frames[pending.frameIndex];
     frame.removeEventListener('load', pending.onLoad);
-    frame.classList.remove('is-loading', 'is-entering', 'is-active', 'is-leaving');
-    frame.setAttribute('aria-hidden', 'true');
-    this.disposeFrame(frame);
+    frame.classList.remove('is-loading', 'is-entering', 'is-leaving');
+    frame.classList.add('is-active');
+    frame.setAttribute('aria-hidden', 'false');
     this.pending = undefined;
     this.hideLevelTransition();
   }
