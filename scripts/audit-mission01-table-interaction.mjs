@@ -57,23 +57,26 @@ function balancedBody(source, anchor, label) {
 
 function auditLevel(level, html) {
   if (!html.includes('APULAB_TABLE_INTERACTION_CONTROLLER')) fail('controller_missing', `l${level}`);
-  if (!html.includes('APULAB_GUIDE_NONBLOCKING')) fail('guide_nonblocking_missing', `l${level}`);
+  if (!html.includes('APULAB_GUIDE_NONBLOCKING_V2')) fail('guide_nonblocking_v2_missing', `l${level}`);
 
   const helpMode = balancedBody(html, 'function currentHelpMode()', `l${level}:currentHelpMode`);
   const canInteract = balancedBody(html, 'function canInteractWithTable()', `l${level}:canInteractWithTable`);
   const prepare = balancedBody(html, 'function prepareTableInteraction()', `l${level}:prepareTableInteraction`);
   const guide = balancedBody(html, 'function setGuideMode(enabled)', `l${level}:setGuideMode`);
+  const guideClick = balancedBody(html, 'guideButton.addEventListener("click", () =>', `l${level}:guideClick`);
   const pointerDown = balancedBody(html, 'canvas.addEventListener("pointerdown", (event) =>', `l${level}:pointerdown`);
   const pointerUp = balancedBody(html, 'canvas.addEventListener("pointerup", (event) =>', `l${level}:pointerup`);
 
   if (!helpMode.includes('if (explanationMode) return "explore";')) fail('explore_mode_missing', `l${level}`);
   if (!helpMode.includes('if (guideActive) return "guide";')) fail('guide_mode_missing', `l${level}`);
+
   if (!canInteract.includes('gameplayUnlocked') || !canInteract.includes('currentHelpMode() !== "explore"')) {
     fail('table_gate_wrong', `l${level}`);
   }
   if (canInteract.includes('guideActive') || canInteract.includes('cameraTween')) {
     fail('table_gate_coupled_to_guide_or_camera', `l${level}`);
   }
+
   if (!prepare.includes('if (cameraTween) cameraTween = null;')) fail('camera_not_cancelable', `l${level}`);
 
   for (const [name, body] of [['pointerdown', pointerDown], ['pointerup', pointerUp]]) {
@@ -84,14 +87,28 @@ function auditLevel(level, html) {
     }
   }
 
-  const finalCameraCancel = guide.lastIndexOf('if (cameraTween) cameraTween = null;');
-  if (finalCameraCancel < 0) fail('guide_camera_cancel_missing', `l${level}`);
-  if (finalCameraCancel < guide.lastIndexOf('moveCamera(')) fail('guide_leaves_camera_tween', `l${level}`);
-  if (!guide.slice(finalCameraCancel).includes('updateChallengeState();')) fail('guide_state_not_normalized', `l${level}`);
-  if (!guide.slice(finalCameraCancel).includes('if (guideActive) updateGuide();')) fail('guide_render_not_normalized', `l${level}`);
+  // GUÍA ya no puede ser propietaria de una transición visual.
+  if (guide.includes('moveCamera(')) fail('guide_moves_camera', `l${level}`);
+  if (!guide.includes('if (cameraTween) cameraTween = null;')) fail('guide_camera_cancel_missing', `l${level}`);
+  if (!guide.includes('gameplayUnlocked = true;')) fail('guide_does_not_unlock_gameplay', `l${level}`);
+  if (!guideClick.includes('setGuideMode(!guideActive)')) fail('guide_click_missing_toggle', `l${level}`);
 
-  if (level === 2 && !pointerDown.includes('batterySwapAnimating')) {
-    fail('l2_carousel_transition_guard_missing');
+  if (level === 2) {
+    if (!pointerDown.includes('batterySwapAnimating')) fail('l2_carousel_transition_guard_missing');
+
+    // Regresión crítica: GUÍA no puede volver a abrir el modal de comparación.
+    for (const forbidden of ['openCompareOverlay', 'measuredValues', 'compareOverlay', 'hasCompleted']) {
+      if (guideClick.includes(forbidden)) fail('l2_guide_hijacks_comparison', forbidden);
+    }
+    if (!guideClick.includes('APULAB_GUIDE_SINGLE_RESPONSIBILITY')) {
+      fail('l2_guide_single_responsibility_marker_missing');
+    }
+
+    // La comparación sigue existiendo, pero pertenece al flujo de 3/3 mediciones.
+    const unlockReference = balancedBody(html, 'function unlockMissionReference()', 'l2:unlockMissionReference');
+    if (!unlockReference.includes('openCompareOverlay();')) {
+      fail('l2_comparison_flow_lost');
+    }
   }
 }
 
@@ -100,4 +117,4 @@ for (const level of [1, 2]) {
   auditLevel(level, html);
 }
 
-console.info('[mission01] TABLE INTERACTION CONTRACT OK · GUÍA no bloquea mesa · cámara cancelable · L2 conserva guard del carrusel');
+console.info('[mission01] TABLE INTERACTION CONTRACT V2 OK · GUÍA pura · sin cámara/modal · comparación solo tras 3/3');
