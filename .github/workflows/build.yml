@@ -35,14 +35,24 @@ jobs:
       - name: Verify generated Mission 01 assets
         shell: bash
         run: |
-          for level in 1 2 3 4 5; do
+          for level in 1 2 3 4 5 6 7; do
             test -f "public/missions/mission01/level${level}.html"
             grep -Fq "${level} / 7" "public/missions/mission01/level${level}.html"
           done
+
           test -f public/missions/mission01/manifest.json
           grep -Fq 'CONTINUAR AL NIVEL 4' public/missions/mission01/level3.html
           ! grep -Fq 'NIVEL 4 · PRÓXIMAMENTE' public/missions/mission01/level3.html
+          grep -Fq 'CONTINUAR AL NIVEL 7' public/missions/mission01/level6.html
+          grep -Fq 'MISIÓN 01 COMPLETADA' public/missions/mission01/level7.html
+          grep -Fq 'MISIÓN CIENTÍFICA' public/missions/mission01/level6.html
+          grep -Fq 'SENSORES Y BUCLES' public/missions/mission01/level7.html
+          grep -Fq 'REPETIR × N' public/missions/mission01/level6.html
+          grep -Fq 'REPETIR × N' public/missions/mission01/level7.html
           grep -Fq '"totalLevels": 7' public/missions/mission01/manifest.json
           grep -Fq '"availableLevels"' public/missions/mission01/manifest.json
-          grep -Fq '"level": 5' public/missions/mission01/manifest.json
+          grep -Fq '"level": 7' public/missions/mission01/manifest.json
           ! grep -R -Fq ' / 8' public/missions/mission01/level*.html
+          ! grep -Fq 'CONTINUAR AL NIVEL 8' public/missions/mission01/level7.html
+
+          node -e "const m=require('./public/missions/mission01/manifest.json'); const expected='1,2,3,4,5,6,7'; if(m.totalLevels!==7 || m.availableLevels.join(',')!==expected || (m.unavailableLevels||[]).length!==0 || m.levels.length!==7) process.exit(1)"
