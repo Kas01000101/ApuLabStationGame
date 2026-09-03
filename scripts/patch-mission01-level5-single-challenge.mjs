@@ -33,7 +33,8 @@ for (const marker of [
 }
 
 // REPETIR no debe llamar la atención visualmente al desbloquearse. EXPLORAR es
-// el único elemento con halo en N1/N3/N5.
+// el único elemento con halo en N1/N3/N5. Se permite un remove('is-new') legacy
+// porque solo limpia la clase; lo prohibido es añadir/togglear atención.
 let unlockStart = html.indexOf('function unlockRepeat()');
 let sequenceStart = html.indexOf('function startSequenceStage()', unlockStart);
 if (unlockStart < 0 || sequenceStart < 0) throw new Error('mission01_level5_unlock_bounds_missing');
@@ -43,7 +44,9 @@ unlockBlock = unlockBlock
   .replaceAll(' is-new', '');
 if (!/repeatUnlocked\s*=\s*true/.test(unlockBlock)) throw new Error('mission01_level5_unlock_state_missing');
 if (!/phase\s*=\s*['"]compress['"]/.test(unlockBlock)) throw new Error('mission01_level5_compress_phase_missing');
-if (/is-new/.test(unlockBlock)) throw new Error('mission01_level5_repeat_attention_remaining');
+if (/classList\.add\((['"])is-new\1\)|classList\.toggle\((['"])is-new\2\s*,\s*true\)|className\s*=\s*[^;\n]*is-new/.test(unlockBlock)) {
+  throw new Error('mission01_level5_repeat_attention_remaining');
+}
 html = html.slice(0, unlockStart) + unlockBlock + html.slice(sequenceStart);
 
 // El tercer reto legacy (sequence) deja de existir físicamente como función.
