@@ -57,7 +57,9 @@ function balancedBody(source, anchor, label) {
 
 function auditLevel(level, html) {
   if (!html.includes('APULAB_TABLE_INTERACTION_CONTROLLER')) fail('controller_missing', `l${level}`);
-  if (!html.includes('APULAB_GUIDE_NONBLOCKING_V2')) fail('guide_nonblocking_v2_missing', `l${level}`);
+  if (!html.includes('APULAB_GUIDE_NONBLOCKING_V2') && !html.includes('APULAB_GUIDE_UI_ONLY_V3')) {
+    fail('guide_nonblocking_contract_missing', `l${level}`);
+  }
 
   const helpMode = balancedBody(html, 'function currentHelpMode()', `l${level}:currentHelpMode`);
   const canInteract = balancedBody(html, 'function canInteractWithTable()', `l${level}:canInteractWithTable`);
@@ -87,11 +89,14 @@ function auditLevel(level, html) {
     }
   }
 
-  // GUÍA ya no puede ser propietaria de una transición visual.
+  // GUÍA no puede ser propietaria de cámara/modal ni del ciclo de render 3D.
   if (guide.includes('moveCamera(')) fail('guide_moves_camera', `l${level}`);
   if (!guide.includes('if (cameraTween) cameraTween = null;')) fail('guide_camera_cancel_missing', `l${level}`);
   if (!guide.includes('gameplayUnlocked = true;')) fail('guide_does_not_unlock_gameplay', `l${level}`);
   if (!guideClick.includes('setGuideMode(!guideActive)')) fail('guide_click_missing_toggle', `l${level}`);
+  if (html.includes('APULAB_GUIDE_UI_ONLY_V3') && !html.includes('APULAB_GUIDE_RENDER_DECOUPLED_V3')) {
+    fail('guide_v3_render_decoupling_missing', `l${level}`);
+  }
 
   if (level === 2) {
     if (!pointerDown.includes('batterySwapAnimating')) fail('l2_carousel_transition_guard_missing');
@@ -117,4 +122,4 @@ for (const level of [1, 2]) {
   auditLevel(level, html);
 }
 
-console.info('[mission01] TABLE INTERACTION CONTRACT V2 OK · GUÍA pura · sin cámara/modal · comparación solo tras 3/3');
+console.info('[mission01] TABLE INTERACTION CONTRACT V3 OK · GUÍA UI-only · sin cámara/modal/RAF · comparación solo tras 3/3');
