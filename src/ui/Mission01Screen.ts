@@ -10,6 +10,11 @@ type PendingTransition = {
   onLoad: () => void;
 };
 
+type Mission01LegacyBridgeWindow = Window & {
+  apulabCompleteLevel?: (completedLevel: number, nextLevel?: number) => void;
+  apulabLevelReady?: (level: number) => void;
+};
+
 const TOTAL_LEVELS = 7;
 const MAX_AVAILABLE_LEVEL = 7;
 const TRANSITION_MS = 240;
@@ -47,6 +52,8 @@ export class Mission01Screen {
   private transitionTimer?: number;
   private unavailableTimer?: number;
   private prefetchLink?: HTMLLinkElement;
+  private previousLegacyComplete?: Mission01LegacyBridgeWindow['apulabCompleteLevel'];
+  private previousLegacyReady?: Mission01LegacyBridgeWindow['apulabLevelReady'];
 
   constructor(
     private readonly root: HTMLElement,
@@ -74,6 +81,7 @@ export class Mission01Screen {
     this.element.append(...this.frames, this.unavailableToast);
     this.root.appendChild(this.element);
     window.addEventListener('message', this.handleMessage);
+    this.installLegacyNavigationBridge();
   }
 
   start(level = 1): void {
@@ -117,6 +125,7 @@ export class Mission01Screen {
 
   destroy(): void {
     window.removeEventListener('message', this.handleMessage);
+    this.removeLegacyNavigationBridge();
     this.cancelPendingTransition();
     this.clearTimers();
     this.removePrefetch();
@@ -235,6 +244,55 @@ export class Mission01Screen {
     frame.classList.add('is-active');
     frame.setAttribute('aria-hidden', 'false');
     this.pending = undefined;
+  }
+
+  // APULAB_LEGACY_NAV_BRIDGE_V1
+  // Los niveles 3–5 aún provienen de plantillas históricas que primero intentan
+  // llamar funciones directas del padre y luego hacen fallback a postMessage.
+  // Exponer ambas funciones elimina esa dependencia frágil y hace que 3→4 sea
+  // determinista incluso si el fallback se pierde o llega fuera de orden.
+  private readonly handleLegacyLevelComplete = (completedValue: number, nextValue?: number): void => {
+    if (!this.visible) return;
+
+    const completedLevel = Number(completedValue);
+    const requestedNext = Number(nextValue);
+    if (!Number.isInteger(completedLevel) || completedLevel !== this.activeLevel) return;
+    if (completedLevel >= TOTAL_LEVELS) return;
+    if (Number.isInteger(requestedNext) && requestedNext !== this.activeLevel + 1) return;
+
+    this.requestLevel(this.activeLevel + 1);
+  };
+
+  private readonly handleLegacyLevelReady = (levelValue: number): void => {
+    if (!this.visible) return;
+
+    const level = Number(levelValue);
+    const pending = this.pending;
+    if (!pending || !Number.isInteger(level) || level !== pending.level) return;
+
+    this.markPendingReady(pending.token, pending.level, pending.frameIndex);
+  };
+
+  private installLegacyNavigationBridge(): void {
+    const bridgeWindow = window as Mission01LegacyBridgeWindow;
+    this.previousLegacyComplete = bridgeWindow.apulabCompleteLevel;
+    this.previousLegacyReady = bridgeWindow.apulabLevelReady;
+    bridgeWindow.apulabCompleteLevel = this.handleLegacyLevelComplete;
+    bridgeWindow.apulabLevelReady = this.handleLegacyLevelReady;
+  }
+
+  private removeLegacyNavigationBridge(): void {
+    const bridgeWindow = window as Mission01LegacyBridgeWindow;
+
+    if (bridgeWindow.apulabCompleteLevel === this.handleLegacyLevelComplete) {
+      if (this.previousLegacyComplete) bridgeWindow.apulabCompleteLevel = this.previousLegacyComplete;
+      else delete bridgeWindow.apulabCompleteLevel;
+    }
+
+    if (bridgeWindow.apulabLevelReady === this.handleLegacyLevelReady) {
+      if (this.previousLegacyReady) bridgeWindow.apulabLevelReady = this.previousLegacyReady;
+      else delete bridgeWindow.apulabLevelReady;
+    }
   }
 
   private signalFrameDispose(frame: HTMLIFrameElement): void {
