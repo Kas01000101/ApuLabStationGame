@@ -25,16 +25,33 @@ const outputs = new Map();
     'l1-explore-camera-guard',
   );
 
+  // Nivel 1 ya no usa ninguna flecha de atención. Quitamos tanto el contenedor
+  // que antes alojaba el renderer Three.js como el fallback CSS/pulso heredado.
   html = required(
     html,
-    `    let frameId = 0;\n    let disposed = false;\n\n    const render = () => {\n      if (disposed) return;`,
-    `    let frameId = 0;\n    let disposed = false;\n    let lastArrowRenderAt = 0;\n\n    const render = (timestamp = performance.now()) => {\n      if (disposed) return;\n      if (!reduceMotion && timestamp - lastArrowRenderAt < 50) {\n        frameId = requestAnimationFrame(render);\n        return;\n      }\n      lastArrowRenderAt = timestamp;`,
-    'l1-arrow-frame-budget',
+    '<button id="kawsay-explanation" class="kawsay-hud-button is-recommended is-explore-attention" type="button">EXPLORAR</button>',
+    '<button id="kawsay-explanation" class="kawsay-hud-button is-recommended" type="button">EXPLORAR</button>',
+    'l1-remove-explore-attention-class',
   );
+  html = required(
+    html,
+    '    <div id="kawsay-explore-attention" aria-hidden="true"></div>\n',
+    '',
+    'l1-remove-explore-arrow-dom',
+  );
+
+  if (
+    html.includes('createExploreAttentionThreeArrow') ||
+    html.includes('NIVEL 1 · FLECHA EXPLORAR 3D · THREE.JS') ||
+    html.includes('id="kawsay-explore-attention"') ||
+    html.includes('class="kawsay-hud-button is-recommended is-explore-attention"')
+  ) {
+    throw new Error('mission01_help_responsiveness_unexpected:l1-explore-arrow-remains');
+  }
 
   await writeFile(path, html, 'utf8');
   outputs.set(level, html);
-  console.info('[mission01] Nivel 1 · EXPLORAR no pierde clicks · frame principal nativo · flecha 3D ~20 FPS');
+  console.info('[mission01] Nivel 1 · EXPLORAR sin flecha Three.js ni fallback CSS');
 }
 
 {
@@ -64,4 +81,4 @@ for (const entry of manifest.levels || []) {
 }
 await writeFile(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
 
-console.info('[mission01] HELP RESPONSIVENESS QA PATCH OK · ayuda sin callbacks pendientes · loop interactivo principal intacto');
+console.info('[mission01] HELP RESPONSIVENESS QA PATCH OK · ayuda sin callbacks pendientes · Nivel 1 sin flecha');
