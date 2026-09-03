@@ -14,6 +14,7 @@ type PendingTransition = {
 const TOTAL_LEVELS = 7;
 const MAX_AVAILABLE_LEVEL = 7;
 const TRANSITION_MS = 240;
+const DISPOSE_HANDOFF_MS = 120;
 const LEVEL_CURTAIN_MIN_MS = 760;
 const SEQUENCE_MIGRATION_KEY = 'apulab.mission01.sequence7.v1';
 
@@ -60,6 +61,7 @@ export class Mission01Screen {
   private transitionToken = 0;
   private pending?: PendingTransition;
   private transitionTimer?: number;
+  private handoffTimer?: number;
   private curtainTimer?: number;
   private unavailableTimer?: number;
   private prefetchLink?: HTMLLinkElement;
@@ -200,13 +202,18 @@ export class Mission01Screen {
 
     this.showLevelTransition(level);
 
-    // APULAB_TRANSITION_SINGLE_LIVE_V1
-    // Primero apagamos el nivel saliente y luego cargamos el siguiente. De esta
-    // forma nunca conviven dos loops WebGL/Three.js durante una transición.
+    // APULAB_TRANSITION_DISPOSE_HANDOFF_V2
+    // No navegamos el iframe saliente a about:blank en el mismo task que envía
+    // apulab-dispose. postMessage es asíncrono: si destruimos el documento de
+    // inmediato, su handler puede no alcanzar a liberar RAF/renderer/WebGL.
+    // Durante esta ventana solo vive la escena saliente; el siguiente nivel aún
+    // NO se carga. Después del handoff, se desmonta por completo y recién entonces
+    // se inicia el siguiente documento.
     outgoing.classList.remove('is-active', 'is-entering', 'is-leaving');
     outgoing.setAttribute('aria-hidden', 'true');
-    this.disposeFrame(outgoing);
+    this.signalFrameDispose(outgoing);
 
+    // El iframe de reserva debe estar limpio antes de recibir el siguiente nivel.
     this.disposeFrame(incoming);
     incoming.classList.remove('is-active', 'is-leaving', 'is-entering');
     incoming.classList.add('is-loading');
@@ -230,7 +237,17 @@ export class Mission01Screen {
 
     this.pending = { level, frameIndex, token, ready: false, startedAt, onLoad };
     incoming.addEventListener('load', onLoad);
-    incoming.src = path;
+
+    if (this.handoffTimer) window.clearTimeout(this.handoffTimer);
+    this.handoffTimer = window.setTimeout(() => {
+      this.handoffTimer = undefined;
+      const pending = this.pending;
+      if (!pending || pending.token !== token || pending.level !== level || pending.frameIndex !== frameIndex) return;
+
+      // Ahora sí: el saliente ya tuvo tiempo de procesar apulab-dispose.
+      this.clearFrame(outgoing);
+      incoming.src = path;
+    }, DISPOSE_HANDOFF_MS);
   }
 
   private markPendingReady(token: number, level: number, frameIndex: number): void {
@@ -280,6 +297,11 @@ export class Mission01Screen {
     const pending = this.pending;
     if (!pending) return;
 
+    if (this.handoffTimer) {
+      window.clearTimeout(this.handoffTimer);
+      this.handoffTimer = undefined;
+    }
+
     const frame = this.frames[pending.frameIndex];
     frame.removeEventListener('load', pending.onLoad);
     frame.classList.remove('is-loading', 'is-entering', 'is-active', 'is-leaving');
@@ -289,13 +311,15 @@ export class Mission01Screen {
     this.hideLevelTransition();
   }
 
-  private disposeFrame(frame: HTMLIFrameElement): void {
+  private signalFrameDispose(frame: HTMLIFrameElement): void {
     try {
       frame.contentWindow?.postMessage({ type: 'apulab-dispose' }, window.location.origin);
     } catch (_) {
       // pagehide/beforeunload del nivel actúa como respaldo.
     }
+  }
 
+  private clearFrame(frame: HTMLIFrameElement): void {
     try {
       const src = frame.getAttribute('src');
       if (src && src !== 'about:blank') frame.src = 'about:blank';
@@ -305,6 +329,11 @@ export class Mission01Screen {
 
     frame.classList.remove('is-loading', 'is-entering', 'is-active', 'is-leaving');
     frame.setAttribute('aria-hidden', 'true');
+  }
+
+  private disposeFrame(frame: HTMLIFrameElement): void {
+    this.signalFrameDispose(frame);
+    this.clearFrame(frame);
   }
 
   private prefetchLevel(level: number): void {
@@ -339,9 +368,11 @@ export class Mission01Screen {
 
   private clearTimers(): void {
     if (this.transitionTimer) window.clearTimeout(this.transitionTimer);
+    if (this.handoffTimer) window.clearTimeout(this.handoffTimer);
     if (this.curtainTimer) window.clearTimeout(this.curtainTimer);
     if (this.unavailableTimer) window.clearTimeout(this.unavailableTimer);
     this.transitionTimer = undefined;
+    this.handoffTimer = undefined;
     this.curtainTimer = undefined;
     this.unavailableTimer = undefined;
   }
