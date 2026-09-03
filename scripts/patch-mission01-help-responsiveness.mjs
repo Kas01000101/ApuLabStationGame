@@ -25,16 +25,13 @@ const outputs = new Map();
     'l1-explore-camera-guard',
   );
 
-  html = required(
-    html,
-    `    let frameId = 0;\n    let disposed = false;\n\n    const render = () => {\n      if (disposed) return;`,
-    `    let frameId = 0;\n    let disposed = false;\n    let lastArrowRenderAt = 0;\n\n    const render = (timestamp = performance.now()) => {\n      if (disposed) return;\n      if (!reduceMotion && timestamp - lastArrowRenderAt < 50) {\n        frameId = requestAnimationFrame(render);\n        return;\n      }\n      lastArrowRenderAt = timestamp;`,
-    'l1-arrow-frame-budget',
-  );
+  if (html.includes('createExploreAttentionThreeArrow') || html.includes('NIVEL 1 · FLECHA EXPLORAR 3D · THREE.JS')) {
+    throw new Error('mission01_help_responsiveness_unexpected:l1-three-arrow-remains');
+  }
 
   await writeFile(path, html, 'utf8');
   outputs.set(level, html);
-  console.info('[mission01] Nivel 1 · EXPLORAR no pierde clicks · frame principal nativo · flecha 3D ~20 FPS');
+  console.info('[mission01] Nivel 1 · EXPLORAR no pierde clicks · sin renderer Three.js decorativo');
 }
 
 {
@@ -64,4 +61,4 @@ for (const entry of manifest.levels || []) {
 }
 await writeFile(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
 
-console.info('[mission01] HELP RESPONSIVENESS QA PATCH OK · ayuda sin callbacks pendientes · loop interactivo principal intacto');
+console.info('[mission01] HELP RESPONSIVENESS QA PATCH OK · ayuda sin callbacks pendientes · sin flecha Three.js en Nivel 1');
