@@ -14,7 +14,6 @@ type PendingTransition = {
 const TOTAL_LEVELS = 7;
 const MAX_AVAILABLE_LEVEL = 7;
 const TRANSITION_MS = 240;
-const DISPOSE_HANDOFF_MS = 120;
 const LEVEL_CURTAIN_MIN_MS = 760;
 const SEQUENCE_MIGRATION_KEY = 'apulab.mission01.sequence7.v1';
 
@@ -61,7 +60,6 @@ export class Mission01Screen {
   private transitionToken = 0;
   private pending?: PendingTransition;
   private transitionTimer?: number;
-  private handoffTimer?: number;
   private curtainTimer?: number;
   private unavailableTimer?: number;
   private prefetchLink?: HTMLLinkElement;
@@ -75,10 +73,12 @@ export class Mission01Screen {
     this.element.className = 'mission01-screen hidden';
     this.element.setAttribute('aria-label', 'Misión 01');
 
-    // APULAB_TRANSITION_SINGLE_FRAME_V3
-    // Mission 01 usa un solo browsing context. Cada cambio de nivel navega este
-    // mismo iframe, de modo que el navegador descarga el documento/WebGL anterior
-    // antes de crear el siguiente. No existen dos escenas Three.js simultáneas.
+    // APULAB_TRANSITION_NATIVE_UNLOAD_V4
+    // Mission 01 usa un único iframe. Para avanzar no enviamos mensajes de
+    // dispose: navegar el mismo browsing context dispara pagehide/beforeunload
+    // del documento anterior antes de inicializar el nuevo nivel. Así evitamos
+    // que un mensaje de dispose atrasado alcance accidentalmente al documento
+    // recién cargado y destruya su WebGLRenderer.
     this.frames.push(this.createFrame('A'));
     this.frames[0].classList.add('is-active');
     this.frames[0].setAttribute('aria-hidden', 'false');
@@ -204,15 +204,13 @@ export class Mission01Screen {
 
     this.showLevelTransition(level);
 
-    // APULAB_TRANSITION_SINGLE_FRAME_V3
-    // 1) pedimos al nivel actual que apague RAF/renderer/WebGL;
-    // 2) damos una breve ventana al handler asíncrono;
-    // 3) navegamos EL MISMO iframe directamente al siguiente nivel.
-    // No usamos about:blank intermedio ni un iframe de reserva.
+    // APULAB_TRANSITION_NATIVE_UNLOAD_V4
+    // El mismo iframe navega directamente al siguiente documento. El navegador
+    // ejecuta pagehide/beforeunload del nivel saliente, donde cada nivel ya limpia
+    // RAF/renderer/WebGL. No enviamos apulab-dispose durante una transición.
     frame.classList.remove('is-active', 'is-entering', 'is-leaving');
     frame.classList.add('is-loading');
     frame.setAttribute('aria-hidden', 'true');
-    this.signalFrameDispose(frame);
 
     const onLoad = (): void => {
       const pending = this.pending;
@@ -231,17 +229,7 @@ export class Mission01Screen {
 
     this.pending = { level, frameIndex, token, ready: false, startedAt, onLoad };
     frame.addEventListener('load', onLoad);
-
-    if (this.handoffTimer) window.clearTimeout(this.handoffTimer);
-    this.handoffTimer = window.setTimeout(() => {
-      this.handoffTimer = undefined;
-      const pending = this.pending;
-      if (!pending || pending.token !== token || pending.level !== level || pending.frameIndex !== frameIndex) return;
-
-      // La navegación del mismo browsing context dispara pagehide/beforeunload del
-      // documento anterior antes de inicializar el nuevo WebGLRenderer.
-      frame.src = path;
-    }, DISPOSE_HANDOFF_MS);
+    frame.src = path;
   }
 
   private markPendingReady(token: number, level: number, frameIndex: number): void {
@@ -290,11 +278,6 @@ export class Mission01Screen {
   private cancelPendingTransition(): void {
     const pending = this.pending;
     if (!pending) return;
-
-    if (this.handoffTimer) {
-      window.clearTimeout(this.handoffTimer);
-      this.handoffTimer = undefined;
-    }
 
     const frame = this.frames[pending.frameIndex];
     frame.removeEventListener('load', pending.onLoad);
@@ -362,11 +345,9 @@ export class Mission01Screen {
 
   private clearTimers(): void {
     if (this.transitionTimer) window.clearTimeout(this.transitionTimer);
-    if (this.handoffTimer) window.clearTimeout(this.handoffTimer);
     if (this.curtainTimer) window.clearTimeout(this.curtainTimer);
     if (this.unavailableTimer) window.clearTimeout(this.unavailableTimer);
     this.transitionTimer = undefined;
-    this.handoffTimer = undefined;
     this.curtainTimer = undefined;
     this.unavailableTimer = undefined;
   }
