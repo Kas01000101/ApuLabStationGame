@@ -11,23 +11,30 @@ function fail(code, detail = '') {
 
 if (!shell.includes('APULAB_TRANSITION_SINGLE_LIVE_V1')) fail('shell_marker');
 const showAt = shell.indexOf('this.showLevelTransition(level);');
-const disposeAt = shell.indexOf('this.disposeFrame(outgoing, true);');
+const disposeAt = shell.indexOf('this.disposeFrame(outgoing);');
 const loadAt = shell.indexOf('incoming.src = path;');
 if (showAt < 0 || disposeAt < 0 || loadAt < 0) fail('shell_sequence_missing');
 if (!(showAt < disposeAt && disposeAt < loadAt)) fail('outgoing_not_disposed_before_incoming_load');
-if (shell.includes('this.disposeFrame(oldFrame);')) fail('legacy_crossfade_dispose');
-if (!shell.includes('const MAX_AVAILABLE_LEVEL = 5;')) fail('available_level_contract');
+if (!shell.includes('const MAX_AVAILABLE_LEVEL = 7;')) fail('available_level_contract');
+if (!shell.includes("6: 'MISIÓN CIENTÍFICA'")) fail('title6');
+if (!shell.includes("7: 'SENSORES Y BUCLES'")) fail('title7');
 
-const routes = new Map([
-  [1, { next: 2, marker: 'level: 1, nextLevel: 2' }],
-  [2, { next: 3, marker: 'level: 2, nextLevel: 3' }],
-  [3, { next: 4, marker: "level:3,nextLevel:4" }],
-  [4, { next: 5, marker: "level:4,nextLevel:5" }],
-]);
-
-for (const [level, route] of routes) {
+for (let level = 1; level <= 7; level++) {
   const html = await readFile(resolve(OUT, `level${level}.html`), 'utf8');
-  if (!html.includes(route.marker)) fail('route_missing', `l${level}->${route.next}`);
+  if (!html.includes(`${level} / 7`) && !html.includes(`${level}/7`)) fail('progress', `l${level}`);
+}
+
+const routePatterns = new Map([
+  [1, /level\s*:\s*1\s*,\s*nextLevel\s*:\s*2/],
+  [2, /level\s*:\s*2\s*,\s*nextLevel\s*:\s*3/],
+  [3, /level\s*:\s*3\s*,\s*nextLevel\s*:\s*4/],
+  [4, /level\s*:\s*4\s*,\s*nextLevel\s*:\s*5/],
+  [5, /(?:level\s*:\s*5\s*,\s*nextLevel\s*:\s*6|apulabCompleteLevel\(5\s*,\s*6\))/],
+  [6, /level\s*:\s*6\s*,\s*nextLevel\s*:\s*7/],
+]);
+for (const [level, pattern] of routePatterns) {
+  const html = await readFile(resolve(OUT, `level${level}.html`), 'utf8');
+  if (!pattern.test(html)) fail('route_missing', `l${level}->${level + 1}`);
 }
 
 for (const level of [1, 2]) {
@@ -44,8 +51,15 @@ for (const level of [3, 4, 5]) {
   if (!html.includes('renderer.forceContextLoss?.()')) fail('structured_context_release', `l${level}`);
 }
 
-const l5 = await readFile(resolve(OUT, 'level5.html'), 'utf8');
-if (!l5.includes('CONTINUAR AL NIVEL 6')) fail('l5_continue_label');
-if (!shell.includes('NIVEL ${level} DE ${TOTAL_LEVELS} · AÚN NO ESTÁ INTEGRADO')) fail('unavailable_feedback');
+for (const level of [6, 7]) {
+  const html = await readFile(resolve(OUT, `level${level}.html`), 'utf8');
+  if (!html.includes("type==='apulab-dispose'")) fail('new_dispose_listener', `l${level}`);
+  if (!html.includes('rafIds.clear()')) fail('new_raf_cancel', `l${level}`);
+  if (!html.includes('renderer.dispose()')) fail('new_renderer_dispose', `l${level}`);
+  if (!html.includes('renderer.forceContextLoss?.()')) fail('new_context_release', `l${level}`);
+}
 
-console.info('[mission01] TRANSITION CONTRACT OK · N1→N2→N3→N4→N5 single-live · N6/N7 no integrados');
+const l7 = await readFile(resolve(OUT, 'level7.html'), 'utf8');
+if (/nextLevel\s*:\s*8|CONTINUAR AL NIVEL 8/.test(l7)) fail('fake_level8');
+
+console.info('[mission01] TRANSITION CONTRACT OK · N1→N2→N3→N4→N5→N6→N7 single-live');
