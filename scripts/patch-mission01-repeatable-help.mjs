@@ -13,24 +13,31 @@ function required(source, before, after, label) {
 
 const outputs = new Map();
 
-// Niveles 1–2 ya poseen handlers reutilizables. Los validamos explícitamente
-// para impedir que futuros parches vuelvan a convertirlos en ayudas de un solo uso.
+// Niveles 1–2 YA poseen lifecycle reutilizable en su módulo original.
+// No agregamos listeners de captura ni listeners globales de document: esos
+// interceptores podían resetear el estado justo después de un click válido.
 for (const level of [1, 2]) {
   const path = resolve(OUT, `level${level}.html`);
   const html = await readFile(path, 'utf8');
+  if (html.includes('APULAB_HELP_LIFECYCLE_START') || html.includes('apulabHelpPanelClosed')) {
+    throw new Error(`mission01_repeatable_help_forbidden_interceptor:l${level}`);
+  }
   if (!html.includes('explanationButton.addEventListener("click", advanceExplanation)')) {
     throw new Error(`mission01_repeatable_help_explore_handler:l${level}`);
   }
   if (!html.includes('setGuideMode(!guideActive)')) {
     throw new Error(`mission01_repeatable_help_guide_toggle:l${level}`);
   }
-  if (!html.includes('explanationIndex = -1;')) {
-    throw new Error(`mission01_repeatable_help_explore_reset:l${level}`);
+  if (!html.includes('explanationMode = false;') || !html.includes('explanationIndex = -1;')) {
+    throw new Error(`mission01_repeatable_help_native_explore_reset:l${level}`);
   }
-  console.info(`[mission01] Nivel ${level} · EXPLORAR/GUÍA verificadas como reutilizables`);
+  if (!html.includes('guideActive = enabled;')) {
+    throw new Error(`mission01_repeatable_help_native_guide_state:l${level}`);
+  }
+  console.info(`[mission01] Nivel ${level} · handlers nativos EXPLORAR/GUÍA preservados sin interceptores globales`);
 }
 
-// N3: cerrar EXPLORAR a mitad del recorrido debe permitir abrirlo otra vez desde 1/4.
+// N3: cerrar EXPLORAR a mitad del recorrido permite abrirlo otra vez desde 1/4.
 {
   const level = 3;
   const path = resolve(OUT, `level${level}.html`);
@@ -43,10 +50,10 @@ for (const level of [1, 2]) {
   );
   await writeFile(path, html, 'utf8');
   outputs.set(level, html);
-  console.info('[mission01] Nivel 3 · cerrar EXPLORAR reinicia solo la ayuda; puede abrirse otra vez');
+  console.info('[mission01] Nivel 3 · closeInfo reinicia EXPLORAR internamente');
 }
 
-// N4: misma regla; además GUÍA vuelve a empezar por su primera pista al cerrarla.
+// N4: cerrar EXPLORAR o GUÍA reinicia solo la ayuda correspondiente.
 {
   const level = 4;
   const path = resolve(OUT, `level${level}.html`);
@@ -59,11 +66,10 @@ for (const level of [1, 2]) {
   );
   await writeFile(path, html, 'utf8');
   outputs.set(level, html);
-  console.info('[mission01] Nivel 4 · EXPLORAR/GUÍA pueden cerrarse y volver a abrirse');
+  console.info('[mission01] Nivel 4 · closeInfo reinicia EXPLORAR/GUÍA internamente');
 }
 
-// N5 tenía la regresión principal: al terminar dejaba exploreIndex fijado en el
-// último paso. El siguiente clic volvía a entrar inmediatamente en la rama de cierre.
+// N5: completar/cerrar EXPLORAR vuelve a -1; GUÍA vuelve a etapa 0.
 {
   const level = 5;
   const path = resolve(OUT, `level${level}.html`);
@@ -79,22 +85,9 @@ for (const level of [1, 2]) {
   );
   await writeFile(path, html, 'utf8');
   outputs.set(level, html);
-  console.info('[mission01] Nivel 5 · EXPLORAR 4/4 reparado y reutilizable · GUÍA reutilizable');
+  console.info('[mission01] Nivel 5 · cierre reinicia EXPLORAR/GUÍA internamente');
 }
 
-// QA semántico de los niveles modificados.
-for (const [level, html] of outputs) {
-  if (level === 3 || level === 4) {
-    if (!html.includes("if(kind==='EXPLORAR')")) throw new Error(`mission01_repeatable_help_close_qa:l${level}`);
-  }
-  if (level === 5) {
-    if (html.includes('exploreIndex=exploreSteps.length-1')) throw new Error('mission01_repeatable_help_l5_stuck_index');
-    if (html.includes('${exploreIndex+1} / 5')) throw new Error('mission01_repeatable_help_l5_old_progress');
-    if (!html.includes('${exploreIndex+1} / ${exploreSteps.length}')) throw new Error('mission01_repeatable_help_l5_dynamic_progress_missing');
-  }
-}
-
-// Mantener hashes del manifest sincronizados con los HTML post-build.
 const manifest = JSON.parse(await readFile(MANIFEST, 'utf8'));
 for (const entry of manifest.levels || []) {
   const level = Number(entry.level);
@@ -105,4 +98,4 @@ for (const entry of manifest.levels || []) {
 }
 await writeFile(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
 
-console.info('[mission01] HELP QA OK · EXPLORAR/GUÍA pueden volver a abrirse en niveles 1–5');
+console.info('[mission01] HELP PATCH OK · L1–L2 nativos intactos · L3–L5 resets internos');

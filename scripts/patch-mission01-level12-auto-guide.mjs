@@ -42,10 +42,10 @@ async function patchLevel1() {
     guideButton.disabled = false;
     setBatteryXray(false);
 
-    // EXPLORAR 4/4 termina directamente en GUÍA: no pedimos "abre GUÍA".
-    guideButton.classList.remove("is-recommended");
-    guideButton.setAttribute("aria-label", "Cerrar GUÍA");
-    setGuideMode(true);
+    // EXPLORAR termina con GUÍA cerrada. La señal visual pedagógica puede
+    // recomendar GUÍA, pero abrirla/cerrarla siempre depende del click real.
+    guideButton.setAttribute("aria-label", "Abrir GUÍA");
+    setGuideMode(false);
   }`;
 
   html = replaceFunctionBefore(html, 'finishExplanation', 'advanceExplanation', replacement, 'level1-finish');
@@ -56,7 +56,7 @@ async function patchLevel1() {
   html = html.replaceAll('GUÍA disponible al terminar EXPLORAR', 'GUÍA no disponible durante EXPLORAR');
 
   await writeFile(path, html, 'utf8');
-  console.info('[mission01] Level 1 · EXPLORAR 4/4 abre GUÍA automáticamente');
+  console.info('[mission01] Level 1 · EXPLORAR termina → GUÍA disponible/brilla → apertura solo por click');
 }
 
 async function patchLevel2() {
@@ -93,7 +93,7 @@ async function patchLevel2() {
   );
 
   await writeFile(path, html, 'utf8');
-  console.info('[mission01] Level 2 · EXPLORAR 4/4 abre GUÍA automáticamente');
+  console.info('[mission01] Level 2 · etapa auto-GUÍA preservada para parche opcional posterior');
 }
 
 await patchLevel1();
