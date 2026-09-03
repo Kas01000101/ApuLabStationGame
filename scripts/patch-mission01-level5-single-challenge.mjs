@@ -61,12 +61,12 @@ for (const marker of [
 }
 
 // REPETIR no debe llamar la atención visualmente al desbloquearse. EXPLORAR es
-// el único elemento con halo en N1/N3/N5. Se permite remove('is-new') legacy
-// porque solo limpia la clase; lo prohibido es añadir/togglear atención.
+// el único elemento con halo en N1/N3/N5. Eliminamos la sentencia completa que
+// añadía is-new para no dejar receptores JS huérfanos.
 const unlockRange = functionRange(html, 'function unlockRepeat()');
 let unlockBlock = html.slice(unlockRange.start, unlockRange.end);
 unlockBlock = unlockBlock
-  .replace(/\.classList\.add\((['"])is-new\1\);?/g, '')
+  .replace(/document\.getElementById\((['"])repeat-palette\1\)\.classList\.add\((['"])is-new\2\);?/g, '')
   .replaceAll(' is-new', '');
 if (!/repeatUnlocked\s*=\s*true/.test(unlockBlock)) throw new Error('mission01_level5_unlock_state_missing');
 if (!/phase\s*=\s*['"]compress['"]/.test(unlockBlock)) throw new Error('mission01_level5_compress_phase_missing');
