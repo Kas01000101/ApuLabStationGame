@@ -14,11 +14,28 @@ const targets = new Map([
 
 const style = `<style id="apulab-explore-glow-style">
 @keyframes apulab-explore-glow-pulse{
-  0%,100%{filter:drop-shadow(0 0 2px rgba(244,199,94,.25))}
-  50%{filter:drop-shadow(0 0 9px rgba(244,199,94,.72)) drop-shadow(0 0 3px rgba(255,229,163,.5))}
+  0%,100%{
+    box-shadow:4px 4px 0 #17133A,0 0 0 2px rgba(255,229,163,.42),0 0 14px rgba(244,199,94,.56),0 0 26px rgba(244,199,94,.22)!important;
+    filter:brightness(1);
+  }
+  50%{
+    box-shadow:4px 4px 0 #17133A,0 0 0 4px rgba(255,229,163,.82),0 0 24px rgba(244,199,94,.96),0 0 42px rgba(244,199,94,.50)!important;
+    filter:brightness(1.08);
+  }
 }
-.apulab-explore-glow{animation:apulab-explore-glow-pulse 1.7s ease-in-out infinite!important;will-change:filter}
-@media(prefers-reduced-motion:reduce){.apulab-explore-glow{animation:none!important;filter:drop-shadow(0 0 7px rgba(244,199,94,.48))}}
+.apulab-explore-glow{
+  position:relative!important;
+  z-index:40!important;
+  animation:apulab-explore-glow-pulse 1.45s ease-in-out infinite!important;
+  will-change:box-shadow,filter;
+}
+@media(prefers-reduced-motion:reduce){
+  .apulab-explore-glow{
+    animation:none!important;
+    box-shadow:4px 4px 0 #17133A,0 0 0 4px rgba(255,229,163,.76),0 0 24px rgba(244,199,94,.88),0 0 38px rgba(244,199,94,.42)!important;
+    filter:brightness(1.06)!important;
+  }
+}
 </style>`;
 
 const manifest = JSON.parse(await readFile(MANIFEST, 'utf8'));
@@ -29,8 +46,8 @@ for (const [level, buttonId] of targets) {
 
   if (!html.includes(`id="${buttonId}"`)) throw new Error(`mission01_explore_glow_button_missing:l${level}`);
 
-  // N1 conserva residuos históricos de una animación con scale(). Los anulamos
-  // para que el nuevo brillo no cambie el tamaño del botón.
+  // N1 conserva residuos históricos de una animación con scale() y una flecha.
+  // Los anulamos para que la única señal sea el halo del propio botón.
   if (level === 1) {
     html = html.replaceAll(' is-explore-attention', '');
     html = html.replace(/\s*<div id="kawsay-explore-attention"[^>]*><\/div>/g, '');
@@ -51,7 +68,7 @@ for (const [level, buttonId] of targets) {
   entry.bytes = Buffer.byteLength(html, 'utf8');
   entry.sha256 = hash(html);
 
-  console.info(`[mission01] Nivel ${level} · EXPLORAR brillo suave hasta primer click`);
+  console.info(`[mission01] Nivel ${level} · EXPLORAR halo visible hasta primer click`);
 }
 
 for (const level of [2,4,6,7]) {
@@ -60,4 +77,4 @@ for (const level of [2,4,6,7]) {
 }
 
 await writeFile(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
-console.info('[mission01] EXPLORE GLOW OK · solo N1/N3/N5 · sin scale · se apaga al primer click');
+console.info('[mission01] EXPLORE GLOW OK · solo N1/N3/N5 · halo exterior visible · sin scale · se apaga al primer click');
