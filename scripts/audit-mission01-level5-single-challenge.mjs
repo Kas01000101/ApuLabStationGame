@@ -12,17 +12,17 @@ if (html.includes('loadBoardStage(0)')) fail('old_board_stage');
 if (!html.includes('id="control-state">DESBLOQUEADO')) fail('control_locked');
 if (!html.includes('id="repeat-palette" class="command-block block-repeat" data-kind="repeat">')) fail('repeat_hidden');
 if (/id="repeat-palette"[^>]*\bis-new\b/.test(html)) fail('repeat_attention_animation');
-if (!html.includes('function usesSequenceRepeat()')) fail('repeat_predicate_missing');
+if (!html.includes('function usesSequenceRepeat(')) fail('repeat_predicate_missing');
 if (/más de una instrucción|pequeña secuencia dentro/i.test(html)) fail('multi_instruction_copy');
 if (!html.includes("feedback.textContent='Usa REPETIR para resolver la ruta.'")) fail('basic_repeat_feedback');
 if (!html.includes("parent.postMessage({type:'apulab-level-complete',level:5,nextLevel:6}")) fail('route_5_6');
 
-const predicateStart = html.indexOf('function usesSequenceRepeat()');
-const predicateEnd = html.indexOf('function ', predicateStart + 'function usesSequenceRepeat()'.length);
+const predicateStart = html.indexOf('function usesSequenceRepeat(');
+const predicateEnd = html.indexOf('function serialize(', predicateStart);
 if (predicateStart < 0 || predicateEnd < 0) fail('repeat_predicate_bounds');
 const predicate = html.slice(predicateStart, predicateEnd);
-if (/\.length\s*>=\s*2|\.length\s*>\s*1/.test(predicate)) fail('multi_instruction_requirement');
-if (!/\.length\s*>=\s*1|\.length\s*>\s*0/.test(predicate)) fail('single_instruction_repeat_not_allowed');
+if (/\.body\.length\s*>=\s*2|\.body\.length\s*>\s*1/.test(predicate)) fail('multi_instruction_requirement');
+if (!/\.body\.length\s*>=\s*1|\.body\.length\s*>\s*0/.test(predicate)) fail('single_instruction_repeat_not_allowed');
 
 const stagedOverlayTriggers = [
   "document.getElementById('unlock-overlay').classList.add('visible')",
