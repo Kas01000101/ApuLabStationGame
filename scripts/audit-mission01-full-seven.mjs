@@ -71,7 +71,7 @@ if (!source.includes('const MAX_AVAILABLE_LEVEL = 7;')) fail('screen_max7');
 if (!source.includes("6: 'MISIÓN CIENTÍFICA'")) fail('screen_title6');
 if (!source.includes("7: 'SENSORES Y BUCLES'")) fail('screen_title7');
 if (!source.includes('APULAB_TRANSITION_SINGLE_LIVE_V1')) fail('single_live');
-if (!source.includes('this.disposeFrame(outgoing, true);')) fail('outgoing_dispose');
+if (!source.includes('this.disposeFrame(outgoing);')) fail('outgoing_dispose');
 if (!source.includes('this.prefetchLevel(this.activeLevel + 1);')) fail('prefetch_sequence');
 
 const l6Explore = (l6.match(/\['[^']*',\s*'[^']*',\s*'[^']*'\]/g) || []).length;
