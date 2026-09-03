@@ -51,13 +51,44 @@ const outputs = new Map();
   let html = await readFile(path, 'utf8');
 
   // El runtime pedagógico añadía un segundo listener a GUÍA y un observer que
-  // volvía a escribir el contenido nativo. Conservamos únicamente su CSS.
+  // volvía a escribir el contenido nativo. Conservamos únicamente su CSS visual.
   html = removeTaggedBlock(html, 'script', 'level1-pedagogy-final-runtime');
 
   // La lista/tachado era un segundo renderer de la misma GUÍA. El controlador
   // nativo updateGuide() vuelve a ser la única fuente del título/texto/pista.
   html = removeTaggedBlock(html, 'script', 'level1-guide-strike-runtime');
   html = removeTaggedBlock(html, 'style', 'level1-guide-strike-patch');
+
+  // El layout añadido después del checklist todavía dependía de .guide-task-*.
+  // Lo sustituimos por el mismo tamaño/posición pero aplicado al panel nativo.
+  html = removeTaggedBlock(html, 'style', 'level1-guide-vertical-layout-patch');
+  const nativeGuideLayout = `
+<style id="level1-guide-native-layout-patch">
+#kawsay-guide-container > #kawsay-concept-panel.is-guide {
+  top: 32px !important;
+  left: 76px !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: 286px !important;
+  min-width: 286px !important;
+  max-width: 286px !important;
+  min-height: 228px !important;
+  height: auto !important;
+  padding: 14px 14px 12px !important;
+  border-radius: 10px !important;
+  box-sizing: border-box !important;
+}
+#kawsay-guide-container > #kawsay-concept-panel.is-guide > #kawsay-concept-title {
+  margin-bottom: 10px !important;
+}
+#kawsay-guide-container > #kawsay-concept-panel.is-guide > #kawsay-hint {
+  margin-top: 10px !important;
+  padding-top: 10px !important;
+  line-height: 1.35 !important;
+}
+</style>`;
+  if (!html.includes('</head>')) fail('l1:head_missing');
+  html = html.replace('</head>', `${nativeGuideLayout}\n</head>`);
 
   // La recomendación visual sigue existiendo, pero depende del estado nativo
   // is-recommended en vez de un listener auxiliar que llevaba su propio estado.
@@ -76,7 +107,7 @@ const outputs = new Map();
   );
 
   if (html.includes('level1-pedagogy-final-runtime')) fail('l1:pedagogy_runtime_remains');
-  if (html.includes('level1-guide-strike-runtime') || html.includes('guide-task-list')) fail('l1:guide_renderer_remains');
+  if (html.includes('level1-guide-strike-runtime') || html.includes('guide-task-list') || html.includes('level1-guide-task-panel')) fail('l1:guide_renderer_remains');
   if (html.includes('new MutationObserver(emphasizeGuidePanel)')) fail('l1:pedagogy_observer_remains');
   if (html.includes('new MutationObserver(inspectCompletedGuideTasks)')) fail('l1:audio_guide_observer_remains');
   if (!html.includes('1 · ENCIENDE LA BATERÍA')) fail('l1:native_guide_copy_missing');
@@ -84,7 +115,7 @@ const outputs = new Map();
 
   await writeFile(path, html, 'utf8');
   outputs.set(level, html);
-  console.info('[mission01] Nivel 1 · GUÍA consolidada · un listener · renderer nativo único · sin observers que reescriban el panel');
+  console.info('[mission01] Nivel 1 · GUÍA consolidada · un listener · renderer nativo único · sin observers/checklist paralelo');
 }
 
 // LEVEL 2 -------------------------------------------------------------------
