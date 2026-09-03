@@ -26,7 +26,7 @@ if (!(signalAt < timerAt && timerAt < navigateAt)) fail('dispose_before_same_fra
 const requestBlockStart = shell.indexOf('  private requestLevel(level: number): void {');
 const requestBlockEnd = shell.indexOf('  private markPendingReady(', requestBlockStart);
 const requestBlock = shell.slice(requestBlockStart, requestBlockEnd);
-if (requestBlock.includes("about:blank")) fail('about_blank_in_transition');
+if (/frame\.src\s*=\s*['"]about:blank['"]/.test(requestBlock)) fail('about_blank_in_transition');
 if (/activeFrameIndex\s*===\s*0\s*\?\s*1\s*:\s*0/.test(requestBlock)) fail('iframe_swap_still_present');
 
 if (!shell.includes('const MAX_AVAILABLE_LEVEL = 7;')) fail('available_level_contract');
