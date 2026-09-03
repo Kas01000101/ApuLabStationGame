@@ -65,6 +65,18 @@ function findBalancedRange(source, anchor, label) {
   fail(`${label}:unbalanced`);
 }
 
+function replaceBalancedFunction(source, anchor, replacement, label) {
+  const range = findBalancedRange(source, anchor, label);
+  return source.slice(0, range.anchorIndex) + replacement + source.slice(range.closeBrace + 1);
+}
+
+function replaceBalancedListener(source, anchor, replacement, label) {
+  const range = findBalancedRange(source, anchor, label);
+  const listenerEnd = source.indexOf(');', range.closeBrace + 1);
+  if (listenerEnd < 0) fail(`${label}:listener_end`);
+  return source.slice(0, range.anchorIndex) + replacement + source.slice(listenerEnd + 2);
+}
+
 function insertBefore(source, marker, snippet, label) {
   const index = source.indexOf(marker);
   if (index < 0) fail(`${label}:marker`);
@@ -73,17 +85,119 @@ function insertBefore(source, marker, snippet, label) {
 
 function patchGuideLifecycle(source, level) {
   const range = findBalancedRange(source, 'function setGuideMode(enabled)', `l${level}:guide`);
-  if (range.body.includes('APULAB_GUIDE_NONBLOCKING')) fail(`l${level}:guide_already_patched`);
+  if (range.body.includes('APULAB_GUIDE_NONBLOCKING_V2')) fail(`l${level}:guide_already_patched`);
 
-  const tail = `\n    // APULAB_GUIDE_NONBLOCKING\n    // GUÍA es una capa pedagógica: nunca conserva una transición de cámara\n    // que pueda impedir tocar POWER, puntas, terminales o el carrusel.\n    if (cameraTween) cameraTween = null;\n    updateChallengeState();\n    if (guideActive) updateGuide();\n  `;
+  const replacement = level === 1
+    ? `function setGuideMode(enabled) {
+    enforceUiAnchors();
+    if (enabled && !explanationCompleted) return;
 
-  return source.slice(0, range.closeBrace) + tail + source.slice(range.closeBrace);
+    // APULAB_GUIDE_NONBLOCKING_V2
+    // GUÍA es solo una capa pedagógica. No mueve cámara, no abre modales
+    // y nunca decide si POWER, puntas o terminales reciben input.
+    if (cameraTween) cameraTween = null;
+
+    const firstGuideOpen = enabled && !guideOpenedOnce;
+    guideActive = enabled;
+    conceptPanel.classList.toggle("is-guide", enabled);
+    guideButton.classList.toggle("is-active", enabled);
+    guideButton.setAttribute("aria-pressed", String(enabled));
+
+    if (enabled) {
+      guideOpenedOnce = true;
+      gameplayUnlocked = true;
+      guideButton.classList.remove("is-recommended");
+      explanationButton.classList.remove("is-recommended");
+
+      updateChallengeState();
+      updateGuide();
+
+      if (firstGuideOpen) {
+        liveStatus.textContent = "GUÍA abierta. Puedes seguir usando POWER, las puntas y los terminales mientras consultas los pasos.";
+      }
+    } else {
+      setHudNormal();
+      updateChallengeState();
+    }
+  }`
+    : `function setGuideMode(enabled) {
+    enforceUiAnchors();
+
+    // APULAB_GUIDE_NONBLOCKING_V2
+    // La cámara y el modal de comparación pertenecen a otros sistemas.
+    // GUÍA únicamente muestra/oculta ayuda y mantiene la mesa jugable.
+    if (cameraTween) cameraTween = null;
+
+    guideActive = enabled;
+    guideOpenedOnce = true;
+    gameplayUnlocked = true;
+    conceptPanel.classList.toggle("is-guide", enabled);
+    guideButton.classList.toggle("is-active", enabled);
+    guideButton.classList.remove("is-recommended");
+    guideButton.setAttribute("aria-pressed", String(enabled));
+
+    if (enabled) {
+      wrongChoiceFeedback = null;
+      syncGuideBatteryFocus();
+      updateChallengeState();
+      updateGuide();
+      liveStatus.textContent = "GUÍA abierta. Puedes seguir midiendo y moviendo las puntas sin salir del juego.";
+    } else {
+      setHudNormal();
+      updateChallengeState();
+    }
+  }`;
+
+  source = replaceBalancedFunction(
+    source,
+    'function setGuideMode(enabled)',
+    replacement,
+    `l${level}:guide_replace`,
+  );
+
+  if (level === 2) {
+    const cleanGuideClick = `guideButton.addEventListener("click", () => {
+    // APULAB_GUIDE_SINGLE_RESPONSIBILITY
+    // Este botón jamás abre el modal de comparación.
+    setGuideMode(!guideActive);
+    guideButton.setAttribute(
+      "aria-label",
+      guideActive ? "Cerrar GUÍA" : "Abrir GUÍA"
+    );
+  });`;
+
+    source = replaceBalancedListener(
+      source,
+      'guideButton.addEventListener("click", () =>',
+      cleanGuideClick,
+      'l2:guide_click',
+    );
+  }
+
+  return source;
 }
 
 function patchTableInteraction(source, level) {
   if (source.includes('function canInteractWithTable()')) fail(`l${level}:interaction_already_patched`);
 
-  const helpers = `  // APULAB_TABLE_INTERACTION_CONTROLLER\n  function currentHelpMode() {\n    if (explanationMode) return \"explore\";\n    if (guideActive) return \"guide\";\n    return \"idle\";\n  }\n\n  function canInteractWithTable() {\n    // GUÍA acompaña el juego; solo EXPLORAR puede suspender la manipulación.\n    return gameplayUnlocked && currentHelpMode() !== \"explore\";\n  }\n\n  function prepareTableInteraction() {\n    // La cámara es decorativa. El primer gesto del usuario siempre tiene prioridad.\n    if (cameraTween) cameraTween = null;\n  }\n\n`;
+  const helpers = `  // APULAB_TABLE_INTERACTION_CONTROLLER
+  function currentHelpMode() {
+    if (explanationMode) return "explore";
+    if (guideActive) return "guide";
+    return "idle";
+  }
+
+  function canInteractWithTable() {
+    // GUÍA acompaña el juego; solo EXPLORAR puede suspender la manipulación.
+    return gameplayUnlocked && currentHelpMode() !== "explore";
+  }
+
+  function prepareTableInteraction() {
+    // La cámara es decorativa. El primer gesto del usuario siempre tiene prioridad.
+    if (cameraTween) cameraTween = null;
+  }
+
+`;
 
   source = insertBefore(
     source,
@@ -98,7 +212,9 @@ function patchTableInteraction(source, level) {
 
   source = source.replace(
     blockingGuard,
-    `    if (!canInteractWithTable()) return;\n    if (typeof batterySwapAnimating !== \"undefined\" && batterySwapAnimating) return;\n    prepareTableInteraction();`,
+    `    if (!canInteractWithTable()) return;
+    if (typeof batterySwapAnimating !== "undefined" && batterySwapAnimating) return;
+    prepareTableInteraction();`,
   );
 
   if (source.includes('if (explanationMode || !gameplayUnlocked || cameraTween) return;')) {
@@ -116,7 +232,7 @@ for (const level of [1, 2]) {
   html = patchTableInteraction(html, level);
   await writeFile(path, html, 'utf8');
   outputs.set(level, html);
-  console.info(`[mission01] Nivel ${level} · GUÍA no bloqueante · cámara cancelable · mesa con controlador único`);
+  console.info(`[mission01] Nivel ${level} · GUÍA de responsabilidad única · sin cámara/modal · mesa interactiva`);
 }
 
 const manifest = JSON.parse(await readFile(MANIFEST, 'utf8'));
@@ -129,4 +245,4 @@ for (const entry of manifest.levels || []) {
 }
 await writeFile(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
 
-console.info('[mission01] HELP INTERACTION CONTROLLER OK · GUÍA desacoplada de cámara · pointerdown/pointerup no dependen de tween');
+console.info('[mission01] HELP INTERACTION CONTROLLER V2 OK · GUÍA pura · comparación separada · cámara desacoplada');
