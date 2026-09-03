@@ -194,11 +194,20 @@ export class Mission01Screen {
     this.cancelPendingTransition();
     const token = ++this.transitionToken;
     const frameIndex = this.activeFrameIndex === 0 ? 1 : 0;
+    const outgoing = this.frames[this.activeFrameIndex];
     const incoming = this.frames[frameIndex];
     const path = this.levelPath(level);
     const startedAt = performance.now();
 
     this.showLevelTransition(level);
+
+    // APULAB_TRANSITION_SINGLE_LIVE_V1
+    // La cortina cubre el cambio: primero apagamos completamente el nivel saliente
+    // y recién después permitimos que el siguiente documento cree su escena 3D.
+    // Así nunca conviven dos loops Three.js pesados durante N1→N2, N2→N3, etc.
+    outgoing.classList.remove('is-active', 'is-entering', 'is-leaving');
+    outgoing.setAttribute('aria-hidden', 'true');
+    this.disposeFrame(outgoing, true);
 
     // El iframe de reserva puede disparar un load tardío de about:blank al ser
     // reciclado. Ese load NO debe confirmar la transición al siguiente nivel.
@@ -252,8 +261,6 @@ export class Mission01Screen {
     const pending = this.pending;
     if (!pending || pending.token !== token || !pending.ready) return;
 
-    const oldFrameIndex = this.activeFrameIndex;
-    const oldFrame = this.frames[oldFrameIndex];
     const incoming = this.frames[pending.frameIndex];
 
     // Última defensa: nunca promover un iframe que no sea realmente el nivel
@@ -269,10 +276,6 @@ export class Mission01Screen {
     incoming.classList.add('is-active', 'is-entering');
     incoming.setAttribute('aria-hidden', 'false');
 
-    oldFrame.classList.remove('is-active');
-    oldFrame.classList.add('is-leaving');
-    oldFrame.setAttribute('aria-hidden', 'true');
-
     this.activeFrameIndex = pending.frameIndex;
     this.activeLevel = pending.level;
     const curtainElapsed = performance.now() - pending.startedAt;
@@ -283,8 +286,6 @@ export class Mission01Screen {
     if (this.transitionTimer) window.clearTimeout(this.transitionTimer);
     this.transitionTimer = window.setTimeout(() => {
       incoming.classList.remove('is-entering');
-      oldFrame.classList.remove('is-leaving');
-      this.disposeFrame(oldFrame);
       this.transitionTimer = undefined;
     }, TRANSITION_MS);
   }
