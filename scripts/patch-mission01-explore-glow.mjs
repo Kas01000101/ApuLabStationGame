@@ -15,25 +15,31 @@ const targets = new Map([
 const style = `<style id="apulab-explore-glow-style">
 @keyframes apulab-explore-glow-pulse{
   0%,100%{
-    box-shadow:4px 4px 0 #17133A,0 0 0 2px rgba(255,229,163,.42),0 0 14px rgba(244,199,94,.56),0 0 26px rgba(244,199,94,.22)!important;
-    filter:brightness(1);
+    outline:2px solid rgba(255,229,163,.52);
+    outline-offset:2px;
+    box-shadow:4px 4px 0 #17133A,0 0 0 3px rgba(255,229,163,.48),0 0 18px rgba(244,199,94,.68),0 0 32px rgba(244,199,94,.30)!important;
+    filter:brightness(1.03);
   }
   50%{
-    box-shadow:4px 4px 0 #17133A,0 0 0 4px rgba(255,229,163,.82),0 0 24px rgba(244,199,94,.96),0 0 42px rgba(244,199,94,.50)!important;
-    filter:brightness(1.08);
+    outline:4px solid rgba(255,243,200,.96);
+    outline-offset:7px;
+    box-shadow:4px 4px 0 #17133A,0 0 0 5px rgba(255,229,163,.88),0 0 30px rgba(244,199,94,1),0 0 52px rgba(244,199,94,.62)!important;
+    filter:brightness(1.14);
   }
 }
 .apulab-explore-glow{
   position:relative!important;
   z-index:40!important;
-  animation:apulab-explore-glow-pulse 1.45s ease-in-out infinite!important;
-  will-change:box-shadow,filter;
+  animation:apulab-explore-glow-pulse 1.35s ease-in-out infinite!important;
+  will-change:box-shadow,filter,outline,outline-offset;
 }
 @media(prefers-reduced-motion:reduce){
   .apulab-explore-glow{
     animation:none!important;
-    box-shadow:4px 4px 0 #17133A,0 0 0 4px rgba(255,229,163,.76),0 0 24px rgba(244,199,94,.88),0 0 38px rgba(244,199,94,.42)!important;
-    filter:brightness(1.06)!important;
+    outline:4px solid rgba(255,243,200,.94)!important;
+    outline-offset:5px!important;
+    box-shadow:4px 4px 0 #17133A,0 0 0 5px rgba(255,229,163,.82),0 0 30px rgba(244,199,94,.96),0 0 48px rgba(244,199,94,.54)!important;
+    filter:brightness(1.12)!important;
   }
 }
 </style>`;
@@ -47,7 +53,7 @@ for (const [level, buttonId] of targets) {
   if (!html.includes(`id="${buttonId}"`)) throw new Error(`mission01_explore_glow_button_missing:l${level}`);
 
   // N1 conserva residuos históricos de una animación con scale() y una flecha.
-  // Los anulamos para que la única señal sea el halo del propio botón.
+  // Los anulamos para que la única señal sea el halo del propio botón EXPLORAR.
   if (level === 1) {
     html = html.replaceAll(' is-explore-attention', '');
     html = html.replace(/\s*<div id="kawsay-explore-attention"[^>]*><\/div>/g, '');
@@ -57,7 +63,7 @@ for (const [level, buttonId] of targets) {
     html = html.replace('</head>', `${style}\n</head>`);
   }
 
-  const runtime = `<script id="apulab-explore-glow-runtime-l${level}">(()=>{const btn=document.getElementById('${buttonId}');if(!btn)return;btn.classList.add('apulab-explore-glow');const stop=()=>btn.classList.remove('apulab-explore-glow');btn.addEventListener('click',stop,{once:true});window.addEventListener('pagehide',stop,{once:true});window.addEventListener('beforeunload',stop,{once:true})})();</script>`;
+  const runtime = `<script id="apulab-explore-glow-runtime-l${level}">(()=>{const btn=document.getElementById('${buttonId}');if(!btn)return;document.querySelectorAll('.apulab-explore-glow').forEach(el=>{if(el!==btn)el.classList.remove('apulab-explore-glow')});btn.dataset.apulabAttention='explore';btn.classList.add('apulab-explore-glow');const stop=()=>{btn.classList.remove('apulab-explore-glow');delete btn.dataset.apulabAttention};btn.addEventListener('click',stop,{once:true});window.addEventListener('pagehide',stop,{once:true});window.addEventListener('beforeunload',stop,{once:true})})();</script>`;
   html = html.replace('</body>', `${runtime}\n</body>`);
 
   if (!html.includes(`apulab-explore-glow-runtime-l${level}`)) throw new Error(`mission01_explore_glow_runtime_missing:l${level}`);
@@ -68,7 +74,7 @@ for (const [level, buttonId] of targets) {
   entry.bytes = Buffer.byteLength(html, 'utf8');
   entry.sha256 = hash(html);
 
-  console.info(`[mission01] Nivel ${level} · EXPLORAR halo visible hasta primer click`);
+  console.info(`[mission01] Nivel ${level} · EXPLORAR halo/aro visible hasta primer click`);
 }
 
 for (const level of [2,4,6,7]) {
@@ -77,4 +83,4 @@ for (const level of [2,4,6,7]) {
 }
 
 await writeFile(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
-console.info('[mission01] EXPLORE GLOW OK · solo N1/N3/N5 · halo exterior visible · sin scale · se apaga al primer click');
+console.info('[mission01] EXPLORE GLOW OK · solo N1/N3/N5 · aro+halo visible · sin scale · se apaga al primer click');
