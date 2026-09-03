@@ -7,6 +7,34 @@ const LEVEL5 = resolve(OUT, 'level5.html');
 const MANIFEST = resolve(OUT, 'manifest.json');
 const hash = (text) => createHash('sha256').update(Buffer.from(text, 'utf8')).digest('hex');
 
+function functionRange(source, marker) {
+  const start = source.indexOf(marker);
+  if (start < 0) throw new Error(`mission01_level5_function_missing:${marker}`);
+  const open = source.indexOf('{', start + marker.length);
+  if (open < 0) throw new Error(`mission01_level5_function_open_missing:${marker}`);
+  let depth = 0;
+  let quote = '';
+  let escaped = false;
+  for (let i = open; i < source.length; i += 1) {
+    const ch = source[i];
+    if (quote) {
+      if (escaped) { escaped = false; continue; }
+      if (ch === '\\') { escaped = true; continue; }
+      if (ch === quote) quote = '';
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === '`') { quote = ch; continue; }
+    if (ch === '{') depth += 1;
+    else if (ch === '}' && --depth === 0) return { start, end: i + 1 };
+  }
+  throw new Error(`mission01_level5_function_close_missing:${marker}`);
+}
+
+function removeFunction(source, marker) {
+  const { start, end } = functionRange(source, marker);
+  return source.slice(0, start) + source.slice(end);
+}
+
 let html = await readFile(LEVEL5, 'utf8');
 
 // APULAB_LEVEL5_TWO_PHASE_REPEAT_V3
@@ -33,12 +61,10 @@ for (const marker of [
 }
 
 // REPETIR no debe llamar la atención visualmente al desbloquearse. EXPLORAR es
-// el único elemento con halo en N1/N3/N5. Se permite un remove('is-new') legacy
+// el único elemento con halo en N1/N3/N5. Se permite remove('is-new') legacy
 // porque solo limpia la clase; lo prohibido es añadir/togglear atención.
-let unlockStart = html.indexOf('function unlockRepeat()');
-let sequenceStart = html.indexOf('function startSequenceStage()', unlockStart);
-if (unlockStart < 0 || sequenceStart < 0) throw new Error('mission01_level5_unlock_bounds_missing');
-let unlockBlock = html.slice(unlockStart, sequenceStart);
+const unlockRange = functionRange(html, 'function unlockRepeat()');
+let unlockBlock = html.slice(unlockRange.start, unlockRange.end);
 unlockBlock = unlockBlock
   .replace(/\.classList\.add\((['"])is-new\1\);?/g, '')
   .replaceAll(' is-new', '');
@@ -47,18 +73,16 @@ if (!/phase\s*=\s*['"]compress['"]/.test(unlockBlock)) throw new Error('mission0
 if (/classList\.add\((['"])is-new\1\)|classList\.toggle\((['"])is-new\2\s*,\s*true\)|className\s*=\s*[^;\n]*is-new/.test(unlockBlock)) {
   throw new Error('mission01_level5_repeat_attention_remaining');
 }
-html = html.slice(0, unlockStart) + unlockBlock + html.slice(sequenceStart);
+html = html.slice(0, unlockRange.start) + unlockBlock + html.slice(unlockRange.end);
 
-// El tercer reto legacy (sequence) deja de existir físicamente como función.
-sequenceStart = html.indexOf('function startSequenceStage()');
-let predicateStart = html.indexOf('function usesSequenceRepeat(', sequenceStart);
-if (sequenceStart < 0 || predicateStart < 0) throw new Error('mission01_level5_sequence_function_bounds_missing');
-html = html.slice(0, sequenceStart) + html.slice(predicateStart);
+// El tercer reto legacy (sequence) deja de existir físicamente como función,
+// sin depender de dónde esté ordenada esa función en la plantilla histórica.
+html = removeFunction(html, 'function startSequenceStage()');
 if (html.includes('function startSequenceStage()')) throw new Error('mission01_level5_third_phase_function_remaining');
 
 // El runtime histórico llama usesSequenceRepeat(p=program). La condición correcta
 // solo exige que exista REPETIR con al menos UNA instrucción en su cuerpo.
-predicateStart = html.indexOf('function usesSequenceRepeat(');
+const predicateStart = html.indexOf('function usesSequenceRepeat(');
 const predicateEnd = html.indexOf('function serialize(', predicateStart);
 if (predicateStart < 0 || predicateEnd < 0) throw new Error('mission01_level5_repeat_predicate_bounds_missing');
 const oldPredicate = html.slice(predicateStart, predicateEnd);
@@ -118,6 +142,7 @@ if (/más de una instrucción|pequeña secuencia dentro/i.test(html)) throw new 
 if (!html.includes("if(phase==='discover'){unlockRepeat();return}")) throw new Error('mission01_level5_unlock_transition_missing');
 if (!html.includes("feedback.textContent='Ahora usa REPETIR para organizar la ruta.'")) throw new Error('mission01_level5_repeat_phase_feedback_missing');
 if (!html.includes("parent.postMessage({type:'apulab-level-complete',level:5,nextLevel:6}")) throw new Error('mission01_level5_route_to_6_missing');
+if (html.includes('startSequenceStage(')) throw new Error('mission01_level5_third_phase_call_remaining');
 if (html.includes("document.getElementById('sequence-overlay').classList.add('visible')")) throw new Error('mission01_level5_third_phase_overlay_trigger_remaining');
 
 await writeFile(LEVEL5, html, 'utf8');
