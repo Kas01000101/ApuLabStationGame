@@ -12,19 +12,19 @@ type PendingTransition = {
 };
 
 const TOTAL_LEVELS = 7;
-// En esta rama existen fuentes reales hasta el antiguo Nivel 6, que tras retirar
-// el antiguo Nivel 3 corresponde al nuevo Nivel 5. No se inventan niveles 6/7.
-const MAX_AVAILABLE_LEVEL = 5;
+const MAX_AVAILABLE_LEVEL = 7;
 const TRANSITION_MS = 240;
-const DISPOSE_GRACE_MS = 48;
 const LEVEL_CURTAIN_MIN_MS = 760;
 const SEQUENCE_MIGRATION_KEY = 'apulab.mission01.sequence7.v1';
+
 const LEVEL_TITLES: Record<number, string> = {
   1: 'MEDIR',
   2: 'COMPARAR',
   3: 'ENTRENAMIENTO DE MOVIMIENTO',
   4: 'PLANIFICAR Y CORREGIR',
   5: 'PATRONES Y BUCLES',
+  6: 'MISIÓN CIENTÍFICA',
+  7: 'SENSORES Y BUCLES',
 };
 
 function migrateMission01LocalProgressOnce(): void {
@@ -40,10 +40,9 @@ function migrateMission01LocalProgressOnce(): void {
 
     moveKey('apulab.level4.successProgram', 'apulab.level3.successProgram');
     moveKey('apulab.level5.finalProgram', 'apulab.level4.finalProgram');
-
     localStorage.setItem(SEQUENCE_MIGRATION_KEY, '1');
   } catch (_) {
-    // El juego sigue funcionando cuando localStorage está bloqueado.
+    // El juego sigue funcionando aunque localStorage esté bloqueado.
   }
 }
 
@@ -54,6 +53,7 @@ export class Mission01Screen {
   private readonly transitionCurtain = document.createElement('div');
   private readonly transitionLevel = document.createElement('strong');
   private readonly transitionTitle = document.createElement('span');
+
   private activeFrameIndex = 0;
   private activeLevel = 1;
   private visible = false;
@@ -82,6 +82,7 @@ export class Mission01Screen {
     this.transitionCurtain.setAttribute('aria-hidden', 'true');
     this.transitionCurtain.setAttribute('role', 'status');
     this.transitionCurtain.setAttribute('aria-live', 'polite');
+
     const transitionKicker = document.createElement('small');
     transitionKicker.textContent = 'MISIÓN 01';
     this.transitionLevel.className = 'mission01-level-transition__level';
@@ -105,10 +106,10 @@ export class Mission01Screen {
       return;
     }
 
+    this.cancelPendingTransition();
     const activeFrame = this.frames[this.activeFrameIndex];
     const path = this.levelPath(level);
     this.activeLevel = level;
-    this.cancelPendingTransition();
 
     activeFrame.classList.remove('is-loading', 'is-leaving', 'is-entering');
     activeFrame.classList.add('is-active');
@@ -141,8 +142,7 @@ export class Mission01Screen {
     this.cancelPendingTransition();
     this.clearTimers();
     this.removePrefetch();
-
-    for (const frame of this.frames) this.disposeFrame(frame, true);
+    for (const frame of this.frames) this.disposeFrame(frame);
     this.element.remove();
   }
 
@@ -188,7 +188,6 @@ export class Mission01Screen {
       this.showUnavailableLevel(level);
       return;
     }
-
     if (level === this.activeLevel || this.pending?.level === level) return;
 
     this.cancelPendingTransition();
@@ -202,16 +201,13 @@ export class Mission01Screen {
     this.showLevelTransition(level);
 
     // APULAB_TRANSITION_SINGLE_LIVE_V1
-    // La cortina cubre el cambio: primero apagamos completamente el nivel saliente
-    // y recién después permitimos que el siguiente documento cree su escena 3D.
-    // Así nunca conviven dos loops Three.js pesados durante N1→N2, N2→N3, etc.
+    // Primero apagamos el nivel saliente y luego cargamos el siguiente. De esta
+    // forma nunca conviven dos loops WebGL/Three.js durante una transición.
     outgoing.classList.remove('is-active', 'is-entering', 'is-leaving');
     outgoing.setAttribute('aria-hidden', 'true');
-    this.disposeFrame(outgoing, true);
+    this.disposeFrame(outgoing);
 
-    // El iframe de reserva puede disparar un load tardío de about:blank al ser
-    // reciclado. Ese load NO debe confirmar la transición al siguiente nivel.
-    this.disposeFrame(incoming, true);
+    this.disposeFrame(incoming);
     incoming.classList.remove('is-active', 'is-leaving', 'is-entering');
     incoming.classList.add('is-loading');
     incoming.setAttribute('aria-hidden', 'true');
@@ -219,9 +215,7 @@ export class Mission01Screen {
 
     const onLoad = (): void => {
       const pending = this.pending;
-      if (!pending || pending.token !== token || pending.level !== level || pending.frameIndex !== frameIndex) {
-        return;
-      }
+      if (!pending || pending.token !== token || pending.level !== level || pending.frameIndex !== frameIndex) return;
 
       let loadedPath = '';
       try {
@@ -229,8 +223,6 @@ export class Mission01Screen {
       } catch (_) {
         return;
       }
-
-      // Solo el documento solicitado puede activar el fallback de READY.
       if (loadedPath !== path) return;
       incoming.removeEventListener('load', onLoad);
       this.markPendingReady(token, level, frameIndex);
@@ -243,14 +235,11 @@ export class Mission01Screen {
 
   private markPendingReady(token: number, level: number, frameIndex: number): void {
     const pending = this.pending;
-    if (!pending || pending.token !== token || pending.level !== level || pending.frameIndex !== frameIndex) {
-      return;
-    }
+    if (!pending || pending.token !== token || pending.level !== level || pending.frameIndex !== frameIndex) return;
     if (pending.ready) return;
-    pending.ready = true;
 
-    const frame = this.frames[frameIndex];
-    frame.removeEventListener('load', pending.onLoad);
+    pending.ready = true;
+    this.frames[frameIndex].removeEventListener('load', pending.onLoad);
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => this.commitTransition(token));
@@ -262,10 +251,6 @@ export class Mission01Screen {
     if (!pending || pending.token !== token || !pending.ready) return;
 
     const incoming = this.frames[pending.frameIndex];
-
-    // Última defensa: nunca promover un iframe que no sea realmente el nivel
-    // solicitado. Esto impide que about:blank o un documento anterior se vea como
-    // un "reinicio" del nivel recién completado.
     try {
       if (incoming.contentWindow?.location.pathname !== this.levelPath(pending.level)) return;
     } catch (_) {
@@ -280,6 +265,7 @@ export class Mission01Screen {
     this.activeLevel = pending.level;
     const curtainElapsed = performance.now() - pending.startedAt;
     this.pending = undefined;
+
     this.prefetchLevel(this.activeLevel + 1);
     this.hideLevelTransition(Math.max(140, LEVEL_CURTAIN_MIN_MS - curtainElapsed));
 
@@ -298,35 +284,27 @@ export class Mission01Screen {
     frame.removeEventListener('load', pending.onLoad);
     frame.classList.remove('is-loading', 'is-entering', 'is-active', 'is-leaving');
     frame.setAttribute('aria-hidden', 'true');
-    this.disposeFrame(frame, true);
+    this.disposeFrame(frame);
     this.pending = undefined;
     this.hideLevelTransition();
   }
 
-  private disposeFrame(frame: HTMLIFrameElement, immediate = false): void {
-    const clear = (): void => {
-      try {
-        const src = frame.getAttribute('src');
-        if (src && src !== 'about:blank') frame.src = 'about:blank';
-      } catch (_) {
-        // El iframe puede estar navegando; dejarlo desmontar es suficiente.
-      }
-      frame.classList.remove('is-loading', 'is-entering', 'is-active', 'is-leaving');
-      frame.setAttribute('aria-hidden', 'true');
-    };
-
+  private disposeFrame(frame: HTMLIFrameElement): void {
     try {
       frame.contentWindow?.postMessage({ type: 'apulab-dispose' }, window.location.origin);
     } catch (_) {
-      // El listener pagehide/beforeunload del nivel actúa como respaldo.
+      // pagehide/beforeunload del nivel actúa como respaldo.
     }
 
-    if (immediate) {
-      clear();
-      return;
+    try {
+      const src = frame.getAttribute('src');
+      if (src && src !== 'about:blank') frame.src = 'about:blank';
+    } catch (_) {
+      // El iframe puede estar navegando; about:blank se aplicará en el próximo ciclo.
     }
 
-    window.setTimeout(clear, DISPOSE_GRACE_MS);
+    frame.classList.remove('is-loading', 'is-entering', 'is-active', 'is-leaving');
+    frame.setAttribute('aria-hidden', 'true');
   }
 
   private prefetchLevel(level: number): void {
@@ -349,9 +327,9 @@ export class Mission01Screen {
 
   private showUnavailableLevel(level: number): void {
     this.callbacks.onUnavailableLevel?.(level);
-
     if (this.unavailableTimer) window.clearTimeout(this.unavailableTimer);
-    this.unavailableToast.textContent = `NIVEL ${level} DE ${TOTAL_LEVELS} · AÚN NO ESTÁ INTEGRADO`;
+
+    this.unavailableToast.textContent = `NIVEL ${level} DE ${TOTAL_LEVELS} · NO DISPONIBLE`;
     this.unavailableToast.classList.add('show');
     this.unavailableTimer = window.setTimeout(() => {
       this.unavailableToast.classList.remove('show');
@@ -370,7 +348,6 @@ export class Mission01Screen {
 
   private readonly handleMessage = (event: MessageEvent): void => {
     if (!this.visible || event.origin !== window.location.origin) return;
-
     const payload = event.data as { type?: unknown; level?: unknown; nextLevel?: unknown } | null;
     if (!payload) return;
 
@@ -390,10 +367,8 @@ export class Mission01Screen {
 
     const completedLevel = Number(payload.level);
     if (!Number.isInteger(completedLevel) || completedLevel !== this.activeLevel) return;
+    if (completedLevel >= TOTAL_LEVELS) return;
 
-    // La secuencia es lineal. El padre es la autoridad: un nivel completado solo
-    // puede avanzar a activeLevel + 1. Ignoramos nextLevel heredado del iframe.
-    const expectedNextLevel = this.activeLevel + 1;
-    this.requestLevel(expectedNextLevel);
+    this.requestLevel(this.activeLevel + 1);
   };
 }
