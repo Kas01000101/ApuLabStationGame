@@ -18,11 +18,24 @@ if (scenariosMatch) {
   console.info(scenariosMatch[0]);
 }
 
-for (const token of ['scenarioIndex', 'advanceScenario', 'completeLevel()', 'usesRepeat()', 'REPETIR']) {
+for (const token of [
+  'let phase=',
+  'let repeatUnlocked=',
+  'function unlockRepeat',
+  "phase==='compress'",
+  "phase==='sequence'",
+  'unlock-overlay',
+  'sequence-overlay',
+  'repeat-palette',
+  'control-state',
+  'completeLevel()',
+  'usesRepeat()',
+  'usesSequenceRepeat()',
+]) {
   const at = html.indexOf(token);
   if (at < 0) continue;
-  const start = Math.max(0, at - 220);
-  const end = Math.min(html.length, at + 520);
+  const start = Math.max(0, at - 360);
+  const end = Math.min(html.length, at + 900);
   console.info(`[mission01][diag] contexto ${token}:\n${html.slice(start, end)}`);
 }
 
@@ -30,4 +43,4 @@ if (hasMultiScenarioBranch || scenarioCount > 1) {
   throw new Error(`mission01_level5_hidden_sublevels:${scenarioCount || 'unknown'}`);
 }
 
-console.info('[mission01][diag] Nivel 5 · no hidden sublevels detected');
+console.info('[mission01][diag] Nivel 5 · no scenario-array sublevels detected; phase diagnostics emitted');
