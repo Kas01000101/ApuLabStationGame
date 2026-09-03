@@ -61,6 +61,25 @@ if (phaseStart < 0 || phaseEnd < 0) throw new Error('mission01_level5_phase_succ
 const directSuccess = "if(!usesSequenceRepeat()){feedback.textContent='Usa REPETIR para resolver la ruta.';showStatus('Usa REPETIR para completar el nivel.',2800);return}completeLevel()}";
 html = html.slice(0, phaseStart) + directSuccess + html.slice(phaseEnd + phaseEndMarker.length);
 
+// Limpia mensajes legacy que todavía insinuaban una secuencia interna obligatoria.
+html = html.replaceAll('OBJETIVO · REPITE UNA PEQUEÑA SECUENCIA', 'OBJETIVO · USA REPETIR PARA LLEGAR A LA META');
+html = html.replaceAll(
+  'Ahora construye una ruta usando REPETIR con más de una instrucción dentro.',
+  'Ahora resuelve la ruta usando REPETIR.',
+);
+html = html.replaceAll(
+  'Pista: busca una pequeña secuencia que pueda repetirse.',
+  'Pista: usa REPETIR donde veas movimientos que se repiten.',
+);
+html = html.replaceAll(
+  'La ruta debe llegar a la meta usando REPETIR con una pequeña secuencia dentro.',
+  'La ruta debe llegar a la meta usando REPETIR.',
+);
+html = html.replaceAll(
+  'Usa REPETIR con más de una instrucción dentro.',
+  'Usa REPETIR para completar el nivel.',
+);
+
 const unlockFunctionAt = html.indexOf('function unlockRepeat()');
 if (unlockFunctionAt < 0) throw new Error('mission01_level5_unlock_function_missing_after_patch');
 html = html.slice(0, unlockFunctionAt) + '// APULAB_LEVEL5_SINGLE_CHALLENGE_V2\n' + html.slice(unlockFunctionAt);
@@ -75,6 +94,7 @@ if (!html.includes('id="control-state">DESBLOQUEADO')) throw new Error('mission0
 if (!html.includes('id="repeat-palette" class="command-block block-repeat" data-kind="repeat">')) throw new Error('mission01_level5_repeat_not_visible');
 if (/id="repeat-palette"[^>]*\bis-new\b/.test(html)) throw new Error('mission01_level5_repeat_attention_animation_present');
 if (/más de una instrucción|pequeña secuencia dentro/i.test(html)) throw new Error('mission01_level5_old_sequence_copy_remaining');
+if (!html.includes('OBJETIVO · USA REPETIR PARA LLEGAR A LA META')) throw new Error('mission01_level5_basic_repeat_objective_missing');
 if (!html.includes("parent.postMessage({type:'apulab-level-complete',level:5,nextLevel:6}")) throw new Error('mission01_level5_route_to_6_missing');
 
 await writeFile(LEVEL5, html, 'utf8');
