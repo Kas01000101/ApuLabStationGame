@@ -107,8 +107,8 @@ function contractNativeLevels12(level, html) {
     const guideClick = balancedBody(html, 'guideButton.addEventListener("click", () =>', 'l1:guideClick');
     if (!guideClick.includes('setGuideMode(!guideActive)')) fail('l1_guide_click_missing_toggle');
 
-    if (!html.includes('lastArrowRenderAt') || !html.includes('timestamp - lastArrowRenderAt < 50')) {
-      fail('l1_arrow_frame_budget');
+    if (html.includes('createExploreAttentionThreeArrow') || html.includes('lastArrowRenderAt') || html.includes('NIVEL 1 · FLECHA EXPLORAR 3D · THREE.JS')) {
+      fail('l1_three_arrow_renderer_present');
     }
   }
 
@@ -186,4 +186,4 @@ contractNativeLevels12(2,levels.get(2));
 contractLevels34(3,levels.get(3));
 contractLevels34(4,levels.get(4));
 contractLevel5(levels.get(5));
-console.info('[mission01] HELP LIFECYCLE CONTRACT OK · L1 GUÍA manual · L2 mesa desbloqueada/sin callbacks tardíos · frame principal nativo · L3–L5 abrir → cerrar → reabrir');
+console.info('[mission01] HELP LIFECYCLE CONTRACT OK · L1 sin flecha Three.js · GUÍA manual · L2 mesa desbloqueada/sin callbacks tardíos · L3–L5 abrir → cerrar → reabrir');
