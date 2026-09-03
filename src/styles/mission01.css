@@ -6,14 +6,7 @@
 .mission01-frame.is-leaving{opacity:0;visibility:visible;pointer-events:none;z-index:2}
 .mission01-screen.hidden{display:none!important}
 
-.mission01-level-transition{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:radial-gradient(circle at 50% 44%,rgba(73,201,215,.16),transparent 26%),rgba(11,14,38,.94);color:#FFFFFF;font-family:Poppins,sans-serif;opacity:0;visibility:hidden;pointer-events:none;transition:opacity 180ms ease,visibility 180ms ease;text-align:center}
-.mission01-level-transition::before{content:"";position:absolute;width:min(540px,72vw);height:210px;border:2px solid #4D4288;border-radius:8px;background:linear-gradient(180deg,rgba(59,50,107,.92),rgba(45,38,84,.94));box-shadow:8px 8px 0 #17133A,0 0 34px rgba(73,201,215,.16);z-index:-1}
-.mission01-level-transition.show{opacity:1;visibility:visible}
-.mission01-level-transition small{color:#A8EDF1;font-size:12px;font-weight:800;letter-spacing:.16em}
-.mission01-level-transition__level{display:block;color:#F4C75E;font-size:clamp(34px,5vw,58px);font-weight:900;line-height:1;letter-spacing:-.03em;text-shadow:0 4px 0 rgba(23,19,58,.45)}
-.mission01-level-transition__title{display:block;max-width:min(480px,68vw);color:#FFFFFF;font-size:clamp(14px,1.7vw,21px);font-weight:800;line-height:1.2;letter-spacing:.035em}
-
 .mission01-unavailable-toast{position:absolute;left:50%;bottom:28px;z-index:30;max-width:calc(100% - 48px);padding:11px 16px;border:2px solid #17133A;border-radius:4px;background:#3B326B;color:#FFFFFF;box-shadow:5px 5px 0 #6960B8;font-family:Poppins,sans-serif;font-size:12px;font-weight:800;letter-spacing:.035em;line-height:1.2;opacity:0;visibility:hidden;transform:translate(-50%,12px);transition:opacity 180ms ease,transform 180ms ease,visibility 180ms ease;pointer-events:none;white-space:nowrap}
 .mission01-unavailable-toast.show{opacity:1;visibility:visible;transform:translate(-50%,0)}
 
-@media(prefers-reduced-motion:reduce){.mission01-frame,.mission01-level-transition,.mission01-unavailable-toast{transition:none}}
+@media(prefers-reduced-motion:reduce){.mission01-frame,.mission01-unavailable-toast{transition:none}}
