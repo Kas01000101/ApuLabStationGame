@@ -33,7 +33,7 @@ html = html.replace(
 );
 html = html.replace(
   '<div id="repeat-palette" class="command-block block-repeat" data-kind="repeat" hidden>',
-  '<div id="repeat-palette" class="command-block block-repeat is-new" data-kind="repeat">',
+  '<div id="repeat-palette" class="command-block block-repeat" data-kind="repeat">',
 );
 
 const phaseStart = html.indexOf("if(phase==='discover'){");
@@ -55,7 +55,8 @@ if (html.includes('repeatUnlocked=false')) throw new Error('mission01_level5_rep
 if (html.includes("phase='discover'")) throw new Error('mission01_level5_discover_assignment_remaining');
 if (html.includes('loadBoardStage(0)')) throw new Error('mission01_level5_old_board_stage_remaining');
 if (!html.includes('id="control-state">DESBLOQUEADO')) throw new Error('mission01_level5_control_not_unlocked');
-if (!html.includes('id="repeat-palette" class="command-block block-repeat is-new"')) throw new Error('mission01_level5_repeat_not_visible');
+if (!html.includes('id="repeat-palette" class="command-block block-repeat" data-kind="repeat">')) throw new Error('mission01_level5_repeat_not_visible');
+if (/id="repeat-palette"[^>]*\bis-new\b/.test(html)) throw new Error('mission01_level5_repeat_attention_animation_present');
 if (!html.includes("parent.postMessage({type:'apulab-level-complete',level:5,nextLevel:6}")) throw new Error('mission01_level5_route_to_6_missing');
 if (!html.includes('usesSequenceRepeat()')) throw new Error('mission01_level5_sequence_repeat_requirement_missing');
 
@@ -68,4 +69,4 @@ entry.bytes = Buffer.byteLength(html, 'utf8');
 entry.sha256 = hash(html);
 await writeFile(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
 
-console.info('[mission01] Nivel 5 · reto único aplicado · REPETIR disponible desde el inicio · meta → Nivel 6');
+console.info('[mission01] Nivel 5 · reto único · REPETIR disponible sin animación de atención · meta → Nivel 6');
