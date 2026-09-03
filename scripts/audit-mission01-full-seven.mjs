@@ -57,6 +57,13 @@ for (const level of [6,7]) {
   if (!html.includes('new THREE.WebGLRenderer')) fail(`three_${level}`);
   if (!html.includes("usesRepeat()")) fail(`repeat_required_${level}`);
 
+  const cfgMatch = html.match(/const CFG=(\{.*?\});\n/);
+  if (!cfgMatch) fail(`cfg_${level}`);
+  let cfg;
+  try { cfg = JSON.parse(cfgMatch[1]); } catch { fail(`cfg_json_${level}`); }
+  if (!Array.isArray(cfg.explore) || cfg.explore.length !== 4) fail(`explore_steps_${level}`);
+  if (!Array.isArray(cfg.guideTasks) || cfg.guideTasks.length !== 3) fail(`guide_steps_${level}`);
+
   const match = html.match(/<script type="module">\n([\s\S]*?)\n<\/script>/);
   if (!match) fail(`module_script_${level}`);
   const temp = resolve(ROOT, `.mission01-level${level}-syntax.mjs`);
@@ -74,13 +81,9 @@ if (!source.includes('APULAB_TRANSITION_SINGLE_LIVE_V1')) fail('single_live');
 if (!source.includes('this.disposeFrame(outgoing);')) fail('outgoing_dispose');
 if (!source.includes('this.prefetchLevel(this.activeLevel + 1);')) fail('prefetch_sequence');
 
-const l6Explore = (l6.match(/\['[^']*',\s*'[^']*',\s*'[^']*'\]/g) || []).length;
-const l7Explore = (l7.match(/\['[^']*',\s*'[^']*',\s*'[^']*'\]/g) || []).length;
-if (l6Explore < 4 || l7Explore < 4) fail('explore_steps_missing');
-
 console.info('[mission01] FULL 1–7 AUDIT OK');
 console.info('[mission01] N1–N5 legacy/remapped contracts preserved');
 console.info('[mission01] N6 scientific loop: REPETIR + ESCANEAR + ANALIZAR + ENVIAR DATOS');
 console.info('[mission01] N7 sensor loop: two sensors + REPETIR + LEER/REGISTRAR + ENVIAR DATOS');
-console.info('[mission01] EXPLORAR <=4 / GUÍA checklist / ayudas opcionales / Three dispose / single-live transition');
+console.info('[mission01] EXPLORAR =4 / GUÍA =3 checklist / ayudas opcionales / Three dispose / single-live transition');
 console.info('[mission01] Navigation verified: 1→2→3→4→5→6→7');
