@@ -9,11 +9,16 @@ const hash = (text) => createHash('sha256').update(Buffer.from(text, 'utf8')).di
 
 let html = await readFile(LEVEL5, 'utf8');
 
+// Diagnóstico temporal de la condición legacy para poder reducirla a "usar REPETIR"
+// sin asumir la estructura interna del programa generado.
+const repeatPredicateAt = html.indexOf('function usesSequenceRepeat()');
+if (repeatPredicateAt < 0) throw new Error('mission01_level5_repeat_predicate_missing');
+console.info('[mission01][diag] ' + html.slice(repeatPredicateAt, repeatPredicateAt + 900).replace(/\s+/g, ' '));
+
 // APULAB_LEVEL5_SINGLE_CHALLENGE_V1
 // El legacy dividía N5 en tres fases consecutivas: discover -> compress -> sequence.
 // Desde UX se percibían como varios niveles. N5 ahora presenta REPETIR desde el
-// inicio y se completa una sola vez al llegar a la meta usando un bucle con una
-// pequeña secuencia interna.
+// inicio y se completa una sola vez al llegar a la meta usando un bucle.
 for (const marker of ["phase==='discover'", "phase==='compress'", "phase==='sequence'", 'function unlockRepeat()', 'function startSequenceStage()']) {
   if (!html.includes(marker)) throw new Error(`mission01_level5_phase_marker_missing:${marker}`);
 }
@@ -41,7 +46,7 @@ const phaseEndMarker = 'completeLevel()}}';
 const phaseEnd = html.indexOf(phaseEndMarker, phaseStart);
 if (phaseStart < 0 || phaseEnd < 0) throw new Error('mission01_level5_phase_success_block_missing');
 
-const directSuccess = "if(!usesSequenceRepeat()){feedback.textContent='La ruta debe llegar a la meta usando REPETIR con una pequeña secuencia dentro.';showStatus('Usa REPETIR con más de una instrucción dentro.',2800);return}completeLevel()}";
+const directSuccess = "if(!usesSequenceRepeat()){feedback.textContent='Debes usar REPETIR para resolver la ruta.';showStatus('Usa REPETIR para completar el nivel.',2800);return}completeLevel()}";
 html = html.slice(0, phaseStart) + directSuccess + html.slice(phaseEnd + phaseEndMarker.length);
 
 const unlockFunctionAt = html.indexOf('function unlockRepeat()');
@@ -58,7 +63,6 @@ if (!html.includes('id="control-state">DESBLOQUEADO')) throw new Error('mission0
 if (!html.includes('id="repeat-palette" class="command-block block-repeat" data-kind="repeat">')) throw new Error('mission01_level5_repeat_not_visible');
 if (/id="repeat-palette"[^>]*\bis-new\b/.test(html)) throw new Error('mission01_level5_repeat_attention_animation_present');
 if (!html.includes("parent.postMessage({type:'apulab-level-complete',level:5,nextLevel:6}")) throw new Error('mission01_level5_route_to_6_missing');
-if (!html.includes('usesSequenceRepeat()')) throw new Error('mission01_level5_sequence_repeat_requirement_missing');
 
 await writeFile(LEVEL5, html, 'utf8');
 
