@@ -25,13 +25,33 @@ const outputs = new Map();
     'l1-explore-camera-guard',
   );
 
-  if (html.includes('createExploreAttentionThreeArrow') || html.includes('NIVEL 1 · FLECHA EXPLORAR 3D · THREE.JS')) {
-    throw new Error('mission01_help_responsiveness_unexpected:l1-three-arrow-remains');
+  // Nivel 1 ya no usa ninguna flecha de atención. Quitamos tanto el contenedor
+  // que antes alojaba el renderer Three.js como el fallback CSS/pulso heredado.
+  html = required(
+    html,
+    '<button id="kawsay-explanation" class="kawsay-hud-button is-recommended is-explore-attention" type="button">EXPLORAR</button>',
+    '<button id="kawsay-explanation" class="kawsay-hud-button is-recommended" type="button">EXPLORAR</button>',
+    'l1-remove-explore-attention-class',
+  );
+  html = required(
+    html,
+    '    <div id="kawsay-explore-attention" aria-hidden="true"></div>\n',
+    '',
+    'l1-remove-explore-arrow-dom',
+  );
+
+  if (
+    html.includes('createExploreAttentionThreeArrow') ||
+    html.includes('NIVEL 1 · FLECHA EXPLORAR 3D · THREE.JS') ||
+    html.includes('id="kawsay-explore-attention"') ||
+    html.includes('class="kawsay-hud-button is-recommended is-explore-attention"')
+  ) {
+    throw new Error('mission01_help_responsiveness_unexpected:l1-explore-arrow-remains');
   }
 
   await writeFile(path, html, 'utf8');
   outputs.set(level, html);
-  console.info('[mission01] Nivel 1 · EXPLORAR no pierde clicks · sin renderer Three.js decorativo');
+  console.info('[mission01] Nivel 1 · EXPLORAR sin flecha Three.js ni fallback CSS');
 }
 
 {
@@ -61,4 +81,4 @@ for (const entry of manifest.levels || []) {
 }
 await writeFile(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
 
-console.info('[mission01] HELP RESPONSIVENESS QA PATCH OK · ayuda sin callbacks pendientes · sin flecha Three.js en Nivel 1');
+console.info('[mission01] HELP RESPONSIVENESS QA PATCH OK · ayuda sin callbacks pendientes · Nivel 1 sin flecha');
