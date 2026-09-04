@@ -86,18 +86,22 @@ async function persistEvidence(error) {
     const frame = page.frames().find((f) => f.url().endsWith(`/missions/mission01/level${level}.html`));
     assert(frame, `missing frame for level ${level}`);
 
-    const runtime = await frame.evaluate(async () => {
-      if (document.fonts?.ready) await document.fonts.ready;
+    const runtime = await frame.evaluate(() => {
       const canvas = document.querySelector('canvas');
+      const fontFamily = getComputedStyle(document.body).fontFamily || '';
+      const poppinsLink = [...document.querySelectorAll('link[rel="stylesheet"]')]
+        .some((link) => String(link.href).includes('fonts.googleapis.com/css2?family=Poppins'));
       return {
         hasCanvas: !!canvas,
         webgl: !!canvas?.getContext('webgl2') || !!canvas?.getContext('webgl'),
-        poppins: document.fonts?.check?.('16px Poppins') ?? true,
+        poppinsDeclared: /Poppins/i.test(fontFamily),
+        poppinsLink,
       };
     });
     assert(runtime.hasCanvas, `level ${level}: canvas missing`);
     assert(runtime.webgl, `level ${level}: WebGL unavailable`);
-    assert(runtime.poppins, `level ${level}: Poppins unavailable`);
+    assert(runtime.poppinsDeclared, `level ${level}: Poppins missing from computed font stack`);
+    assert(runtime.poppinsLink, `level ${level}: Google Fonts Poppins stylesheet missing`);
 
     const explore = frame.getByRole('button', { name: /EXPLORAR/ }).first();
     if (await explore.count()) {
