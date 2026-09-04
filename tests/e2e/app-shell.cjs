@@ -43,6 +43,8 @@ function assert(condition, message) {
     await page.locator('#three-root canvas').waitFor({ state: 'visible', timeout: 10_000 });
     assert(await page.locator('#three-root canvas').count() === 1,
       'Intro should create exactly one Three.js canvas after lazy loading');
+    assert((await page.locator('.intro-mission-big').textContent())?.trim() === '1 / 7 · MEDIR',
+      'Intro Mission 01 card must use the current 1 / 7 level count');
 
     await skip.click();
 
