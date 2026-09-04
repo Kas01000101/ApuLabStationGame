@@ -21,6 +21,10 @@ for (const level of [1,3,5]) {
   if (!glowStyle.includes('z-index:40!important')) fail(`foreground_l${level}`);
 }
 
+const level1 = await readFile(resolve(OUT, 'level1.html'), 'utf8');
+if (level1.includes('guideButton.classList.add("is-recommended");')) fail('guide_attention_present_l1');
+if (!level1.includes('guideButton.classList.remove("is-recommended");')) fail('guide_attention_guard_missing_l1');
+
 const level5 = await readFile(resolve(OUT, 'level5.html'), 'utf8');
 const repeatTag = level5.match(/<div id="repeat-palette"[^>]*>/)?.[0] || '';
 if (!repeatTag) fail('repeat_palette_missing_l5');
