@@ -10,7 +10,6 @@ const hash = (text) => createHash('sha256').update(Buffer.from(text, 'utf8')).di
 let html = await readFile(LEVEL5, 'utf8');
 
 const legacyGlowCss = '.block-repeat.is-new{animation:repeatUnlock 1.15s ease-in-out infinite}@keyframes repeatUnlock{0%,100%{box-shadow:0 5px 0 rgba(0,0,0,.30),0 0 0 rgba(232,93,169,0)}50%{box-shadow:0 5px 0 rgba(0,0,0,.30),0 0 22px rgba(232,93,169,.70)}}';
-if (!html.includes(legacyGlowCss)) throw new Error('mission01_level5_repeat_glow_css_missing');
 html = html.replaceAll(legacyGlowCss, '');
 
 html = html.replaceAll("setTimeout(()=>document.getElementById('repeat-palette').classList.remove('is-new'),4200)", '');
