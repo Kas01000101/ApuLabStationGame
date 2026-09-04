@@ -12,6 +12,11 @@ for (const level of [6, 7]) {
   if (!html.includes(canvasCss)) throw new Error(`mission01_level67_scene_ready_css_anchor_missing:L${level}`);
   html = html.replace(canvasCss, hardenedCanvasCss);
 
+  const commandHoverCss = '.command:hover{transform:translateY(-1px)}';
+  const hardenedCommandCss = '.command:hover{transform:translateY(-1px)}.command[draggable="true"]{cursor:grab;touch-action:none}.command[draggable="true"]:active{cursor:grabbing}';
+  if (!html.includes(commandHoverCss)) throw new Error(`mission01_level67_drag_css_anchor_missing:L${level}`);
+  html = html.replace(commandHoverCss, hardenedCommandCss);
+
   const boardMarkup = '<div class="board-wrap"><div class="board-label">AYNI · FRENTE = LUZ CYAN</div><canvas id="board-canvas" width="950" height="720"></canvas><div id="status" class="status"></div></div>';
   const hardenedBoardMarkup = '<div class="board-wrap"><div class="board-loading" role="status" aria-live="polite">CARGANDO SIMULADOR…</div><div class="board-label">AYNI · FRENTE = LUZ CYAN</div><canvas id="board-canvas" width="950" height="720"></canvas><div id="status" class="status"></div></div>';
   if (!html.includes(boardMarkup)) throw new Error(`mission01_level67_scene_ready_markup_anchor_missing:L${level}`);
@@ -22,6 +27,16 @@ for (const level of [6, 7]) {
   if (!html.includes(renderAnchor)) throw new Error(`mission01_level67_scene_ready_render_anchor_missing:L${level}`);
   html = html.replace(renderAnchor, hardenedRender);
 
+  const commandAnchor = "function target(){return activeRepeat?activeRepeat.body:program}function usesRepeat(nodes=program){return nodes.some(n=>n.type==='repeat'||(n.body&&usesRepeat(n.body)))}function addCommand(cmd){if(executing)return;if(cmd==='repeat'){const node={type:'repeat',count:2,body:[]};target().push(node);activeRepeat=node}else target().push({type:'cmd',cmd});renderProgram()}document.querySelectorAll('.command').forEach((b)=>b.addEventListener('click',()=>addCommand(b.dataset.command)));";
+  const hardenedCommands = "function target(){return activeRepeat?activeRepeat.body:program}function usesRepeat(nodes=program){return nodes.some(n=>n.type==='repeat'||(n.body&&usesRepeat(n.body)))}function addCommand(cmd){if(executing||!cmd)return;if(cmd==='repeat'){const node={type:'repeat',count:2,body:[]};target().push(node);activeRepeat=node}else target().push({type:'cmd',cmd});renderProgram()}document.querySelectorAll('.command').forEach((b)=>{b.draggable=true;b.addEventListener('click',()=>addCommand(b.dataset.command));b.addEventListener('dragstart',(e)=>{if(executing){e.preventDefault();return}e.dataTransfer?.setData('text/apulab-command',b.dataset.command||'');if(e.dataTransfer)e.dataTransfer.effectAllowed='copy'})});programEl.addEventListener('dragover',(e)=>{e.preventDefault();if(e.dataTransfer)e.dataTransfer.dropEffect='copy'});programEl.addEventListener('drop',(e)=>{e.preventDefault();const cmd=e.dataTransfer?.getData('text/apulab-command');if(!cmd)return;activeRepeat=null;addCommand(cmd)});";
+  if (!html.includes(commandAnchor)) throw new Error(`mission01_level67_drag_command_anchor_missing:L${level}`);
+  html = html.replace(commandAnchor, hardenedCommands);
+
+  const repeatAnchor = "d.onclick=()=>{activeRepeat=node;renderProgram()};draw(node.body,d.querySelector('.repeat-body'))}else{";
+  const hardenedRepeat = "d.onclick=()=>{activeRepeat=node;renderProgram()};const repeatBody=d.querySelector('.repeat-body');repeatBody.ondragover=(e)=>{e.preventDefault();if(e.dataTransfer)e.dataTransfer.dropEffect='copy'};repeatBody.ondrop=(e)=>{e.preventDefault();e.stopPropagation();const cmd=e.dataTransfer?.getData('text/apulab-command');if(!cmd)return;activeRepeat=node;addCommand(cmd)};draw(node.body,repeatBody)}else{";
+  if (!html.includes(repeatAnchor)) throw new Error(`mission01_level67_drag_repeat_anchor_missing:L${level}`);
+  html = html.replace(repeatAnchor, hardenedRepeat);
+
   await writeFile(path, html, 'utf8');
-  console.info(`[mission01] Nivel ${level} · primer frame Three.js bloquea el flash vacío y publica scene-ready`);
+  console.info(`[mission01] Nivel ${level} · first-frame gate + drag/drop de comandos activos`);
 }
