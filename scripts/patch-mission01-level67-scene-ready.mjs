@@ -8,7 +8,7 @@ for (const level of [6, 7]) {
   let html = await readFile(path, 'utf8');
 
   const canvasCss = '.board-wrap canvas{display:block;width:100%;height:100%}';
-  const hardenedCanvasCss = '.board-wrap canvas{display:block;width:100%;height:100%;opacity:0;transition:opacity .14s ease}.board-wrap.scene-ready canvas{opacity:1}.board-loading{position:absolute;inset:0;z-index:4;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#4a161e,#8f241e 34%,#c84025 100%);color:#C9F6F7;font-size:15px;font-weight:900;letter-spacing:.05em}.board-wrap.scene-ready .board-loading{display:none}';
+  const hardenedCanvasCss = '.board-wrap canvas{display:block;width:100%;height:100%;opacity:0}.board-wrap.scene-ready canvas{opacity:1}.board-loading{position:absolute;inset:0;z-index:4;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#4a161e,#8f241e 34%,#c84025 100%);color:#C9F6F7;font-size:15px;font-weight:900;letter-spacing:.05em}.board-wrap.scene-ready .board-loading{display:none}';
   if (!html.includes(canvasCss)) throw new Error(`mission01_level67_scene_ready_css_anchor_missing:L${level}`);
   html = html.replace(canvasCss, hardenedCanvasCss);
 
@@ -38,5 +38,5 @@ for (const level of [6, 7]) {
   html = html.replace(repeatAnchor, hardenedRepeat);
 
   await writeFile(path, html, 'utf8');
-  console.info(`[mission01] Nivel ${level} · first-frame gate + drag/drop de comandos activos`);
+  console.info(`[mission01] Nivel ${level} · first-frame gate inmediato + drag/drop de comandos activos`);
 }
