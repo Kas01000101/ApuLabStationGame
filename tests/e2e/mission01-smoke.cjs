@@ -1,13 +1,50 @@
 const { chromium } = require('playwright');
+const { mkdir, writeFile } = require('node:fs/promises');
+const { resolve } = require('node:path');
 
 const BASE_URL = process.env.APULAB_BASE_URL || 'http://127.0.0.1:4173';
+const EVIDENCE_DIR = resolve(process.cwd(), 'test-results/smoke');
+
+let browser;
+let context;
+let page;
+const consoleErrors = [];
+const pageErrors = [];
+const forbiddenRequests = [];
+const failedRequests = [];
+
+async function persistEvidence(error) {
+  await mkdir(EVIDENCE_DIR, { recursive: true });
+  const lines = [
+    `error: ${String(error?.stack || error || 'unknown')}`,
+    '',
+    '[console.error]',
+    ...consoleErrors,
+    '',
+    '[pageerror]',
+    ...pageErrors,
+    '',
+    '[forbidden requests]',
+    ...forbiddenRequests,
+    '',
+    '[failed requests]',
+    ...failedRequests,
+  ];
+  await writeFile(resolve(EVIDENCE_DIR, 'runtime.log'), `${lines.join('\n')}\n`, 'utf8');
+  if (page) {
+    try { await page.screenshot({ path: resolve(EVIDENCE_DIR, 'failure.png'), fullPage: true }); } catch (_) {}
+    try { await writeFile(resolve(EVIDENCE_DIR, 'page.html'), await page.content(), 'utf8'); } catch (_) {}
+  }
+  if (context) {
+    try { await context.tracing.stop({ path: resolve(EVIDENCE_DIR, 'trace.zip') }); } catch (_) {}
+  }
+}
 
 (async () => {
-  const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage({ viewport: { width: 1672, height: 941 } });
-  const consoleErrors = [];
-  const pageErrors = [];
-  const forbiddenRequests = [];
+  browser = await chromium.launch({ headless: true });
+  context = await browser.newContext({ viewport: { width: 1672, height: 941 } });
+  await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
+  page = await context.newPage();
 
   page.on('console', (msg) => {
     if (msg.type() === 'error') consoleErrors.push(msg.text());
@@ -16,6 +53,9 @@ const BASE_URL = process.env.APULAB_BASE_URL || 'http://127.0.0.1:4173';
   page.on('request', (req) => {
     const url = req.url();
     if (/esm\.sh\/three|cdn\.jsdelivr\.net\/npm\/three/.test(url)) forbiddenRequests.push(url);
+  });
+  page.on('requestfailed', (req) => {
+    failedRequests.push(`${req.method()} ${req.url()} :: ${req.failure()?.errorText || 'unknown'}`);
   });
 
   const assert = (condition, message) => {
@@ -46,11 +86,15 @@ const BASE_URL = process.env.APULAB_BASE_URL || 'http://127.0.0.1:4173';
     const frame = page.frames().find((f) => f.url().endsWith(`/missions/mission01/level${level}.html`));
     assert(frame, `missing frame for level ${level}`);
 
-    const runtime = await frame.evaluate(() => ({
-      hasCanvas: !!document.querySelector('canvas'),
-      webgl: !!document.querySelector('canvas')?.getContext('webgl2') || !!document.querySelector('canvas')?.getContext('webgl'),
-      poppins: document.fonts?.check?.('16px Poppins') ?? true,
-    }));
+    const runtime = await frame.evaluate(async () => {
+      if (document.fonts?.ready) await document.fonts.ready;
+      const canvas = document.querySelector('canvas');
+      return {
+        hasCanvas: !!canvas,
+        webgl: !!canvas?.getContext('webgl2') || !!canvas?.getContext('webgl'),
+        poppins: document.fonts?.check?.('16px Poppins') ?? true,
+      };
+    });
     assert(runtime.hasCanvas, `level ${level}: canvas missing`);
     assert(runtime.webgl, `level ${level}: WebGL unavailable`);
     assert(runtime.poppins, `level ${level}: Poppins unavailable`);
@@ -90,13 +134,18 @@ const BASE_URL = process.env.APULAB_BASE_URL || 'http://127.0.0.1:4173';
     }
   }
 
+  const criticalFailedRequests = failedRequests.filter((entry) => entry.includes('127.0.0.1:4173'));
   assert(forbiddenRequests.length === 0, `external Three.js requests detected:\n${forbiddenRequests.join('\n')}`);
   assert(pageErrors.length === 0, `page errors detected:\n${pageErrors.join('\n')}`);
   assert(consoleErrors.length === 0, `console errors detected:\n${consoleErrors.join('\n')}`);
+  assert(criticalFailedRequests.length === 0, `critical request failures detected:\n${criticalFailedRequests.join('\n')}`);
 
+  await context.tracing.stop();
   await browser.close();
   console.log('[e2e] Mission 01 browser smoke OK · menu → demo → intro skip → N1→N7 · WebGL/Poppins/runtime clean');
 })().catch(async (error) => {
   console.error(error);
+  await persistEvidence(error);
+  try { await browser?.close(); } catch (_) {}
   process.exitCode = 1;
 });
