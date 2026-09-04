@@ -6,6 +6,10 @@ const BASE_URL = process.env.APULAB_BASE_URL || 'http://127.0.0.1:4173';
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 1672, height: 941 } });
 
+  // Este contrato valida exclusivamente el runtime de audio. Las fuentes remotas
+  // no deben poder convertirlo en una prueba de red ni dejar el job esperando.
+  await context.route(/https:\/\/(fonts\.googleapis\.com|fonts\.gstatic\.com)\//, (route) => route.abort());
+
   await context.addInitScript(() => {
     try { localStorage.setItem('apulab.settings.sfx', 'off'); } catch (_) {}
     window.__APULAB_E2E_AUDIO_CONTEXTS__ = 0;
@@ -21,26 +25,30 @@ const BASE_URL = process.env.APULAB_BASE_URL || 'http://127.0.0.1:4173';
 
   for (let level = 1; level <= 7; level += 1) {
     const page = await context.newPage();
+    page.setDefaultTimeout(5_000);
+    page.setDefaultNavigationTimeout(8_000);
     const errors = [];
     page.on('pageerror', (error) => errors.push(String(error.stack || error)));
 
-    // Este contrato valida Web Audio del runtime local. No depende de que
-    // Google Fonts u otros recursos visuales externos queden en network-idle.
-    await page.goto(`${BASE_URL}/missions/mission01/level${level}.html`, { waitUntil: 'domcontentloaded' });
-    await page.locator('canvas').first().waitFor({ state: 'visible', timeout: 10_000 });
+    await page.goto(`${BASE_URL}/missions/mission01/level${level}.html`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 8_000,
+    });
+    await page.locator('canvas').first().waitFor({ state: 'visible', timeout: 8_000 });
 
-    // Dispara rutas de feedback que históricamente crean Web Audio.
+    // Dispara por DOM las rutas de feedback históricas sin esperar estados
+    // visuales/overlays que no forman parte del contrato de SFX.
     if (level === 1 || level === 2) {
-      const explore = page.locator('#kawsay-explanation');
-      if (await explore.count()) await explore.click();
-      const guide = page.locator('#kawsay-guide');
-      if (await guide.count()) await guide.click();
+      await page.evaluate(() => {
+        document.querySelector('#kawsay-explanation')?.click();
+        document.querySelector('#kawsay-guide')?.click();
+      });
     }
     if (level >= 3 && level <= 5) {
-      await page.locator('#run-btn').click();
+      await page.evaluate(() => document.querySelector('#run-btn')?.click());
     }
 
-    await page.waitForTimeout(100);
+    await page.waitForTimeout(120);
     const created = await page.evaluate(() => window.__APULAB_E2E_AUDIO_CONTEXTS__ || 0);
     if (created !== 0) throw new Error(`level ${level}: created ${created} AudioContext(s) with SFX off`);
     if (errors.some((x) => x.includes('AudioContext constructed while'))) {
