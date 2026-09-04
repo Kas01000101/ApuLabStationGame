@@ -37,6 +37,9 @@ jobs:
           test -f public/vendor/three/three.core.js
           test -f public/vendor/three/OrbitControls.js
           grep -Fq "from './three.core.js'" public/vendor/three/three.module.js
+          grep -Fq 'const PRACTICE_BATTERY_VOLTAGE = 15.0;' public/missions/mission01/level1.html
+          ! grep -Fq 'const PRACTICE_BATTERY_VOLTAGE = 28.0;' public/missions/mission01/level1.html
+          grep -Fq '#repeat-palette[hidden]{display:none!important}' public/missions/mission01/level5.html
 
       - name: Preserve generated Mission 01 runtime
         uses: actions/upload-artifact@v4
@@ -91,7 +94,7 @@ jobs:
 
   gameplay:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 24
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -124,6 +127,12 @@ jobs:
           cat /tmp/apulab-gameplay-preview.log
           exit 1
 
+      - name: Real electronics N1 to N2
+        env:
+          NODE_PATH: /opt/hostedtoolcache/node/22.16.0/x64/lib/node_modules
+          APULAB_BASE_URL: http://127.0.0.1:4173
+        run: node tests/e2e/mission01-electronics.cjs
+
       - name: Real gameplay N3 to N7
         env:
           NODE_PATH: /opt/hostedtoolcache/node/22.16.0/x64/lib/node_modules
@@ -139,6 +148,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mission01-gameplay-failure
-          path: test-results/gameplay
+          path: test-results
           if-no-files-found: ignore
           retention-days: 3
