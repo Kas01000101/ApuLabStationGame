@@ -13,6 +13,7 @@ const THREE_CORE_OUT = resolve(VENDOR, 'three.core.js');
 const ORBIT_OUT = resolve(VENDOR, 'OrbitControls.js');
 
 const POPPINS_LINKS = `\n<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">`;
+const LEVEL5_REPEAT_VISIBILITY_CSS = `\n<style id="apulab-level5-repeat-visibility">#repeat-palette[hidden]{display:none!important}</style>`;
 
 function requireReplace(source, before, after, label) {
   if (!source.includes(before)) throw new Error(`mission01_stabilize_missing:${label}`);
@@ -86,7 +87,13 @@ for (let level = 1; level <= 7; level += 1) {
     }
   }
 
+  // En Nivel 5 el atributo hidden debe ganar a .command-block{display:flex}.
+  // De lo contrario REPETIR aparece visualmente antes de resolver la primera fase.
+  if (level === 5 && !html.includes('id="apulab-level5-repeat-visibility"')) {
+    html = requireReplace(html, '</head>', `${LEVEL5_REPEAT_VISIBILITY_CSS}\n</head>`, 'level5-repeat-hidden-style');
+  }
+
   await writeFile(path, html, 'utf8');
 }
 
-console.info('[mission01] STABILIZATION PATCH OK · Three local completo N1–N7 · Poppins N1–N7 · SFX global contract');
+console.info('[mission01] STABILIZATION PATCH OK · Three local completo N1–N7 · Poppins N1–N7 · SFX global · REPETIR N5 oculto hasta desbloqueo');
