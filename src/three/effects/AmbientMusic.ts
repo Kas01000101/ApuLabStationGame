@@ -134,18 +134,23 @@ export class AmbientMusic {
   private fadeTo(targetVolume: number, durationMs: number, pauseAfterFade = false): void {
     this.cancelFade();
     this.fadeStartedAt = performance.now();
-    this.fadeStartVolume = this.audio.volume;
-    this.fadeTargetVolume = targetVolume;
+    this.fadeStartVolume = this.clampPlaybackVolume(this.audio.volume);
+    this.fadeTargetVolume = this.clampPlaybackVolume(targetVolume);
     this.fadeDuration = Math.max(1, durationMs);
     this.pauseAfterFade = pauseAfterFade;
     this.fadeFrame = requestAnimationFrame(this.stepFade);
   }
 
   private readonly stepFade = (now: number): void => {
-    const progress = Math.min(1, (now - this.fadeStartedAt) / this.fadeDuration);
+    const progress = Math.min(1, Math.max(0, (now - this.fadeStartedAt) / this.fadeDuration));
     const eased = 1 - Math.pow(1 - progress, 3);
-    this.audio.volume = this.fadeStartVolume
+    const nextVolume = this.fadeStartVolume
       + (this.fadeTargetVolume - this.fadeStartVolume) * eased;
+
+    // HTMLMediaElement.volume lanza IndexSizeError fuera de [0, 1].
+    // Los fades encadenados (duck/restore/transition) pueden acumular un error
+    // flotante mínimo, así que limitamos siempre el valor antes de asignarlo.
+    this.audio.volume = this.clampPlaybackVolume(nextVolume);
 
     if (progress < 1) {
       this.fadeFrame = requestAnimationFrame(this.stepFade);
@@ -189,6 +194,11 @@ export class AmbientMusic {
   }
 
   private normalizeVolume(value: number): number {
-    return Math.min(1, Math.max(0, value / 100));
+    return this.clampPlaybackVolume(value / 100);
+  }
+
+  private clampPlaybackVolume(value: number): number {
+    if (!Number.isFinite(value)) return 0;
+    return Math.min(1, Math.max(0, value));
   }
 }
