@@ -28,6 +28,9 @@ if (!html.includes("palette.classList.remove('apulab-repeat-focus')")) fail('foc
 if (!html.includes("palette.dataset.apulabAttention='repeat-after-discovery'")) fail('attention_marker_missing');
 if (!html.includes("palette.addEventListener('pointerdown',stop")) fail('pointer_consumes_attention_missing');
 if (!html.includes("event.key==='Enter'||event.key===' '")) fail('keyboard_consumes_attention_missing');
-if (!html.includes("arrow.style.left=(r.right+10)+'px'")) fail('arrow_not_anchored_to_repeat');
+// Base 4px + desplazamiento animado máximo 8px => 12px de separación máxima.
+// Mantiene la flecha gruesa claramente pegada al borde derecho de REPETIR.
+if (!html.includes("arrow.style.left=(r.right+4)+'px'")) fail('arrow_not_anchored_to_repeat');
+if (!html.includes('0%,100%{transform:translateX(8px)}')) fail('arrow_motion_contract_missing');
 
-console.info('[mission01] LEVEL 5 REPEAT ATTENTION OK · oculto al inicio · tras ruta larga halo rosa + flecha gruesa · se apaga al usar REPETIR');
+console.info('[mission01] LEVEL 5 REPEAT ATTENTION OK · oculto al inicio · tras ruta larga halo rosa + flecha gruesa anclada · se apaga al usar REPETIR');
