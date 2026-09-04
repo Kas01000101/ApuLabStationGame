@@ -22,6 +22,9 @@ const requiredShared = [
   'scene-ready',
   "dataset.apulabSceneReady='true'",
   "new CustomEvent('apulab-scene-ready'",
+  'b.draggable=true',
+  "text/apulab-command",
+  "repeatBody.ondrop=",
 ];
 
 for (const level of [6, 7]) {
@@ -51,4 +54,4 @@ for (const token of ['SENSOR 1', 'SENSOR 2', 'LEER SENSOR', 'REGISTRAR DATO', 'F
   if (!l7.includes(token)) throw new Error(`mission01_level7_sensor_visual_missing:${token}`);
 }
 
-console.info('[mission01] LEVEL 6–7 SHELL OK · 2 columnas · Marte · AYNI · ciencia/sensores · overlays exclusivos · dispose GPU · first-frame gate');
+console.info('[mission01] LEVEL 6–7 SHELL OK · 2 columnas · Marte · AYNI · ciencia/sensores · overlays exclusivos · dispose GPU · first-frame gate · drag/drop');
