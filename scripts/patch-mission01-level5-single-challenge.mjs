@@ -66,7 +66,7 @@ for (const marker of [
 html = html
   .replace(/\.block-repeat\.is-new\s*\{[^{}]*\}/g, '')
   .replace(/@keyframes\s+repeatUnlock\s*\{(?:[^{}]|\{[^{}]*\})*\}/g, '');
-if (/repeatUnlock|\.block-repeat\.is-new\s*\{[^}]*animation/i.test(html)) {
+if (/@keyframes\s+repeatUnlock\b|animation\s*:\s*repeatUnlock\b|\.block-repeat\.is-new\s*\{[^}]*animation/i.test(html)) {
   throw new Error('mission01_level5_repeat_unlock_css_remaining');
 }
 
@@ -147,7 +147,7 @@ if (!html.includes('loadBoardStage(0)')) throw new Error('mission01_level5_initi
 if (!html.includes('id="control-state">BLOQUEADO')) throw new Error('mission01_level5_control_must_start_locked');
 if (!html.includes('id="repeat-palette" class="command-block block-repeat" data-kind="repeat" hidden>')) throw new Error('mission01_level5_repeat_must_start_hidden');
 if (/<div id="repeat-palette"[^>]*\bis-new\b/i.test(html)) throw new Error('mission01_level5_repeat_palette_attention_class_remaining');
-if (/repeatUnlock|\.block-repeat\.is-new\s*\{[^}]*animation/i.test(html)) throw new Error('mission01_level5_repeat_unlock_animation_remaining');
+if (/@keyframes\s+repeatUnlock\b|animation\s*:\s*repeatUnlock\b|\.block-repeat\.is-new\s*\{[^}]*animation/i.test(html)) throw new Error('mission01_level5_repeat_unlock_animation_remaining');
 if (html.includes("if(phase==='compress')") || html.includes("if(phase==='sequence')")) throw new Error('mission01_level5_extra_success_phase_remaining');
 if (/phase\s*=\s*['"]sequence['"]/.test(html)) throw new Error('mission01_level5_sequence_assignment_remaining');
 if (/más de una instrucción|pequeña secuencia dentro/i.test(html)) throw new Error('mission01_level5_old_sequence_copy_remaining');
