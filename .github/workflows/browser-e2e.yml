@@ -139,6 +139,12 @@ jobs:
           APULAB_BASE_URL: http://127.0.0.1:4173
         run: node tests/e2e/mission01-gameplay.cjs
 
+      - name: Level 5 repeat attention after long route
+        env:
+          NODE_PATH: /opt/hostedtoolcache/node/22.16.0/x64/lib/node_modules
+          APULAB_BASE_URL: http://127.0.0.1:4173
+        run: node tests/e2e/mission01-repeat-attention.cjs
+
       - name: Print gameplay preview log on failure
         if: failure()
         run: cat /tmp/apulab-gameplay-preview.log || true
