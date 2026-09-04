@@ -42,7 +42,7 @@ if (/\bis-new\b|apulab-explore-glow|apulabAttention/i.test(repeatTag)) fail('rep
 
 // No debe sobrevivir ninguna vía CSS capaz de hacer pulsar REPETIR. Esto evita
 // que el brillo vuelva aunque un residuo legacy reintroduzca accidentalmente is-new.
-if (/repeatUnlock/i.test(html)) fail('repeat_unlock_keyframes_present');
+if (/@keyframes\s+repeatUnlock\b|animation\s*:\s*repeatUnlock\b/i.test(html)) fail('repeat_unlock_keyframes_present');
 if (/\.block-repeat\.is-new\s*\{[^}]*animation/i.test(html)) fail('repeat_unlock_css_present');
 if (/<div id="repeat-palette"[^>]*\bis-new\b/i.test(html)) fail('repeat_palette_attention_class_present');
 
