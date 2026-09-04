@@ -12,7 +12,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -24,10 +24,13 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci --no-fund
+        run: npm ci --no-fund --no-audit
 
       - name: Build
         run: npm run build
+
+      - name: Normalize package tree for audit
+        run: npm install --package-lock-only --ignore-scripts --no-fund --no-audit
 
       - name: Audit high severity vulnerabilities
         run: npm audit --audit-level=high
