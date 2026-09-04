@@ -124,7 +124,8 @@ const runtime = `<script id="apulab-repeat-focus-runtime">(()=>{
   const positionArrow=()=>{
     if(!active||!arrow||palette.hidden)return;
     const r=palette.getBoundingClientRect();
-    arrow.style.left=(r.right+10)+'px';
+    // Mantener la punta pegada al bloque incluso en el extremo de la animación.
+    arrow.style.left=(r.right+4)+'px';
     arrow.style.top=(r.top+r.height/2-14)+'px';
   };
   const stop=()=>{
