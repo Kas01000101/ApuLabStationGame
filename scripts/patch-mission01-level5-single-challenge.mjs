@@ -90,6 +90,19 @@ html = html.slice(0, unlockRange.start) + unlockBlock + html.slice(unlockRange.e
 html = removeFunction(html, 'function startSequenceStage()');
 if (html.includes('function startSequenceStage()')) throw new Error('mission01_level5_third_phase_function_remaining');
 
+// El HTML y los listeners de la tercera fase también deben desaparecer. Si se
+// conserva `onclick=startSequenceStage` después de borrar la función, el script
+// lanza ReferenceError y nunca llega a enlazar INICIAR PRUEBA.
+const sequenceOverlayStart = html.indexOf('<div id="sequence-overlay"');
+const successOverlayStart = html.indexOf('<div id="success-overlay"', sequenceOverlayStart);
+if (sequenceOverlayStart < 0 || successOverlayStart < 0) {
+  throw new Error('mission01_level5_sequence_overlay_bounds_missing');
+}
+html = html.slice(0, sequenceOverlayStart) + html.slice(successOverlayStart);
+html = html
+  .replaceAll("document.getElementById('sequence-btn').onclick=startSequenceStage;", '')
+  .replaceAll("document.getElementById('sequence-close').onclick=()=>document.getElementById('sequence-overlay').classList.remove('visible');", '');
+
 // El runtime histórico llama usesSequenceRepeat(p=program). La condición correcta
 // solo exige que exista REPETIR con al menos UNA instrucción en su cuerpo.
 const predicateStart = html.indexOf('function usesSequenceRepeat(');
@@ -154,8 +167,10 @@ if (/más de una instrucción|pequeña secuencia dentro/i.test(html)) throw new 
 if (!html.includes("if(phase==='discover'){unlockRepeat();return}")) throw new Error('mission01_level5_unlock_transition_missing');
 if (!html.includes("feedback.textContent='Ahora usa REPETIR para organizar la ruta.'")) throw new Error('mission01_level5_repeat_phase_feedback_missing');
 if (!html.includes("parent.postMessage({type:'apulab-level-complete',level:5,nextLevel:6}")) throw new Error('mission01_level5_route_to_6_missing');
-if (html.includes('startSequenceStage(')) throw new Error('mission01_level5_third_phase_call_remaining');
+if (/\bstartSequenceStage\b/.test(html)) throw new Error('mission01_level5_third_phase_reference_remaining');
+if (/id="sequence-(?:overlay|btn|close)"/.test(html)) throw new Error('mission01_level5_third_phase_dom_remaining');
 if (html.includes("document.getElementById('sequence-overlay').classList.add('visible')")) throw new Error('mission01_level5_third_phase_overlay_trigger_remaining');
+if (!html.includes("document.getElementById('run-btn').onclick=runProgram")) throw new Error('mission01_level5_run_listener_missing');
 
 await writeFile(LEVEL5, html, 'utf8');
 

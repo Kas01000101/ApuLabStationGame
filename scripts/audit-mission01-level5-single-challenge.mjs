@@ -60,7 +60,8 @@ if (!html.includes("if(!usesSequenceRepeat())")) fail('repeat_success_gate_missi
 if (html.includes("if(phase==='compress')")) fail('compress_subchallenge_present');
 if (html.includes("if(phase==='sequence')")) fail('sequence_subchallenge_present');
 if (/phase\s*=\s*['"]sequence['"]/.test(html)) fail('sequence_assignment_present');
-if (html.includes('function startSequenceStage()')) fail('third_phase_function_present');
+if (/\bstartSequenceStage\b/.test(html)) fail('third_phase_reference_present');
+if (/id="sequence-(?:overlay|btn|close)"/.test(html)) fail('third_phase_dom_present');
 if (html.includes("document.getElementById('sequence-overlay').classList.add('visible')")) fail('third_phase_overlay_trigger_present');
 
 // Usar REPETIR es obligatorio, pero UNA instrucción dentro es suficiente.
@@ -73,5 +74,6 @@ if (!html.includes("feedback.textContent='Ahora usa REPETIR para organizar la ru
 
 // Después de resolver con REPETIR, N5 termina y navega a N6.
 if (!html.includes("parent.postMessage({type:'apulab-level-complete',level:5,nextLevel:6}")) fail('route_5_6');
+if (!html.includes("document.getElementById('run-btn').onclick=runProgram")) fail('run_listener_missing');
 
-console.info('[mission01] LEVEL 5 FLOW OK · 2 fases · REPETIR sin brillo · ruta sin REPETIR → desbloqueo → ruta con REPETIR → Nivel 6');
+console.info('[mission01] LEVEL 5 FLOW OK · INICIAR PRUEBA enlazado · 2 fases · REPETIR sin brillo · ruta sin REPETIR → desbloqueo → ruta con REPETIR → Nivel 6');
