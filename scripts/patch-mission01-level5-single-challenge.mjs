@@ -60,6 +60,16 @@ for (const marker of [
   if (!html.includes(marker)) throw new Error(`mission01_level5_two_phase_marker_missing:${marker}`);
 }
 
+// El legacy también traía una animación CSS independiente de la clase que se
+// añadía al desbloquear REPETIR. Se elimina físicamente para que REPETIR nunca
+// pueda volver a pulsar/brillar aunque reaparezca accidentalmente `is-new`.
+html = html
+  .replace(/\.block-repeat\.is-new\s*\{[^{}]*\}/g, '')
+  .replace(/@keyframes\s+repeatUnlock\s*\{(?:[^{}]|\{[^{}]*\})*\}/g, '');
+if (/repeatUnlock|\.block-repeat\.is-new\s*\{[^}]*animation/i.test(html)) {
+  throw new Error('mission01_level5_repeat_unlock_css_remaining');
+}
+
 // REPETIR no debe llamar la atención visualmente al desbloquearse. EXPLORAR es
 // el único elemento con halo en N1/N3/N5. Eliminamos la sentencia completa que
 // añadía is-new para no dejar receptores JS huérfanos.
@@ -136,6 +146,8 @@ if (!html.includes("phase='discover'")) throw new Error('mission01_level5_discov
 if (!html.includes('loadBoardStage(0)')) throw new Error('mission01_level5_initial_board_missing');
 if (!html.includes('id="control-state">BLOQUEADO')) throw new Error('mission01_level5_control_must_start_locked');
 if (!html.includes('id="repeat-palette" class="command-block block-repeat" data-kind="repeat" hidden>')) throw new Error('mission01_level5_repeat_must_start_hidden');
+if (/<div id="repeat-palette"[^>]*\bis-new\b/i.test(html)) throw new Error('mission01_level5_repeat_palette_attention_class_remaining');
+if (/repeatUnlock|\.block-repeat\.is-new\s*\{[^}]*animation/i.test(html)) throw new Error('mission01_level5_repeat_unlock_animation_remaining');
 if (html.includes("if(phase==='compress')") || html.includes("if(phase==='sequence')")) throw new Error('mission01_level5_extra_success_phase_remaining');
 if (/phase\s*=\s*['"]sequence['"]/.test(html)) throw new Error('mission01_level5_sequence_assignment_remaining');
 if (/más de una instrucción|pequeña secuencia dentro/i.test(html)) throw new Error('mission01_level5_old_sequence_copy_remaining');
@@ -154,4 +166,4 @@ entry.bytes = Buffer.byteLength(html, 'utf8');
 entry.sha256 = hash(html);
 await writeFile(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
 
-console.info('[mission01] Nivel 5 · 2 fases · resuelve ruta → desbloquea REPETIR → resuelve con REPETIR → Nivel 6');
+console.info('[mission01] Nivel 5 · 2 fases · REPETIR sin brillo · ruta → desbloqueo → ruta con REPETIR → Nivel 6');
