@@ -41,6 +41,7 @@ async function assertShell(level) {
       grid: getComputedStyle(main).gridTemplateColumns,
       titleSize: parseFloat(getComputedStyle(title).fontSize),
       commandHeight: command.getBoundingClientRect().height,
+      commandDraggable: command.draggable,
       stageWidth: stage.getBoundingClientRect().width,
       simWidth: sim.getBoundingClientRect().width,
       editorWidth: editor.getBoundingClientRect().width,
@@ -53,6 +54,7 @@ async function assertShell(level) {
   assert(metrics.grid.includes('990px') && metrics.grid.includes('614px'), `L${level}: shell is not the approved 2-column grid (${metrics.grid})`);
   assert(metrics.titleSize >= 26, `L${level}: level title is too small (${metrics.titleSize}px)`);
   assert(metrics.commandHeight >= 40, `L${level}: command targets are too small (${metrics.commandHeight}px)`);
+  assert(metrics.commandDraggable, `L${level}: command palette lost drag-and-drop support`);
   assert(metrics.simWidth > metrics.editorWidth, `L${level}: simulator/editor hierarchy is reversed`);
   assert(metrics.canvasCount === 1, `L${level}: expected one board canvas`);
   assert(metrics.sceneReady === 'true', `L${level}: Three.js first-frame readiness marker missing`);
@@ -107,7 +109,7 @@ async function assertOverlayOwnership(level) {
   assert(errors.length === 0, `runtime errors detected:\n${errors.join('\n')}`);
   await writeFile(resolve(OUT, 'runtime.log'), 'Level 6–7 shell browser audit OK\n', 'utf8');
   await browser.close();
-  console.log('[e2e] Level 6–7 shell OK · two columns · first Three frame ready · readable controls · exclusive overlays · screenshots captured');
+  console.log('[e2e] Level 6–7 shell OK · two columns · first Three frame ready · draggable commands · exclusive overlays · screenshots captured');
 })().catch(async (error) => {
   console.error(error);
   await mkdir(OUT, { recursive: true });
