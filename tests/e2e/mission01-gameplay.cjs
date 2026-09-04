@@ -76,10 +76,8 @@ async function pointerDrag(page, source, target) {
 async function level3() {
   const page = await openLevel(3);
 
-  // N3 mantiene EXPLORAR como entrenamiento obligatorio antes de ejecutar.
   for (let i = 0; i < 5; i += 1) await page.locator('#explore-btn').click();
 
-  // (1,6,N) -> (3,3): ↑ ↑ ↑, derecha, ↑ ↑
   await addAccessibleCommands(page, ['forward', 'forward', 'forward', 'right', 'forward', 'forward']);
   assert(await page.locator('.program-block').count() === 6, 'L3: program did not receive six real commands');
   await page.locator('#run-btn').click();
@@ -91,7 +89,6 @@ async function level3() {
 async function level4() {
   const page = await openLevel(4);
 
-  // Rodea las rocas de (1,4) y (2,4) y llega a (3,2).
   const solution = ['forward', 'right', 'forward', 'forward', 'left', 'forward', 'forward', 'forward'];
   await addAccessibleCommands(page, solution);
   assert(await page.locator('.program-block').count() === solution.length, 'L4: program command count mismatch');
@@ -106,7 +103,6 @@ async function level5() {
 
   assert(await page.locator('#repeat-palette').isHidden(), 'L5: REPETIR must start locked');
 
-  // Primera solución: ruta válida sin REPETIR.
   const firstSolution = [
     'left',
     'forward', 'forward', 'forward', 'forward', 'forward', 'forward',
@@ -117,15 +113,14 @@ async function level5() {
   assert(await page.locator('.program-block').count() === firstSolution.length, 'L5: discovery program not built');
   await page.locator('#run-btn').click();
   await page.locator('#repeat-palette').waitFor({ state: 'visible', timeout: 30_000 });
+  await page.locator('#repeat-palette.apulab-repeat-focus').waitFor({ state: 'visible', timeout: 5_000 });
+  assert(await page.locator('#apulab-repeat-arrow').isVisible(), 'L5: REPETIR thick pink arrow missing after the traditional route');
 
-  const repeatClass = await page.locator('#repeat-palette').getAttribute('class');
-  assert(!/is-recommended|focus-dom|pulse|glow/i.test(repeatClass || ''), 'L5: REPETIR incorrectly receives attention styling');
-  assert(!await page.locator('#repeat-palette').evaluate((el) => el.matches('.is-recommended,.focus-dom,[class*="pulse"],[class*="glow"]')), 'L5: REPETIR must unlock without halo/glow');
-
-  // Segunda solución: misma ruta usando REPETIR × 6.
   await page.locator('#clear-btn').click();
   await page.locator('.command-block[data-command="left"]').dblclick();
   await page.locator('#repeat-palette').dblclick();
+  await page.waitForFunction(() => !document.getElementById('repeat-palette')?.classList.contains('apulab-repeat-focus'));
+  assert(await page.locator('#apulab-repeat-arrow').count() === 0, 'L5: REPETIR attention did not clear on first interaction');
   await pointerDrag(page, page.locator('.command-block[data-command="forward"]'), page.locator('.repeat-body[data-repeat-body="1"]'));
   for (let i = 0; i < 4; i += 1) await page.locator('[data-count="1:1"]').click();
   await page.locator('.command-block[data-command="right"]').dblclick();
@@ -154,6 +149,7 @@ async function level5() {
 
 async function level6() {
   const page = await openLevel(6);
+  await page.waitForFunction(() => document.documentElement.dataset.apulabSceneReady === 'true', null, { timeout: 10_000 });
 
   await page.locator('.command[data-command="repeat"]').click();
   await page.locator('.command[data-command="forward"]').click();
@@ -173,9 +169,8 @@ async function level6() {
 
 async function level7() {
   const page = await openLevel(7);
+  await page.waitForFunction(() => document.documentElement.dataset.apulabSceneReady === 'true', null, { timeout: 10_000 });
 
-  // Pista oficial: REPETIR ×2 [AVANZAR, AVANZAR, LEER, REGISTRAR],
-  // luego AVANZAR y ENVIAR DATOS.
   await page.locator('.command[data-command="repeat"]').click();
   await page.locator('.command[data-command="forward"]').click();
   await page.locator('.command[data-command="forward"]').click();
@@ -195,7 +190,7 @@ async function level7() {
 
 (async () => {
   browser = await chromium.launch({ headless: true });
-  context = await browser.newContext({ viewport: { width: 1672, height: 941 } });
+  context = await browser.newContext({ viewport: { width: 1672, height: 941 }, reducedMotion: 'reduce' });
   await context.addInitScript(() => {
     try { localStorage.setItem('apulab.settings.sfx', 'off'); } catch (_) {}
   });
@@ -210,7 +205,7 @@ async function level7() {
   assert(runtimeErrors.length === 0, `runtime errors detected:\n${runtimeErrors.join('\n')}`);
   await context.tracing.stop();
   await browser.close();
-  console.log('[e2e] Mission 01 gameplay OK · N3 real · N4 real · N5 sin REPETIR → REPETIR → N6 · N6 science · N7 sensors');
+  console.log('[e2e] Mission 01 gameplay OK · N3 real · N4 real · N5 long route → REPETIR attention → compressed route → N6 · N6 science · N7 sensors');
 })().catch(async (error) => {
   console.error(error);
   await saveEvidence(error);
