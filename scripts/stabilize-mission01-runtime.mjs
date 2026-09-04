@@ -14,6 +14,9 @@ const ORBIT_OUT = resolve(VENDOR, 'OrbitControls.js');
 
 const POPPINS_LINKS = `\n<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">`;
 const LEVEL5_REPEAT_VISIBILITY_CSS = `\n<style id="apulab-level5-repeat-visibility">#repeat-palette[hidden]{display:none!important}</style>`;
+const LEVEL67_REPEAT_CONTROL_CSS = '.program-node.repeat>.repeat-head>.node-remove{position:static;flex:0 0 25px;width:25px;height:25px;border:2px solid var(--dark);background:#fff;margin-left:2px}';
+const LEVEL67_REPEAT_OLD_HTML = `d.innerHTML='<button class="node-remove">×</button><div class="repeat-head"><span>↻ REPETIR</span><span class="repeat-count"><button class="mini dec">−</button><b>× '+node.count+'</b><button class="mini inc">+</button></span></div><div class="repeat-body"></div>';`;
+const LEVEL67_REPEAT_NEW_HTML = `d.innerHTML='<div class="repeat-head"><span>↻ REPETIR</span><span class="repeat-count"><button class="mini dec">−</button><b>× '+node.count+'</b><button class="mini inc">+</button></span><button class="node-remove repeat-remove" aria-label="Eliminar bloque REPETIR">×</button></div><div class="repeat-body"></div>';d.querySelector('.node-remove').onclick=e=>{e.stopPropagation();nodes.splice(index,1);if(node===activeRepeat)activeRepeat=null;renderProgram()};`;
 
 function requireReplace(source, before, after, label) {
   if (!source.includes(before)) throw new Error(`mission01_stabilize_missing:${label}`);
@@ -101,7 +104,30 @@ for (let level = 1; level <= 7; level += 1) {
     html = requireReplace(html, '</head>', `${LEVEL5_REPEAT_VISIBILITY_CSS}\n</head>`, 'level5-repeat-hidden-style');
   }
 
+  // N6/N7 generaban el botón × de REPETIR en posición absoluta sobre el botón +.
+  // Eso interceptaba el puntero y, además, el × del bucle no tenía handler.
+  // Lo movemos al flujo del encabezado y le damos la misma eliminación funcional
+  // que ya tienen los comandos simples.
+  if (level === 6 || level === 7) {
+    if (!html.includes(LEVEL67_REPEAT_CONTROL_CSS)) {
+      html = requireReplace(
+        html,
+        '.program-node.repeat{background:#C9F6F7}',
+        `.program-node.repeat{background:#C9F6F7}${LEVEL67_REPEAT_CONTROL_CSS}`,
+        `level${level}-repeat-control-css`,
+      );
+    }
+    if (!html.includes('class="node-remove repeat-remove"')) {
+      html = requireReplace(
+        html,
+        LEVEL67_REPEAT_OLD_HTML,
+        LEVEL67_REPEAT_NEW_HTML,
+        `level${level}-repeat-remove-handler`,
+      );
+    }
+  }
+
   await writeFile(path, html, 'utf8');
 }
 
-console.info('[mission01] STABILIZATION PATCH OK · Three local completo N1–N7 · Poppins N1–N7 · SFX global · N1=15.0V · REPETIR N5 oculto hasta desbloqueo');
+console.info('[mission01] STABILIZATION PATCH OK · Three local completo N1–N7 · Poppins N1–N7 · SFX global · N1=15.0V · REPETIR N5 oculto · controles REPETIR N6/N7 separados');
