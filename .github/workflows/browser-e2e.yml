@@ -3,7 +3,7 @@ name: Mission 01 Browser E2E
 on:
   push:
     branches:
-      - stabilization/mission01-runtime
+      - main
   pull_request:
     branches:
       - main
@@ -42,7 +42,7 @@ jobs:
           grep -Fq '#repeat-palette[hidden]{display:none!important}' public/missions/mission01/level5.html
 
       - name: Preserve generated Mission 01 runtime
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mission01-generated-runtime
           path: |
@@ -55,6 +55,7 @@ jobs:
         run: |
           npm install --global playwright@1.55.0 --no-fund --no-audit
           playwright install --with-deps chromium
+          echo "NODE_PATH=$(npm root -g)" >> "$GITHUB_ENV"
 
       - name: Start production preview
         run: |
@@ -69,13 +70,11 @@ jobs:
 
       - name: Browser smoke N1 to N7
         env:
-          NODE_PATH: /opt/hostedtoolcache/node/22.16.0/x64/lib/node_modules
           APULAB_BASE_URL: http://127.0.0.1:4173
         run: node tests/e2e/mission01-smoke.cjs
 
       - name: Verify SFX OFF contract N1 to N7
         env:
-          NODE_PATH: /opt/hostedtoolcache/node/22.16.0/x64/lib/node_modules
           APULAB_BASE_URL: http://127.0.0.1:4173
         run: node tests/e2e/mission01-sfx.cjs
 
@@ -85,7 +84,7 @@ jobs:
 
       - name: Upload smoke failure evidence
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mission01-smoke-failure
           path: test-results/smoke
@@ -115,6 +114,7 @@ jobs:
         run: |
           npm install --global playwright@1.55.0 --no-fund --no-audit
           playwright install --with-deps chromium
+          echo "NODE_PATH=$(npm root -g)" >> "$GITHUB_ENV"
 
       - name: Start production preview
         run: |
@@ -129,25 +129,22 @@ jobs:
 
       - name: Real electronics N1 to N2
         env:
-          NODE_PATH: /opt/hostedtoolcache/node/22.16.0/x64/lib/node_modules
           APULAB_BASE_URL: http://127.0.0.1:4173
         run: node tests/e2e/mission01-electronics.cjs
 
       - name: Real gameplay N3 to N7
         env:
-          NODE_PATH: /opt/hostedtoolcache/node/22.16.0/x64/lib/node_modules
           APULAB_BASE_URL: http://127.0.0.1:4173
         run: node tests/e2e/mission01-gameplay.cjs
 
       - name: Level 6-7 shell visual contract
         env:
-          NODE_PATH: /opt/hostedtoolcache/node/22.16.0/x64/lib/node_modules
           APULAB_BASE_URL: http://127.0.0.1:4173
         run: node tests/e2e/mission01-level67-shell.cjs
 
       - name: Upload Level 6-7 visual evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mission01-level67-visual-evidence
           path: test-results/level67-shell
@@ -156,7 +153,6 @@ jobs:
 
       - name: Level 5 repeat attention after long route
         env:
-          NODE_PATH: /opt/hostedtoolcache/node/22.16.0/x64/lib/node_modules
           APULAB_BASE_URL: http://127.0.0.1:4173
         run: node tests/e2e/mission01-repeat-attention.cjs
 
@@ -166,7 +162,7 @@ jobs:
 
       - name: Upload gameplay failure evidence
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mission01-gameplay-failure
           path: test-results
