@@ -1,4 +1,4 @@
-import { readFile, writeFile, rm } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
@@ -18,10 +18,10 @@ for (let level = 1; level <= 7; level += 1) {
   if (!scripts.length) fail('no_inline_scripts', `l${level}`);
 
   for (let index = 0; index < scripts.length; index += 1) {
-    const temp = resolve(ROOT, `.mission01-l${level}-script${index}.mjs`);
-    await writeFile(temp, scripts[index], 'utf8');
-    const result = spawnSync(process.execPath, ['--check', temp], { encoding: 'utf8' });
-    await rm(temp, { force: true });
+    const result = spawnSync(process.execPath, ['--input-type=module', '--check'], {
+      encoding: 'utf8',
+      input: scripts[index],
+    });
     if (result.status !== 0) {
       const detail = (result.stderr || result.stdout || 'syntax error')
         .replace(/\s+/g, ' ')
