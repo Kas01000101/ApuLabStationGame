@@ -68,6 +68,11 @@ jobs:
           cat /tmp/apulab-preview.log
           exit 1
 
+      - name: App shell menu to Mission 01
+        env:
+          APULAB_BASE_URL: http://127.0.0.1:4173
+        run: node tests/e2e/app-shell.cjs
+
       - name: Browser smoke N1 to N7
         env:
           APULAB_BASE_URL: http://127.0.0.1:4173
@@ -87,7 +92,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: mission01-smoke-failure
-          path: test-results/smoke
+          path: test-results
           if-no-files-found: ignore
           retention-days: 3
 
