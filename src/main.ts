@@ -7,7 +7,7 @@ import './styles/mission01.css';
 import { ApuLabApp } from './app/ApuLabApp';
 import { installFailureAlarmFx } from './three/effects/FailureAlarmFx';
 
-const BUILD_ID = '2026.08.30-mission01-l1-l3';
+const BUILD_ID = '2026.09.04-mission01-seven-hardening';
 document.documentElement.dataset.apulabBuild = BUILD_ID;
 console.info(`[ApuLabStationGame] build ${BUILD_ID}`);
 
