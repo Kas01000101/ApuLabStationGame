@@ -81,6 +81,33 @@ async function persistEvidence(error) {
     assert(await frames.count() === 1, `expected exactly one mission iframe at level ${level}`);
   }
 
+  async function finishExploreLifecycle(frame, level) {
+    const explore = frame.getByRole('button', { name: /EXPLORAR|Continuar recorrido/i }).first();
+    if (!await explore.count()) return;
+
+    await explore.click();
+
+    // N3–N5 pueden abrir un panel con cierre explícito. N1/N2 recorren pasos
+    // con el mismo botón y mantienen GUÍA deshabilitada hasta terminar EXPLORAR.
+    const close = frame.locator('#info-close, .info-close').first();
+    if (await close.count() && await close.isVisible().catch(() => false)) {
+      await close.click();
+      return;
+    }
+
+    const guide = frame.getByRole('button', { name: /GUÍA/i }).first();
+    for (let step = 0; step < 6; step += 1) {
+      if (await guide.count() && await guide.isEnabled().catch(() => false)) return;
+      if (!await explore.isVisible().catch(() => false)) break;
+      if (!await explore.isEnabled().catch(() => false)) break;
+      await explore.click();
+    }
+
+    if (await guide.count()) {
+      assert(await guide.isEnabled().catch(() => false), `level ${level}: GUÍA stayed disabled after completing EXPLORAR`);
+    }
+  }
+
   async function inspectLevel(level) {
     await waitForLevel(level);
     const frame = page.frames().find((f) => f.url().endsWith(`/missions/mission01/level${level}.html`));
@@ -103,18 +130,15 @@ async function persistEvidence(error) {
     assert(runtime.poppinsDeclared, `level ${level}: Poppins missing from computed font stack`);
     assert(runtime.poppinsLink, `level ${level}: Google Fonts Poppins stylesheet missing`);
 
-    const explore = frame.getByRole('button', { name: /EXPLORAR/ }).first();
-    if (await explore.count()) {
-      await explore.click();
-      const close = frame.locator('#info-close, .info-close').first();
-      if (await close.count()) await close.click();
-    }
+    await finishExploreLifecycle(frame, level);
 
-    const guide = frame.getByRole('button', { name: /GUÍA/ }).first();
+    const guide = frame.getByRole('button', { name: /GUÍA/i }).first();
     if (await guide.count()) {
+      assert(await guide.isEnabled().catch(() => false), `level ${level}: GUÍA exists but is disabled after Explore lifecycle`);
       await guide.click();
       const close = frame.locator('#info-close, .info-close').first();
-      if (await close.count()) await close.click();
+      if (await close.count() && await close.isVisible().catch(() => false)) await close.click();
+      else if (await guide.isEnabled().catch(() => false)) await guide.click();
     }
 
     if (level === 5) {
@@ -146,7 +170,7 @@ async function persistEvidence(error) {
 
   await context.tracing.stop();
   await browser.close();
-  console.log('[e2e] Mission 01 browser smoke OK · menu → demo → intro skip → N1→N7 · WebGL/Poppins/runtime clean');
+  console.log('[e2e] Mission 01 browser smoke OK · menu → demo → intro skip → N1→N7 · WebGL/Poppins/help/runtime clean');
 })().catch(async (error) => {
   console.error(error);
   await persistEvidence(error);
