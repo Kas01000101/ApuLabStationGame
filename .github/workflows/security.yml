@@ -33,7 +33,31 @@ jobs:
         run: npm install --package-lock-only --ignore-scripts --no-fund --no-audit
 
       - name: Audit high severity vulnerabilities
-        run: npm audit --audit-level=high
+        shell: bash
+        run: |
+          set -u
+          for attempt in 1 2 3; do
+            set +e
+            output="$(npm audit --audit-level=high 2>&1)"
+            status=$?
+            set -e
+            printf '%s\n' "$output"
+
+            if [ "$status" -eq 0 ]; then
+              exit 0
+            fi
+
+            if printf '%s' "$output" | grep -Eqi '503 Service Unavailable|audit endpoint returned an error|ECONNRESET|ETIMEDOUT|EAI_AGAIN'; then
+              if [ "$attempt" -lt 3 ]; then
+                echo "npm audit endpoint unavailable; retrying attempt $((attempt + 1))/3"
+                sleep $((attempt * 10))
+                continue
+              fi
+            fi
+
+            exit "$status"
+          done
+          exit 1
 
       - name: Upload verified dist
         uses: actions/upload-artifact@v4
