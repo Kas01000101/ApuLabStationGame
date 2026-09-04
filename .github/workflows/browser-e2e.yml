@@ -31,6 +31,13 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Verify local Three.js runtime is complete
+        run: |
+          test -f public/vendor/three/three.module.js
+          test -f public/vendor/three/three.core.js
+          test -f public/vendor/three/OrbitControls.js
+          grep -Fq "from './three.core.js'" public/vendor/three/three.module.js
+
       - name: Preserve generated Mission 01 runtime
         uses: actions/upload-artifact@v4
         with:
@@ -63,15 +70,75 @@ jobs:
           APULAB_BASE_URL: http://127.0.0.1:4173
         run: node tests/e2e/mission01-smoke.cjs
 
+      - name: Verify SFX OFF contract N1 to N7
+        env:
+          NODE_PATH: /opt/hostedtoolcache/node/22.16.0/x64/lib/node_modules
+          APULAB_BASE_URL: http://127.0.0.1:4173
+        run: node tests/e2e/mission01-sfx.cjs
+
       - name: Print preview log on failure
         if: failure()
         run: cat /tmp/apulab-preview.log || true
 
-      - name: Upload browser failure evidence
+      - name: Upload smoke failure evidence
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: mission01-browser-failure
-          path: test-results
+          name: mission01-smoke-failure
+          path: test-results/smoke
+          if-no-files-found: ignore
+          retention-days: 3
+
+  gameplay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22.16.0'
+          cache: npm
+
+      - name: Install project dependencies
+        run: npm ci --no-fund --no-audit
+
+      - name: Build
+        run: npm run build
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --global playwright@1.55.0 --no-fund --no-audit
+          playwright install --with-deps chromium
+
+      - name: Start production preview
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/apulab-gameplay-preview.log 2>&1 &
+          echo $! > /tmp/apulab-gameplay-preview.pid
+          for i in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/apulab-gameplay-preview.log
+          exit 1
+
+      - name: Real gameplay N3 to N7
+        env:
+          NODE_PATH: /opt/hostedtoolcache/node/22.16.0/x64/lib/node_modules
+          APULAB_BASE_URL: http://127.0.0.1:4173
+        run: node tests/e2e/mission01-gameplay.cjs
+
+      - name: Print gameplay preview log on failure
+        if: failure()
+        run: cat /tmp/apulab-gameplay-preview.log || true
+
+      - name: Upload gameplay failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mission01-gameplay-failure
+          path: test-results/gameplay
           if-no-files-found: ignore
           retention-days: 3
