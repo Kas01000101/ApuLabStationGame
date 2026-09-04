@@ -34,6 +34,8 @@ for (const token of ['MISIÓN CIENTÍFICA','REPETIR × N','ESCANEAR','ANALIZAR',
 }
 if (!l6.includes("parent.postMessage({type:'apulab-level-complete',level:6,nextLevel:7}")) fail('l6_navigation_7');
 if (!l6.includes("const LEVEL=6")) fail('l6_identity');
+if (!l6.includes('class="panel simulator"') || !l6.includes('class="panel editor"')) fail('l6_shell');
+if (l6.includes('goalRing')) fail('l6_duplicate_goal_marker');
 
 const l7 = levels.get(7);
 for (const token of ['SENSORES Y BUCLES','REPETIR × N','LEER SENSOR','REGISTRAR DATO','ENVIAR DATOS','GUÍA · 3 PASOS','SENSOR 1','SENSOR 2','MISIÓN 01 COMPLETADA']) {
@@ -42,12 +44,14 @@ for (const token of ['SENSORES Y BUCLES','REPETIR × N','LEER SENSOR','REGISTRAR
 if (/nextLevel\s*:\s*8|CONTINUAR AL NIVEL 8/.test(l7)) fail('l7_fake_level8');
 if (!l7.includes('records.length<2')) fail('l7_requires_two_sensors');
 if (!l7.includes("const LEVEL=7")) fail('l7_identity');
+if (!l7.includes('class="panel simulator"') || !l7.includes('class="panel editor"')) fail('l7_shell');
 
 for (const level of [6,7]) {
   const html = levels.get(level);
-  if (!html.includes("info.className='info-panel visible apulab-explore-yellow'")) fail(`explore_visible_${level}`);
+  const exploreVisible = html.includes("info.className='info-panel visible explore'") || html.includes("info.className='info-panel visible apulab-explore-yellow'");
+  if (!exploreVisible) fail(`explore_visible_${level}`);
   if (!html.includes("info.className='info-panel visible'")) fail(`guide_visible_${level}`);
-  if (!html.includes("CFG.guideTasks.map")) fail(`guide_checklist_${level}`);
+  if (!html.includes("CFG.guide.map") && !html.includes("CFG.guideTasks.map")) fail(`guide_checklist_${level}`);
   if (!html.includes("'completed'")) fail(`guide_strike_${level}`);
   if (!html.includes('CFG.explore.length')) fail(`explore_runtime_${level}`);
   if (!html.includes('renderer.dispose()')) fail(`renderer_dispose_${level}`);
@@ -56,13 +60,16 @@ for (const level of [6,7]) {
   if (!html.includes("requestAnimationFrame=(cb)=>")) fail(`raf_guard_${level}`);
   if (!html.includes('new THREE.WebGLRenderer')) fail(`three_${level}`);
   if (!html.includes("usesRepeat()")) fail(`repeat_required_${level}`);
+  if (!html.includes("closeTransientUI('journal')") || !html.includes("closeTransientUI('success')")) fail(`overlay_exclusive_${level}`);
+  if (!html.includes('scene.traverse((obj)=>')) fail(`gpu_dispose_${level}`);
 
   const cfgMatch = html.match(/const CFG=(\{.*?\});\n/);
   if (!cfgMatch) fail(`cfg_${level}`);
   let cfg;
   try { cfg = JSON.parse(cfgMatch[1]); } catch { fail(`cfg_json_${level}`); }
   if (!Array.isArray(cfg.explore) || cfg.explore.length !== 4) fail(`explore_steps_${level}`);
-  if (!Array.isArray(cfg.guideTasks) || cfg.guideTasks.length !== 3) fail(`guide_steps_${level}`);
+  const guide = cfg.guideTasks || cfg.guide;
+  if (!Array.isArray(guide) || guide.length !== 3) fail(`guide_steps_${level}`);
 
   const match = html.match(/<script type="module">\n([\s\S]*?)\n<\/script>/);
   if (!match) fail(`module_script_${level}`);
@@ -91,7 +98,7 @@ if (/DISPOSE_HANDOFF_MS|handoffTimer/.test(source)) fail('legacy_handoff');
 
 console.info('[mission01] FULL 1–7 AUDIT OK');
 console.info('[mission01] N1–N5 legacy/remapped contracts preserved');
-console.info('[mission01] N6 scientific loop: REPETIR + ESCANEAR + ANALIZAR + ENVIAR DATOS');
-console.info('[mission01] N7 sensor loop: two sensors + REPETIR + LEER/REGISTRAR + ENVIAR DATOS');
-console.info('[mission01] EXPLORAR =4 / GUÍA =3 checklist / ayudas opcionales');
+console.info('[mission01] N6 scientific loop: shell compartido + REPETIR + ESCANEAR + ANALIZAR + ENVIAR DATOS');
+console.info('[mission01] N7 sensor loop: shell compartido + two sensors + REPETIR + LEER/REGISTRAR + ENVIAR DATOS');
+console.info('[mission01] EXPLORAR =4 / GUÍA =3 checklist / ayudas opcionales / overlays exclusivos');
 console.info('[mission01] Navigation verified: 1→2→3→4→5→6→7 · one iframe · direct switch · no transition card');
