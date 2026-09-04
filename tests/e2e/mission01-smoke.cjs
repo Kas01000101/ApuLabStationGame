@@ -42,7 +42,7 @@ async function persistEvidence(error) {
 
 (async () => {
   browser = await chromium.launch({ headless: true });
-  context = await browser.newContext({ viewport: { width: 1672, height: 941 } });
+  context = await browser.newContext({ viewport: { width: 1672, height: 941 }, reducedMotion: 'reduce' });
   await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
   page = await context.newPage();
 
@@ -97,17 +97,12 @@ async function persistEvidence(error) {
       }
     }
 
-    // Algunos botones de atención usan una animación continua. `force` evita que
-    // Playwright confunda esa animación visual con inestabilidad de interacción;
-    // el click sigue siendo un evento real sobre el botón visible.
-    await explore.click({ force: true });
+    await explore.click();
     await page.waitForTimeout(180);
 
-    // N3–N5 pueden abrir un panel con cierre explícito. N1/N2 recorren pasos
-    // con el mismo botón y mantienen GUÍA deshabilitada hasta terminar EXPLORAR.
     const close = frame.locator('#info-close, .info-close').first();
     if (await close.count() && await close.isVisible().catch(() => false)) {
-      await close.click({ force: true });
+      await close.click();
       return;
     }
 
@@ -116,7 +111,7 @@ async function persistEvidence(error) {
       if (await guide.count() && await guide.isEnabled().catch(() => false)) return;
       if (!await explore.isVisible().catch(() => false)) break;
       if (!await explore.isEnabled().catch(() => false)) break;
-      await explore.click({ force: true });
+      await explore.click();
       await page.waitForTimeout(180);
     }
 
@@ -152,16 +147,16 @@ async function persistEvidence(error) {
     const guide = frame.getByRole('button', { name: /GUÍA/i }).first();
     if (await guide.count()) {
       assert(await guide.isEnabled().catch(() => false), `level ${level}: GUÍA exists but is disabled after Explore lifecycle`);
-      await guide.click({ force: true });
+      await guide.click();
       const close = frame.locator('#info-close, .info-close').first();
-      if (await close.count() && await close.isVisible().catch(() => false)) await close.click({ force: true });
-      else if (await guide.isEnabled().catch(() => false)) await guide.click({ force: true });
+      if (await close.count() && await close.isVisible().catch(() => false)) await close.click();
+      else if (await guide.isEnabled().catch(() => false)) await guide.click();
     }
 
     if (level === 5) {
       const run = frame.locator('#run-btn');
       assert(await run.count() === 1, 'level 5: INICIAR PRUEBA missing');
-      await run.click({ force: true });
+      await run.click();
       await page.waitForTimeout(150);
       const stale = await frame.evaluate(() => typeof window.startSequenceStage !== 'undefined' || !!document.querySelector('#sequence-overlay,#sequence-btn,#sequence-close'));
       assert(!stale, 'level 5: stale third phase runtime detected');
@@ -187,7 +182,7 @@ async function persistEvidence(error) {
 
   await context.tracing.stop();
   await browser.close();
-  console.log('[e2e] Mission 01 browser smoke OK · menu → demo → intro skip → N1→N7 · WebGL/Poppins/help/runtime clean');
+  console.log('[e2e] Mission 01 browser smoke OK · real hit-target clicks · menu → demo → intro skip → N1→N7 · WebGL/Poppins/help/runtime clean');
 })().catch(async (error) => {
   console.error(error);
   await persistEvidence(error);

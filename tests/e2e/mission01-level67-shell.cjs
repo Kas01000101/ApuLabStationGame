@@ -22,7 +22,9 @@ async function open(level) {
   page.on('pageerror', (error) => errors.push(`L${level} pageerror: ${error.stack || error}`));
   page.on('console', (msg) => { if (msg.type() === 'error') errors.push(`L${level} console.error: ${msg.text()}`); });
   await page.goto(`${BASE_URL}/missions/mission01/level${level}.html`, { waitUntil: 'domcontentloaded' });
-  await page.locator('#board-canvas').waitFor({ state: 'visible', timeout: 10_000 });
+  await page.locator('#board-canvas').waitFor({ state: 'attached', timeout: 10_000 });
+  await page.waitForFunction(() => document.documentElement.dataset.apulabSceneReady === 'true', null, { timeout: 10_000 });
+  await page.locator('.board-wrap.scene-ready').waitFor({ state: 'visible', timeout: 10_000 });
 }
 
 async function assertShell(level) {
@@ -33,21 +35,31 @@ async function assertShell(level) {
     const stage = document.querySelector('.stage');
     const sim = document.querySelector('.simulator');
     const editor = document.querySelector('.editor');
+    const canvas = document.querySelector('#board-canvas');
+    const loading = document.querySelector('.board-loading');
     return {
       grid: getComputedStyle(main).gridTemplateColumns,
       titleSize: parseFloat(getComputedStyle(title).fontSize),
       commandHeight: command.getBoundingClientRect().height,
+      commandDraggable: command.draggable,
       stageWidth: stage.getBoundingClientRect().width,
       simWidth: sim.getBoundingClientRect().width,
       editorWidth: editor.getBoundingClientRect().width,
       canvasCount: document.querySelectorAll('canvas#board-canvas').length,
+      canvasOpacity: parseFloat(getComputedStyle(canvas).opacity),
+      loadingDisplay: getComputedStyle(loading).display,
+      sceneReady: document.documentElement.dataset.apulabSceneReady,
     };
   });
   assert(metrics.grid.includes('990px') && metrics.grid.includes('614px'), `L${level}: shell is not the approved 2-column grid (${metrics.grid})`);
   assert(metrics.titleSize >= 26, `L${level}: level title is too small (${metrics.titleSize}px)`);
   assert(metrics.commandHeight >= 40, `L${level}: command targets are too small (${metrics.commandHeight}px)`);
+  assert(metrics.commandDraggable, `L${level}: command palette lost drag-and-drop support`);
   assert(metrics.simWidth > metrics.editorWidth, `L${level}: simulator/editor hierarchy is reversed`);
   assert(metrics.canvasCount === 1, `L${level}: expected one board canvas`);
+  assert(metrics.sceneReady === 'true', `L${level}: Three.js first-frame readiness marker missing`);
+  assert(metrics.canvasOpacity >= 0.99, `L${level}: board canvas is not fully visible after scene-ready (${metrics.canvasOpacity})`);
+  assert(metrics.loadingDisplay === 'none', `L${level}: loading cover remained after first Three.js frame`);
   assert(await page.locator('.sim-title').textContent() === 'SIMULADOR 8 × 8', `L${level}: simulator title mismatch`);
   assert(await page.locator('.editor-head h2').textContent() === 'EDITOR DE MOVIMIENTO', `L${level}: editor title mismatch`);
 }
@@ -76,7 +88,7 @@ async function assertOverlayOwnership(level) {
 (async () => {
   await mkdir(OUT, { recursive: true });
   browser = await chromium.launch({ headless: true });
-  context = await browser.newContext({ viewport: { width: 1672, height: 941 } });
+  context = await browser.newContext({ viewport: { width: 1672, height: 941 }, reducedMotion: 'reduce' });
 
   await open(6);
   await assertShell(6);
@@ -97,7 +109,7 @@ async function assertOverlayOwnership(level) {
   assert(errors.length === 0, `runtime errors detected:\n${errors.join('\n')}`);
   await writeFile(resolve(OUT, 'runtime.log'), 'Level 6–7 shell browser audit OK\n', 'utf8');
   await browser.close();
-  console.log('[e2e] Level 6–7 shell OK · two columns · readable controls · exclusive overlays · screenshots captured');
+  console.log('[e2e] Level 6–7 shell OK · two columns · first Three frame ready · draggable commands · exclusive overlays · screenshots captured');
 })().catch(async (error) => {
   console.error(error);
   await mkdir(OUT, { recursive: true });

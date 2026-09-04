@@ -65,7 +65,39 @@ export class ThreeEngine {
   }
 
   clear(): void {
+    const geometries = new Set<THREE.BufferGeometry>();
+    const materials = new Set<THREE.Material>();
+    const textures = new Set<THREE.Texture>();
+
+    const collectMaterial = (material: THREE.Material): void => {
+      if (materials.has(material)) return;
+      materials.add(material);
+      for (const value of Object.values(material)) {
+        if (value instanceof THREE.Texture) textures.add(value);
+      }
+    };
+
+    this.scene.traverse((object) => {
+      const resourceObject = object as THREE.Object3D & {
+        geometry?: THREE.BufferGeometry;
+        material?: THREE.Material | THREE.Material[];
+      };
+
+      if (resourceObject.geometry) geometries.add(resourceObject.geometry);
+      if (Array.isArray(resourceObject.material)) resourceObject.material.forEach(collectMaterial);
+      else if (resourceObject.material) collectMaterial(resourceObject.material);
+    });
+
+    if (this.scene.background instanceof THREE.Texture) textures.add(this.scene.background);
+    if (this.scene.environment instanceof THREE.Texture) textures.add(this.scene.environment);
+
+    textures.forEach((texture) => texture.dispose());
+    materials.forEach((material) => material.dispose());
+    geometries.forEach((geometry) => geometry.dispose());
+
     while (this.scene.children.length) this.scene.remove(this.scene.children[0]);
+    this.scene.background = null;
+    this.scene.environment = null;
     this.scene.fog = null;
   }
 

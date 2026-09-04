@@ -8,6 +8,7 @@ export class MenuScreen {
   private readonly element = document.createElement('section');
   private sfxEnabled = true;
   private musicVolume = DEFAULT_MUSIC_VOLUME;
+  private dialogReturnFocus: HTMLElement | null = null;
 
   constructor(private readonly root: HTMLElement, callbacks: MenuCallbacks) {
     this.sfxEnabled = this.readSetting(SFX_SETTING_KEY) !== 'off';
@@ -111,8 +112,9 @@ export class MenuScreen {
   setVisible(value: boolean): void {
     this.element.classList.toggle('hidden', !value);
     if (!value) {
-      this.closeSettings();
-      this.closeCredits();
+      this.hideSettings(false);
+      this.hideCredits(false);
+      this.dialogReturnFocus = null;
     }
   }
 
@@ -121,31 +123,63 @@ export class MenuScreen {
     this.element.remove();
   }
 
+  private rememberDialogFocus(): void {
+    this.dialogReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  }
+
+  private restoreDialogFocus(): void {
+    const target = this.dialogReturnFocus;
+    this.dialogReturnFocus = null;
+    if (target?.isConnected) target.focus({ preventScroll: true });
+  }
+
+  private focusDialog(panel: HTMLElement | null): void {
+    requestAnimationFrame(() => {
+      panel?.querySelector<HTMLElement>('button, input, [href], [tabindex]:not([tabindex="-1"])')?.focus({ preventScroll: true });
+    });
+  }
+
   private readonly openSettings = (): void => {
-    this.closeCredits();
+    this.hideCredits(false);
+    this.rememberDialogFocus();
     const panel = this.element.querySelector<HTMLElement>('[data-settings-panel]');
     panel?.classList.add('visible');
     panel?.setAttribute('aria-hidden', 'false');
     this.syncSettingsUi();
+    this.focusDialog(panel);
   };
 
-  private readonly closeSettings = (): void => {
+  private hideSettings(restoreFocus: boolean): void {
     const panel = this.element.querySelector<HTMLElement>('[data-settings-panel]');
+    const wasVisible = panel?.classList.contains('visible') ?? false;
     panel?.classList.remove('visible');
     panel?.setAttribute('aria-hidden', 'true');
+    if (restoreFocus && wasVisible) this.restoreDialogFocus();
+  }
+
+  private readonly closeSettings = (): void => {
+    this.hideSettings(true);
   };
 
   private readonly openCredits = (): void => {
-    this.closeSettings();
+    this.hideSettings(false);
+    this.rememberDialogFocus();
     const panel = this.element.querySelector<HTMLElement>('[data-credits-panel]');
     panel?.classList.add('visible');
     panel?.setAttribute('aria-hidden', 'false');
+    this.focusDialog(panel);
   };
 
-  private readonly closeCredits = (): void => {
+  private hideCredits(restoreFocus: boolean): void {
     const panel = this.element.querySelector<HTMLElement>('[data-credits-panel]');
+    const wasVisible = panel?.classList.contains('visible') ?? false;
     panel?.classList.remove('visible');
     panel?.setAttribute('aria-hidden', 'true');
+    if (restoreFocus && wasVisible) this.restoreDialogFocus();
+  }
+
+  private readonly closeCredits = (): void => {
+    this.hideCredits(true);
   };
 
   private readonly toggleSfx = (): void => {
@@ -165,10 +199,44 @@ export class MenuScreen {
     this.saveSettings();
   };
 
+  private getVisibleDialog(): HTMLElement | null {
+    return this.element.querySelector<HTMLElement>('[data-settings-panel].visible, [data-credits-panel].visible');
+  }
+
+  private trapDialogFocus(event: KeyboardEvent, panel: HTMLElement): void {
+    const focusable = [...panel.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+    )].filter((element) => element.offsetParent !== null);
+    if (!focusable.length) {
+      event.preventDefault();
+      return;
+    }
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = document.activeElement;
+    if (!panel.contains(active)) {
+      event.preventDefault();
+      first.focus();
+    } else if (event.shiftKey && active === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
   private readonly handleKeydown = (event: KeyboardEvent): void => {
-    if (event.key !== 'Escape') return;
-    this.closeSettings();
-    this.closeCredits();
+    const panel = this.getVisibleDialog();
+    if (!panel) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      if (panel.matches('[data-settings-panel]')) this.closeSettings();
+      else this.closeCredits();
+      return;
+    }
+    if (event.key === 'Tab') this.trapDialogFocus(event, panel);
   };
 
   private saveSettings(): void {
