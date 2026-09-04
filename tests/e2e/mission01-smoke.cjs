@@ -82,13 +82,26 @@ async function persistEvidence(error) {
   }
 
   async function finishExploreLifecycle(frame, level) {
-    const explore = frame.getByRole('button', { name: /EXPLORAR|Continuar recorrido/i }).first();
+    const explore = frame.getByRole('button', { name: /EXPLORAR|Continuar recorrido|Finalizar recorrido/i }).first();
     if (!await explore.count()) return;
+
+    if (level === 2) {
+      const nextBattery = frame.locator('#battery-next');
+      if (await nextBattery.count()) {
+        await nextBattery.waitFor({ state: 'visible', timeout: 5_000 });
+        await frame.waitForFunction(() => {
+          const button = document.querySelector('#battery-next');
+          return !!button && !button.disabled;
+        }, null, { timeout: 5_000 }).catch(() => {});
+        await page.waitForTimeout(250);
+      }
+    }
 
     // Algunos botones de atención usan una animación continua. `force` evita que
     // Playwright confunda esa animación visual con inestabilidad de interacción;
     // el click sigue siendo un evento real sobre el botón visible.
     await explore.click({ force: true });
+    await page.waitForTimeout(180);
 
     // N3–N5 pueden abrir un panel con cierre explícito. N1/N2 recorren pasos
     // con el mismo botón y mantienen GUÍA deshabilitada hasta terminar EXPLORAR.
@@ -99,11 +112,12 @@ async function persistEvidence(error) {
     }
 
     const guide = frame.getByRole('button', { name: /GUÍA/i }).first();
-    for (let step = 0; step < 6; step += 1) {
+    for (let step = 0; step < 8; step += 1) {
       if (await guide.count() && await guide.isEnabled().catch(() => false)) return;
       if (!await explore.isVisible().catch(() => false)) break;
       if (!await explore.isEnabled().catch(() => false)) break;
       await explore.click({ force: true });
+      await page.waitForTimeout(180);
     }
 
     if (await guide.count()) {
