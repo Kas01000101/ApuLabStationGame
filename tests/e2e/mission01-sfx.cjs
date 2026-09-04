@@ -23,7 +23,10 @@ const BASE_URL = process.env.APULAB_BASE_URL || 'http://127.0.0.1:4173';
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', (error) => errors.push(String(error.stack || error)));
-    await page.goto(`${BASE_URL}/missions/mission01/level${level}.html`, { waitUntil: 'networkidle' });
+
+    // Este contrato valida Web Audio del runtime local. No depende de que
+    // Google Fonts u otros recursos visuales externos queden en network-idle.
+    await page.goto(`${BASE_URL}/missions/mission01/level${level}.html`, { waitUntil: 'domcontentloaded' });
     await page.locator('canvas').first().waitFor({ state: 'visible', timeout: 10_000 });
 
     // Dispara rutas de feedback que históricamente crean Web Audio.
