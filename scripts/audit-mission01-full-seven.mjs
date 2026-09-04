@@ -1,4 +1,4 @@
-import { readFile, writeFile, rm } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
@@ -66,10 +66,10 @@ for (const level of [6,7]) {
 
   const match = html.match(/<script type="module">\n([\s\S]*?)\n<\/script>/);
   if (!match) fail(`module_script_${level}`);
-  const temp = resolve(ROOT, `.mission01-level${level}-syntax.mjs`);
-  await writeFile(temp, match[1], 'utf8');
-  const result = spawnSync(process.execPath, ['--check', temp], { encoding: 'utf8' });
-  await rm(temp, { force: true });
+  const result = spawnSync(process.execPath, ['--input-type=module', '--check'], {
+    encoding: 'utf8',
+    input: match[1],
+  });
   if (result.status !== 0) fail(`syntax_${level}:${result.stderr || result.stdout}`);
 }
 
