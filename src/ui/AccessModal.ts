@@ -6,9 +6,11 @@ type Options = {
 
 export class AccessModal {
   private readonly overlay = document.createElement('div');
+  private readonly returnFocus: HTMLElement | null;
   private busy = false;
 
   constructor(private readonly root: HTMLElement, private readonly options: Options) {
+    this.returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     this.overlay.className = 'access-overlay ui-modal-backdrop';
     this.overlay.innerHTML = `
       <div class="ui-modal access-modal" role="dialog" aria-modal="true" aria-labelledby="access-title">
@@ -64,9 +66,7 @@ export class AccessModal {
     this.credential.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') void this.study();
     });
-    this.overlay.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && !this.busy) this.destroy();
-    });
+    this.overlay.addEventListener('keydown', this.handleDialogKeydown);
 
     this.code.focus();
   }
@@ -90,6 +90,41 @@ export class AccessModal {
   private get closeButton(): HTMLButtonElement {
     return this.overlay.querySelector('.close')!;
   }
+
+  private readonly handleDialogKeydown = (event: KeyboardEvent): void => {
+    if (event.key === 'Escape' && !this.busy) {
+      event.preventDefault();
+      this.destroy();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+
+    const focusable = [...this.overlay.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+    )].filter((element) => element.offsetParent !== null);
+
+    if (!focusable.length) {
+      event.preventDefault();
+      return;
+    }
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = document.activeElement;
+
+    if (!this.overlay.contains(active)) {
+      event.preventDefault();
+      first.focus();
+      return;
+    }
+    if (event.shiftKey && active === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
 
   private setError(message: string): void {
     const element = this.overlay.querySelector('.error');
@@ -147,6 +182,8 @@ export class AccessModal {
   private destroy(): void {
     this.code.value = '';
     this.credential.value = '';
+    this.overlay.removeEventListener('keydown', this.handleDialogKeydown);
     this.overlay.remove();
+    if (this.returnFocus?.isConnected) this.returnFocus.focus({ preventScroll: true });
   }
 }
