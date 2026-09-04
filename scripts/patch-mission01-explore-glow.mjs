@@ -57,6 +57,12 @@ for (const [level, buttonId] of targets) {
   if (level === 1) {
     html = html.replaceAll(' is-explore-attention', '');
     html = html.replace(/\s*<div id="kawsay-explore-attention"[^>]*><\/div>/g, '');
+    // GUÍA puede habilitarse al terminar EXPLORAR, pero no debe heredar una
+    // segunda llamada de atención: en N1 el único foco visual es EXPLORAR.
+    html = html.replaceAll(
+      'guideButton.classList.add("is-recommended");',
+      'guideButton.classList.remove("is-recommended");',
+    );
   }
 
   if (!html.includes('apulab-explore-glow-style')) {
