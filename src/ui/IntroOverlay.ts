@@ -34,7 +34,7 @@ export class IntroOverlay {
       <div class="intro-location"></div>
       <div class="intro-dialogue" aria-live="polite"><div class="intro-speaker"></div><div class="intro-dialogue-text"></div></div>
       <div class="intro-sfx"></div><div class="intro-beat"></div>
-      <div class="intro-mission"><div class="intro-mission-small">MISIÓN 01</div><div class="intro-mission-big">1 / 3 · MEDIR</div></div>
+      <div class="intro-mission"><div class="intro-mission-small">MISIÓN 01</div><div class="intro-mission-big">1 / 7 · MEDIR</div></div>
       <div class="nickname-overlay"><div class="nickname-card">
         <div class="nickname-title">¿CÓMO TE GUSTA QUE TE LLAMEN?</div>
         <div class="nickname-copy">Escribe el apodo que quieres usar dentro de ApuLab.</div>

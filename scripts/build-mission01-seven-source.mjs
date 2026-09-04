@@ -66,6 +66,12 @@ source = replaceRequired(
   "console.info('[mission01] source build complete · legacy sources 1, 2, 4, 5, 6 only');",
   'build-console',
 );
+source = replaceRequired(
+  source,
+  'console.info(`[mission01] level ${level}/8 OK · ${actualBytes} bytes · ${actualHash}`);',
+  'console.info(`[mission01] legacy source level ${level} OK · ${actualBytes} bytes · ${actualHash}`);',
+  'legacy-source-console',
+);
 
 if (source.includes('await unpackLevel3()') || source.includes('patchLevel3(source)')) {
   throw new Error('mission01_seven_source_level3_still_active');
