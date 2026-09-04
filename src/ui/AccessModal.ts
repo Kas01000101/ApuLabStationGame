@@ -184,6 +184,8 @@ export class AccessModal {
     this.credential.value = '';
     this.overlay.removeEventListener('keydown', this.handleDialogKeydown);
     this.overlay.remove();
-    if (this.returnFocus?.isConnected) this.returnFocus.focus({ preventScroll: true });
+    if (this.returnFocus?.isConnected && this.returnFocus.offsetParent !== null) {
+      this.returnFocus.focus({ preventScroll: true });
+    }
   }
 }
