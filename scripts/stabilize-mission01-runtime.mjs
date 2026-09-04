@@ -60,8 +60,6 @@ for (let level = 1; level <= 7; level += 1) {
     html = requireReplace(html, '</head>', `${POPPINS_LINKS}\n</head>`, `poppins-head-l${level}`);
   }
 
-  // Nivel 1 usa una batería de práctica independiente de la misión de AYNI.
-  // El contrato vigente es 15.0 V; no debe filtrar los 28.0 V de la comparación del Nivel 2.
   if (level === 1) {
     if (!html.includes('const PRACTICE_BATTERY_VOLTAGE = 28.0;') && !html.includes('const PRACTICE_BATTERY_VOLTAGE = 15.0;')) {
       throw new Error('mission01_stabilize_level1_practice_voltage_marker_missing');
@@ -98,36 +96,40 @@ for (let level = 1; level <= 7; level += 1) {
     }
   }
 
-  // En Nivel 5 el atributo hidden debe ganar a .command-block{display:flex}.
-  // De lo contrario REPETIR aparece visualmente antes de resolver la primera fase.
   if (level === 5 && !html.includes('id="apulab-level5-repeat-visibility"')) {
     html = requireReplace(html, '</head>', `${LEVEL5_REPEAT_VISIBILITY_CSS}\n</head>`, 'level5-repeat-hidden-style');
   }
 
-  // N6/N7 generaban el botón × de REPETIR en posición absoluta sobre el botón +.
-  // Eso interceptaba el puntero y, además, el × del bucle no tenía handler.
-  // Lo movemos al flujo del encabezado y le damos la misma eliminación funcional
-  // que ya tienen los comandos simples.
   if (level === 6 || level === 7) {
-    if (!html.includes(LEVEL67_REPEAT_CONTROL_CSS)) {
-      html = requireReplace(
-        html,
-        '.program-node.repeat{background:#C9F6F7}',
-        `.program-node.repeat{background:#C9F6F7}${LEVEL67_REPEAT_CONTROL_CSS}`,
-        `level${level}-repeat-control-css`,
-      );
-    }
-    if (!html.includes('class="node-remove repeat-remove"')) {
-      html = requireReplace(
-        html,
-        LEVEL67_REPEAT_OLD_HTML,
-        LEVEL67_REPEAT_NEW_HTML,
-        `level${level}-repeat-remove-handler`,
-      );
+    const canonicalShell = html.includes('class="panel simulator"') && html.includes('class="panel editor"');
+    if (canonicalShell) {
+      if (!html.includes("d.querySelector('.node-remove').onclick=(e)=>")) {
+        throw new Error(`mission01_stabilize_level${level}_canonical_repeat_remove_missing`);
+      }
+      if (!html.includes('.repeat-head{display:flex') || !html.includes('padding-right:24px')) {
+        throw new Error(`mission01_stabilize_level${level}_canonical_repeat_spacing_missing`);
+      }
+    } else {
+      if (!html.includes(LEVEL67_REPEAT_CONTROL_CSS)) {
+        html = requireReplace(
+          html,
+          '.program-node.repeat{background:#C9F6F7}',
+          `.program-node.repeat{background:#C9F6F7}${LEVEL67_REPEAT_CONTROL_CSS}`,
+          `level${level}-repeat-control-css`,
+        );
+      }
+      if (!html.includes('class="node-remove repeat-remove"')) {
+        html = requireReplace(
+          html,
+          LEVEL67_REPEAT_OLD_HTML,
+          LEVEL67_REPEAT_NEW_HTML,
+          `level${level}-repeat-remove-handler`,
+        );
+      }
     }
   }
 
   await writeFile(path, html, 'utf8');
 }
 
-console.info('[mission01] STABILIZATION PATCH OK · Three local completo N1–N7 · Poppins N1–N7 · SFX global · N1=15.0V · REPETIR N5 oculto · controles REPETIR N6/N7 separados');
+console.info('[mission01] STABILIZATION PATCH OK · Three local completo N1–N7 · Poppins N1–N7 · SFX global · N1=15.0V · REPETIR N5 oculto · N6/N7 shell canónico respetado');
