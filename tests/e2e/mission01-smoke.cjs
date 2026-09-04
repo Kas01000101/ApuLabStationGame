@@ -85,13 +85,16 @@ async function persistEvidence(error) {
     const explore = frame.getByRole('button', { name: /EXPLORAR|Continuar recorrido/i }).first();
     if (!await explore.count()) return;
 
-    await explore.click();
+    // Algunos botones de atención usan una animación continua. `force` evita que
+    // Playwright confunda esa animación visual con inestabilidad de interacción;
+    // el click sigue siendo un evento real sobre el botón visible.
+    await explore.click({ force: true });
 
     // N3–N5 pueden abrir un panel con cierre explícito. N1/N2 recorren pasos
     // con el mismo botón y mantienen GUÍA deshabilitada hasta terminar EXPLORAR.
     const close = frame.locator('#info-close, .info-close').first();
     if (await close.count() && await close.isVisible().catch(() => false)) {
-      await close.click();
+      await close.click({ force: true });
       return;
     }
 
@@ -100,7 +103,7 @@ async function persistEvidence(error) {
       if (await guide.count() && await guide.isEnabled().catch(() => false)) return;
       if (!await explore.isVisible().catch(() => false)) break;
       if (!await explore.isEnabled().catch(() => false)) break;
-      await explore.click();
+      await explore.click({ force: true });
     }
 
     if (await guide.count()) {
@@ -135,16 +138,16 @@ async function persistEvidence(error) {
     const guide = frame.getByRole('button', { name: /GUÍA/i }).first();
     if (await guide.count()) {
       assert(await guide.isEnabled().catch(() => false), `level ${level}: GUÍA exists but is disabled after Explore lifecycle`);
-      await guide.click();
+      await guide.click({ force: true });
       const close = frame.locator('#info-close, .info-close').first();
-      if (await close.count() && await close.isVisible().catch(() => false)) await close.click();
-      else if (await guide.isEnabled().catch(() => false)) await guide.click();
+      if (await close.count() && await close.isVisible().catch(() => false)) await close.click({ force: true });
+      else if (await guide.isEnabled().catch(() => false)) await guide.click({ force: true });
     }
 
     if (level === 5) {
       const run = frame.locator('#run-btn');
       assert(await run.count() === 1, 'level 5: INICIAR PRUEBA missing');
-      await run.click();
+      await run.click({ force: true });
       await page.waitForTimeout(150);
       const stale = await frame.evaluate(() => typeof window.startSequenceStage !== 'undefined' || !!document.querySelector('#sequence-overlay,#sequence-btn,#sequence-close'));
       assert(!stale, 'level 5: stale third phase runtime detected');
