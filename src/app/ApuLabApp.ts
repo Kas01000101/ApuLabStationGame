@@ -1,16 +1,17 @@
 import { MenuScreen } from '../ui/MenuScreen';
 import { AccessModal } from '../ui/AccessModal';
 import { Mission01Screen } from '../ui/Mission01Screen';
-import { ThreeEngine } from '../three/ThreeEngine';
 import { SessionService } from '../systems/SessionService';
 import { GameState } from '../systems/GameState';
-import { ReadableIntroController } from '../story/ReadableIntroController';
 import { AmbientMusic } from '../three/effects/AmbientMusic';
+import type { ThreeEngine } from '../three/ThreeEngine';
+import type { ReadableIntroController } from '../story/ReadableIntroController';
 
 export type AppState = 'menu' | 'intro' | 'mission01' | 'final';
 
 export class ApuLabApp {
-  private readonly engine: ThreeEngine;
+  private engine?: ThreeEngine;
+  private engineLoad?: Promise<ThreeEngine>;
   private readonly menu: MenuScreen;
   private readonly mission01: Mission01Screen;
   private readonly sessions = new SessionService();
@@ -33,7 +34,6 @@ export class ApuLabApp {
   };
 
   constructor(private readonly roots: { threeRoot: HTMLElement; uiRoot: HTMLElement }) {
-    this.engine = new ThreeEngine(roots.threeRoot);
     this.menu = new MenuScreen(roots.uiRoot, {
       onStart: () => this.openAccess(),
     });
@@ -47,32 +47,56 @@ export class ApuLabApp {
 
   start(): void {
     this.ambientMusic.arm();
-    this.startThreeEngine();
-    this.goTo('menu');
+    // El menú es 2D: Three.js se carga recién cuando la usuaria entra a la intro.
+    // Así evitamos descargar ~500 kB de runtime y renderizar una escena vacía a
+    // 60 FPS mientras solo se muestra el menú principal.
+    void this.goTo('menu');
+  }
+
+  private async ensureThreeEngine(): Promise<ThreeEngine> {
+    if (this.engine) return this.engine;
+
+    const pending = this.engineLoad ??= import('../three/ThreeEngine').then(({ ThreeEngine }) => {
+      return new ThreeEngine(this.roots.threeRoot);
+    });
+
+    try {
+      const engine = await pending;
+      this.engine ??= engine;
+      return this.engine;
+    } finally {
+      if (this.engineLoad === pending) this.engineLoad = undefined;
+    }
   }
 
   private startThreeEngine(): void {
-    if (this.engineRunning) return;
+    if (!this.engine || this.engineRunning) return;
     this.engine.start((dt) => this.update(dt));
     this.engineRunning = true;
   }
 
   private stopThreeEngine(): void {
     if (!this.engineRunning) return;
-    this.engine.stop();
+    this.engine?.stop();
     this.engineRunning = false;
+  }
+
+  private disposeThreeEngine(): void {
+    this.stopThreeEngine();
+    this.engine?.dispose();
+    this.engine = undefined;
   }
 
   private openAccess(): void {
     new AccessModal(this.roots.uiRoot, {
       onDemo: async () => {
         const ok = await this.sessions.startDemo();
-        if (ok) this.goTo('intro');
+        if (ok) await this.goTo('intro');
         return ok;
       },
       onStudy: async (code, credential) => {
         const result = await this.sessions.startStudy(code, credential);
-        if (result.success) this.goTo('intro');
+        if (result.success) await this.goTo('intro');
         return result;
       },
     });
@@ -93,38 +117,52 @@ export class ApuLabApp {
    * Mantener esta ruta única evita regresiones entre ambos flujos.
    */
   private readonly enterMission01 = (): void => {
-    this.goTo('mission01');
+    void this.goTo('mission01');
   };
 
-  private goTo(state: AppState): void {
-    if (this.state === 'intro' && state !== 'intro') {
+  private async goTo(state: AppState): Promise<void> {
+    if (state === 'intro') {
+      // Cargar Three + la coreografía pesada únicamente después de una acción
+      // explícita de inicio. El modal permanece en estado busy mientras carga,
+      // por lo que no aparece una pantalla vacía entre menú e introducción.
+      const [engine, introModule] = await Promise.all([
+        this.ensureThreeEngine(),
+        import('../story/ReadableIntroController'),
+      ]);
+
+      this.state = 'intro';
+      GameState.getInstance().setScene('intro');
+      this.menu.setVisible(false);
+      this.mission01.setVisible(false);
+      this.roots.threeRoot.style.visibility = 'visible';
+
+      this.intro?.destroy();
+      this.intro = new introModule.ReadableIntroController(engine, this.roots.uiRoot, {
+        onComplete: this.enterMission01,
+      });
+      this.startThreeEngine();
+      this.intro.start();
+      return;
+    }
+
+    if (this.state === 'intro') {
       this.intro?.destroy();
       this.intro = undefined;
+      // Mission 01 usa su propio WebGL dentro del iframe. Al salir de la intro
+      // liberamos también el renderer global para no conservar contexto GPU.
+      this.disposeThreeEngine();
     }
 
     this.state = state;
-    GameState.getInstance().setScene(
-      state === 'menu' ? 'main-menu' : state === 'intro' ? 'intro' : state,
-    );
+    GameState.getInstance().setScene(state === 'menu' ? 'main-menu' : state);
 
     this.menu.setVisible(state === 'menu');
     this.mission01.setVisible(state === 'mission01');
     this.roots.threeRoot.style.visibility = state === 'mission01' ? 'hidden' : 'visible';
 
-    // Durante los niveles el iframe ya mantiene su propio loop WebGL.
-    // Detener el ThreeEngine principal evita renderizar una segunda escena 3D
-    // invisible a 60 FPS mientras se juega Misión 01.
-    if (state === 'mission01') this.stopThreeEngine();
-    else this.startThreeEngine();
-
-    if (state === 'intro') {
-      this.intro?.destroy();
-      this.intro = new ReadableIntroController(this.engine, this.roots.uiRoot, {
-        onComplete: this.enterMission01,
-      });
-      this.intro.start();
-      return;
-    }
+    // Menú/final son 2D y Mission 01 tiene su propio WebGL; el renderer global
+    // solo debe correr durante la introducción.
+    this.stopThreeEngine();
 
     if (state === 'mission01') {
       this.mission01.start(1);
