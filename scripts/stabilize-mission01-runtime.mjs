@@ -6,8 +6,10 @@ const OUT = resolve(ROOT, 'public/missions/mission01');
 const VENDOR = resolve(ROOT, 'public/vendor/three');
 const THREE_VERSION = '0.180.0';
 const THREE_MODULE_SRC = resolve(ROOT, 'node_modules/three/build/three.module.js');
+const THREE_CORE_SRC = resolve(ROOT, 'node_modules/three/build/three.core.js');
 const ORBIT_SRC = resolve(ROOT, 'node_modules/three/examples/jsm/controls/OrbitControls.js');
 const THREE_MODULE_OUT = resolve(VENDOR, 'three.module.js');
+const THREE_CORE_OUT = resolve(VENDOR, 'three.core.js');
 const ORBIT_OUT = resolve(VENDOR, 'OrbitControls.js');
 
 const POPPINS_LINKS = `\n<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">`;
@@ -19,6 +21,7 @@ function requireReplace(source, before, after, label) {
 
 await mkdir(VENDOR, { recursive: true });
 await copyFile(THREE_MODULE_SRC, THREE_MODULE_OUT);
+await copyFile(THREE_CORE_SRC, THREE_CORE_OUT);
 
 let orbit = await readFile(ORBIT_SRC, 'utf8');
 orbit = orbit
@@ -28,6 +31,11 @@ if (/from\s+['"]three['"]/.test(orbit)) {
   throw new Error('mission01_stabilize_orbit_three_bare_import');
 }
 await writeFile(ORBIT_OUT, orbit, 'utf8');
+
+const localThreeModule = await readFile(THREE_MODULE_OUT, 'utf8');
+if (!localThreeModule.includes("from './three.core.js'")) {
+  throw new Error('mission01_stabilize_unexpected_three_module_layout');
+}
 
 const externalThreeUrls = [
   `https://esm.sh/three@${THREE_VERSION}/examples/jsm/controls/OrbitControls.js`,
@@ -81,4 +89,4 @@ for (let level = 1; level <= 7; level += 1) {
   await writeFile(path, html, 'utf8');
 }
 
-console.info('[mission01] STABILIZATION PATCH OK · Three local N1–N7 · Poppins N1–N7 · SFX global contract');
+console.info('[mission01] STABILIZATION PATCH OK · Three local completo N1–N7 · Poppins N1–N7 · SFX global contract');
