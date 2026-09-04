@@ -59,13 +59,15 @@ async function dragLogical(canvas, from, to) {
   await page.mouse.up();
 }
 
+// Coordenadas lógicas proyectadas desde la cámara cenital real del runtime.
+// Evitan agarrar un cable que cruza por debajo de otra punta.
 const POINTS = {
-  batteryPower: { x: 1437, y: 485 },
-  meterPower: { x: 456, y: 387 },
-  redProbe: { x: 936, y: 744 },
-  blackProbe: { x: 1177, y: 781 },
-  positiveTerminal: { x: 1003, y: 339 },
-  negativeTerminal: { x: 1396, y: 338 },
+  batteryPower: { x: 1302, y: 482 },
+  meterPower: { x: 544, y: 406 },
+  redProbe: { x: 913, y: 681 },
+  blackProbe: { x: 1098, y: 708 },
+  positiveTerminal: { x: 964, y: 369 },
+  negativeTerminal: { x: 1266, y: 369 },
 };
 
 async function openLevel(level) {
@@ -84,7 +86,7 @@ async function closeLevel() {
 
 async function connectConventional(canvas) {
   await dragLogical(canvas, POINTS.redProbe, POINTS.positiveTerminal);
-  await page.waitForTimeout(150);
+  await page.waitForTimeout(180);
   await dragLogical(canvas, POINTS.blackProbe, POINTS.negativeTerminal);
 }
 
@@ -99,9 +101,9 @@ async function level1() {
   assert(!sourceContract.leaks28Practice, 'L1: stale 28.0 V practice value remains');
 
   await clickLogical(canvas, POINTS.batteryPower.x, POINTS.batteryPower.y);
-  await page.waitForTimeout(150);
+  await page.waitForTimeout(180);
   await clickLogical(canvas, POINTS.meterPower.x, POINTS.meterPower.y);
-  await page.waitForTimeout(150);
+  await page.waitForTimeout(180);
 
   await connectConventional(canvas);
   await page.locator('#kawsay-success-overlay.is-visible').waitFor({ timeout: 15_000 });
