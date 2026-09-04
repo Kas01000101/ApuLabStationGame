@@ -40,6 +40,12 @@ if (!repeatTag) fail('repeat_palette_missing');
 if (!/\shidden(?:\s|>)/.test(repeatTag)) fail('repeat_not_hidden_initially');
 if (/\bis-new\b|apulab-explore-glow|apulabAttention/i.test(repeatTag)) fail('repeat_initial_attention_present');
 
+// No debe sobrevivir ninguna vía CSS capaz de hacer pulsar REPETIR. Esto evita
+// que el brillo vuelva aunque un residuo legacy reintroduzca accidentalmente is-new.
+if (/repeatUnlock/i.test(html)) fail('repeat_unlock_keyframes_present');
+if (/\.block-repeat\.is-new\s*\{[^}]*animation/i.test(html)) fail('repeat_unlock_css_present');
+if (/<div id="repeat-palette"[^>]*\bis-new\b/i.test(html)) fail('repeat_palette_attention_class_present');
+
 // El desbloqueo se inspecciona por límites reales de la función, sin depender
 // del orden de las funciones dentro del HTML legacy generado.
 const unlockRange = functionRange(html, 'function unlockRepeat()');
@@ -68,4 +74,4 @@ if (!html.includes("feedback.textContent='Ahora usa REPETIR para organizar la ru
 // Después de resolver con REPETIR, N5 termina y navega a N6.
 if (!html.includes("parent.postMessage({type:'apulab-level-complete',level:5,nextLevel:6}")) fail('route_5_6');
 
-console.info('[mission01] LEVEL 5 FLOW OK · 2 fases · ruta sin REPETIR → desbloqueo → ruta con REPETIR → Nivel 6');
+console.info('[mission01] LEVEL 5 FLOW OK · 2 fases · REPETIR sin brillo · ruta sin REPETIR → desbloqueo → ruta con REPETIR → Nivel 6');
