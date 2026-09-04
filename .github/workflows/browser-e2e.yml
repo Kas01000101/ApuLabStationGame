@@ -94,7 +94,7 @@ jobs:
 
   gameplay:
     runs-on: ubuntu-latest
-    timeout-minutes: 24
+    timeout-minutes: 28
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -138,6 +138,21 @@ jobs:
           NODE_PATH: /opt/hostedtoolcache/node/22.16.0/x64/lib/node_modules
           APULAB_BASE_URL: http://127.0.0.1:4173
         run: node tests/e2e/mission01-gameplay.cjs
+
+      - name: Level 6-7 shell visual contract
+        env:
+          NODE_PATH: /opt/hostedtoolcache/node/22.16.0/x64/lib/node_modules
+          APULAB_BASE_URL: http://127.0.0.1:4173
+        run: node tests/e2e/mission01-level67-shell.cjs
+
+      - name: Upload Level 6-7 visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mission01-level67-visual-evidence
+          path: test-results/level67-shell
+          if-no-files-found: ignore
+          retention-days: 5
 
       - name: Level 5 repeat attention after long route
         env:

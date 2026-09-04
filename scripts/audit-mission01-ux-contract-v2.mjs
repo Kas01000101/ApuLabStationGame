@@ -35,12 +35,14 @@ for(const level of [3,4,5]){
 for(const level of [6,7]){
  const html=levels.get(level);
  if(/id="guide-btn"[^>]*disabled/.test(html)||/id="explore-btn"[^>]*disabled/.test(html))fail('optional_help_disabled',`l${level}`);
- if(!html.includes("info.className='info-panel visible apulab-explore-yellow'"))fail('explore_yellow',`l${level}`);
+ const exploreVisible=html.includes("info.className='info-panel visible explore'")||html.includes("info.className='info-panel visible apulab-explore-yellow'");
+ if(!exploreVisible)fail('explore_yellow',`l${level}`);
  if(!html.includes("info.className='info-panel visible'"))fail('guide_visible',`l${level}`);
  if(!html.includes('GUÍA · 3 PASOS')||!html.includes('guide-task')||!html.includes("'completed'"))fail('guide_structure',`l${level}`);
  if(!html.includes('AYNI · FRENTE = LUZ CYAN'))fail('ayni_front',`l${level}`);
  if(!html.includes('REPETIR × N')||!html.includes('usesRepeat()'))fail('repeat_required',`l${level}`);
+ if(!html.includes('class="panel simulator"')||!html.includes('class="panel editor"'))fail('shared_programming_shell',`l${level}`);
 }
 const expected=[[1,2,'Nivel 1'],[2,3,'Nivel 2'],[3,4,'Nivel 3'],[4,5,'Nivel 4'],[5,6,'Nivel 5'],[6,7,'NIVEL 6']];for(const [level,next,label] of expected){const html=levels.get(level);if(!html.includes(label)&&!html.includes(label.toUpperCase()))fail('level_label',`l${level}`);if(!html.includes(`nextLevel: ${next}`)&&!html.includes(`nextLevel:${next}`)&&!html.includes(`CONTINUAR AL NIVEL ${next}`))fail('next_level',`l${level}->${next}`)}
 if(/nextLevel\s*:\s*8|CONTINUAR AL NIVEL 8/.test(levels.get(7)))fail('fake_level8');
-console.info('[mission01] UX CONTRACT V2 OK · ayudas opcionales L1–L7 · EXPLORAR máximo 4 · GUÍA checklist/tachado en cada nivel activo');
+console.info('[mission01] UX CONTRACT V2 OK · ayudas opcionales L1–L7 · EXPLORAR máximo 4 · GUÍA checklist/tachado · N6/N7 shell compartido');
