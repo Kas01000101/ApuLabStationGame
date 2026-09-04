@@ -14,7 +14,7 @@ permissions:
 jobs:
   browser-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 18
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -26,14 +26,24 @@ jobs:
           cache: npm
 
       - name: Install project dependencies
-        run: npm ci
+        run: npm ci --no-fund --no-audit
 
       - name: Build
         run: npm run build
 
+      - name: Preserve generated Mission 01 runtime
+        uses: actions/upload-artifact@v4
+        with:
+          name: mission01-generated-runtime
+          path: |
+            public/missions/mission01
+            public/vendor/three
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Install Playwright Chromium
         run: |
-          npm install --global playwright@1.55.0
+          npm install --global playwright@1.55.0 --no-fund --no-audit
           playwright install --with-deps chromium
 
       - name: Start production preview
@@ -56,3 +66,12 @@ jobs:
       - name: Print preview log on failure
         if: failure()
         run: cat /tmp/apulab-preview.log || true
+
+      - name: Upload browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mission01-browser-failure
+          path: test-results
+          if-no-files-found: ignore
+          retention-days: 3
