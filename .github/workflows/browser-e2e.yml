@@ -1,0 +1,58 @@
+name: Mission 01 Browser E2E
+
+on:
+  push:
+    branches:
+      - stabilization/mission01-runtime
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22.16.0'
+          cache: npm
+
+      - name: Install project dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --global playwright@1.55.0
+          playwright install --with-deps chromium
+
+      - name: Start production preview
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/apulab-preview.log 2>&1 &
+          echo $! > /tmp/apulab-preview.pid
+          for i in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/apulab-preview.log
+          exit 1
+
+      - name: Browser smoke N1 to N7
+        env:
+          NODE_PATH: /opt/hostedtoolcache/node/22.16.0/x64/lib/node_modules
+          APULAB_BASE_URL: http://127.0.0.1:4173
+        run: node tests/e2e/mission01-smoke.cjs
+
+      - name: Print preview log on failure
+        if: failure()
+        run: cat /tmp/apulab-preview.log || true
