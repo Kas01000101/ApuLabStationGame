@@ -57,9 +57,17 @@ for (let level = 1; level <= 7; level += 1) {
     html = requireReplace(html, '</head>', `${POPPINS_LINKS}\n</head>`, `poppins-head-l${level}`);
   }
 
-  // Nivel 1 conserva feedback Web Audio propio. Debe obedecer el mismo switch
-  // global de EFECTOS que la intro y los niveles 2–5.
+  // Nivel 1 usa una batería de práctica independiente de la misión de AYNI.
+  // El contrato vigente es 15.0 V; no debe filtrar los 28.0 V de la comparación del Nivel 2.
   if (level === 1) {
+    if (!html.includes('const PRACTICE_BATTERY_VOLTAGE = 28.0;') && !html.includes('const PRACTICE_BATTERY_VOLTAGE = 15.0;')) {
+      throw new Error('mission01_stabilize_level1_practice_voltage_marker_missing');
+    }
+    html = html.replaceAll('28.0 V', '15.0 V').replaceAll('28.0', '15.0');
+    if (!html.includes('const PRACTICE_BATTERY_VOLTAGE = 15.0;')) {
+      throw new Error('mission01_stabilize_level1_practice_voltage_not_15');
+    }
+
     const audioMarker = 'id="level1-feedback-audio-runtime"';
     if (!html.includes(audioMarker)) throw new Error('mission01_stabilize_level1_audio_runtime_missing');
 
@@ -96,4 +104,4 @@ for (let level = 1; level <= 7; level += 1) {
   await writeFile(path, html, 'utf8');
 }
 
-console.info('[mission01] STABILIZATION PATCH OK · Three local completo N1–N7 · Poppins N1–N7 · SFX global · REPETIR N5 oculto hasta desbloqueo');
+console.info('[mission01] STABILIZATION PATCH OK · Three local completo N1–N7 · Poppins N1–N7 · SFX global · N1=15.0V · REPETIR N5 oculto hasta desbloqueo');
