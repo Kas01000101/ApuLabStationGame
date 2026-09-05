@@ -43,14 +43,16 @@ if ((l6.match(/(?:\{title:|\{"title":)/g) || []).length < 4) fail('l6_explore_st
 
 const l7 = levels.get(7);
 for (const token of [
-  'APULAB_LEVEL7_FROM_LEVEL5_V1','data-apulab-shell-source="level5"','SENSORES Y BUCLES','REPETIR','LEER SENSOR','REGISTRAR DATO','ENVIAR DATOS','SENSOR 1','SENSOR 2','MISIÓN 01 COMPLETADA','FINALIZAR MISIÓN','id="board-shell" class="board-shell"','id="board-canvas" width="950" height="664"','class="board-labels-top"','class="board-labels-left"','id="program-list" class="program-list"','id="program-scroll"','AYNI_FRONT_ORIENTATION',
+  'APULAB_LEVEL7_FROM_LEVEL5_V1','data-apulab-shell-source="level5"','LA MUESTRA DESCONOCIDA','MUESTRA DE INTERÉS','REPETIR','ANALIZAR MUESTRA','data-command="analyzeSample"','SENSOR DE TEMPERATURA','SENSOR DE PROXIMIDAD','ANALIZADOR DE MINERALES','RANURA DE SENSOR','CAMBIAR SENSOR','-58 °C','DISTANCIA: 0.4 m','Hierro ............. DETECTADO','Silicatos .......... DETECTADOS','Firma mineral ...... COMPATIBLE','MISIÓN 01 COMPLETADA','FINALIZAR MISIÓN','id="board-shell" class="board-shell"','id="board-canvas" width="950" height="664"','class="board-labels-top"','class="board-labels-left"','id="program-list" class="program-list"','id="program-scroll"','AYNI_FRONT_ORIENTATION',
 ]) if (!l7.includes(token)) fail(`l7_${token}`);
 if (/nextLevel\s*:\s*8|CONTINUAR AL NIVEL 8/.test(l7)) fail('l7_fake_level8');
 if (l7.includes('class="panel simulator"') || l7.includes('class="panel editor"') || l7.includes('class="board-wrap"')) fail('l7_parallel_shell');
 if (l7.includes('apulab-repeat-focus')) fail('l7_n5_repeat_tutorial_leak');
 if (!/repeatUnlocked\s*=\s*true/.test(l7)) fail('l7_repeat_available');
-if (!l7.includes('if(!usesRepeat())')) fail('l7_repeat_required');
-if (!l7.includes('sensorRecords.length<2')) fail('l7_requires_two_sensors');
+if (l7.includes('if(!usesRepeat())')) fail('l7_repeat_must_be_optional');
+for (const legacy of ['data-command="read"','data-command="record"','data-command="send"']) if (l7.includes(legacy)) fail(`l7_legacy_${legacy}`);
+if (!l7.includes("localStorage.setItem('apulab.level7.sensor',equippedSensorId)")) fail('l7_sensor_persistence');
+if (!l7.includes("feedback.textContent='Programa conservado. Cambia únicamente el sensor.'")) fail('l7_program_preservation');
 if (!l7.includes("type:'apulab-level-ready', level:7")) fail('l7_ready_identity');
 if (!l7.includes("type:'apulab-runtime-error',level:7")) fail('l7_error_identity');
 if ((l7.match(/(?:\{title:|\{"title":)/g) || []).length < 4) fail('l7_explore_steps');
@@ -90,5 +92,5 @@ if (/DISPOSE_HANDOFF_MS|handoffTimer/.test(source)) fail('legacy_handoff');
 console.info('[mission01] FULL 1–7 AUDIT OK');
 console.info('[mission01] N1–N5 legacy/remapped contracts preserved');
 console.info('[mission01] N6: canonical N5 shell + scientific cycle');
-console.info('[mission01] N7: canonical N5/N6 shell + two-sensor loop + terminal mission success');
+console.info('[mission01] N7: canonical shell + unknown sample + 1 slot + 3 functional sensors + terminal mission success');
 console.info('[mission01] Navigation verified: 1→2→3→4→5→6→7 · one iframe · no fake level 8');
