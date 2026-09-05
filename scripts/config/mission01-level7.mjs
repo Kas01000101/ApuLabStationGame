@@ -5,9 +5,14 @@ export const LEVEL7_CONFIG = Object.freeze({
   subtitle: 'AYNI encontró una muestra poco común. Necesitamos descubrir qué materiales contiene.',
   objective: 'OBJETIVO · LLEGA JUNTO A LA MUESTRA Y ANALIZA',
   start: { c: 1, r: 7, dir: 0 },
+  goal: { c: 5, r: 3 },
   sample: { c: 5, r: 2, label: 'MUESTRA DE INTERÉS' },
   obstacles: [[3,6],[4,6],[0,5],[6,5],[2,4],[3,4],[4,4],[7,3],[1,2],[3,1],[6,1],[0,1]],
   sensors: [
+    { c: 3, r: 5, label: 'SENSOR 1', value: '18 °C' },
+    { c: 5, r: 5, label: 'SENSOR 2', value: '23 °C' },
+  ],
+  sensorOptions: [
     { id: 'temperature', name: 'SENSOR DE TEMPERATURA', icon: '🌡', description: 'Mide qué tan frío o caliente está el entorno.' },
     { id: 'proximity', name: 'SENSOR DE PROXIMIDAD', icon: '📡', description: 'Detecta objetos y calcula qué tan cerca están.' },
     { id: 'mineral', name: 'ANALIZADOR DE MINERALES', subtitle: 'ESPECTRÓMETRO', icon: '🔬', description: 'Analiza una muestra para obtener información sobre los materiales que contiene.' },
