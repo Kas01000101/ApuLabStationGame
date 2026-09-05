@@ -38,7 +38,7 @@ if (l6.includes('goalRing')) fail('l6_duplicate_goal_marker');
 if (l6.includes('apulab-repeat-focus')) fail('l6_n5_repeat_tutorial_leak');
 if (!/repeatUnlocked\s*=\s*true/.test(l6)) fail('l6_repeat_available');
 if (l6.includes('if(!usesRepeat())')) fail('l6_repeat_must_be_optional');
-if (!l6.includes('if(!scienceScanned||!scienceAnalyzed||!scienceSent)')) fail('l6_science_required');
+if (!l6.includes('if(!scienceScanned||!scienceAnalyzed||!scienceSent||!atCommunicationPoint())')) fail('l6_science_and_final_communication_required');
 if (!l6.includes('atCommunicationPoint')) fail('l6_communication_gate');
 for (const event of ['level_started','level_completed','help_requested','program_started','program_modified','science_action','data_sent','premature_action','scan_started','scan_completed','analyze_started','analyze_completed']) if (!l6.includes(event)) fail(`l6_telemetry_${event}`);
 for (const forbidden of ['SENSOR DE TEMPERATURA','SENSOR DE PROXIMIDAD','ANALIZADOR DE MINERALES','RANURA DE SENSOR','ANALIZAR MUESTRA']) if (l6.includes(forbidden)) fail(`l6_sensor_leak_${forbidden}`);
@@ -94,6 +94,6 @@ if (/DISPOSE_HANDOFF_MS|handoffTimer/.test(source)) fail('legacy_handoff');
 
 console.info('[mission01] FULL 1–7 AUDIT OK');
 console.info('[mission01] N1–N5 legacy/remapped contracts preserved');
-console.info('[mission01] N6: canonical N5 shell + OBTENER → INTERPRETAR → COMUNICAR + two checkpoints + optional REPETIR');
+console.info('[mission01] N6: canonical N5 shell + OBTENER → INTERPRETAR → COMUNICAR + two checkpoints + final communication position + optional REPETIR');
 console.info('[mission01] N7: canonical shell + unknown sample + 1 slot + 3 functional sensors + terminal mission success');
 console.info('[mission01] Navigation verified: 1→2→3→4→5→6→7 · one iframe · no fake level 8');
