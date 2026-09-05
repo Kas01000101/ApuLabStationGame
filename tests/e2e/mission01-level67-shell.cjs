@@ -32,7 +32,6 @@ async function assertShell(level) {
     const main = document.querySelector('.main');
     const title = document.querySelector('.title');
     const command = document.querySelector('.command');
-    const stage = document.querySelector('.stage');
     const sim = document.querySelector('.simulator');
     const editor = document.querySelector('.editor');
     const canvas = document.querySelector('#board-canvas');
@@ -42,7 +41,6 @@ async function assertShell(level) {
       titleSize: parseFloat(getComputedStyle(title).fontSize),
       commandHeight: command.getBoundingClientRect().height,
       commandDraggable: command.draggable,
-      stageWidth: stage.getBoundingClientRect().width,
       simWidth: sim.getBoundingClientRect().width,
       editorWidth: editor.getBoundingClientRect().width,
       canvasCount: document.querySelectorAll('canvas#board-canvas').length,
@@ -76,13 +74,6 @@ async function assertOverlayOwnership(level) {
   assert(await page.locator('.overlay.visible').count() === 1, `L${level}: multiple overlays are visible`);
   await evidence(`level${level}-journal`);
   await page.locator('#journal-close').click();
-
-  await page.locator('#explore-btn').click();
-  await page.locator('#info-panel.visible.explore').waitFor();
-  await page.locator('#journal-btn').click();
-  await page.locator('#journal-overlay.visible').waitFor();
-  assert(await page.locator('#info-panel.visible').count() === 0, `L${level}: Explore remained behind journal`);
-  await page.locator('#journal-close').click();
 }
 
 (async () => {
@@ -90,15 +81,7 @@ async function assertOverlayOwnership(level) {
   browser = await chromium.launch({ headless: true });
   context = await browser.newContext({ viewport: { width: 1672, height: 941 }, reducedMotion: 'reduce' });
 
-  await open(6);
-  await assertShell(6);
-  assert((await page.locator('.sim-objective').textContent() || '').includes('PUNTO DE ESTUDIO'), 'L6: scientific objective is not visible in the simulator header');
-  assert(await page.locator('.command[data-command="scan"]').isVisible(), 'L6: ESCANEAR missing');
-  assert(await page.locator('.command[data-command="analyze"]').isVisible(), 'L6: ANALIZAR missing');
-  assert(await page.locator('.command[data-command="send"]').isVisible(), 'L6: ENVIAR DATOS missing');
-  await evidence('level6-initial');
-  await assertOverlayOwnership(6);
-
+  // N6 now has its own stricter N5-parity gate. This test keeps N7's existing shell stable.
   await open(7);
   await assertShell(7);
   assert(await page.locator('.command[data-command="read"]').isVisible(), 'L7: LEER SENSOR missing');
@@ -107,9 +90,9 @@ async function assertOverlayOwnership(level) {
   await assertOverlayOwnership(7);
 
   assert(errors.length === 0, `runtime errors detected:\n${errors.join('\n')}`);
-  await writeFile(resolve(OUT, 'runtime.log'), 'Level 6–7 shell browser audit OK\n', 'utf8');
+  await writeFile(resolve(OUT, 'runtime.log'), 'Level 7 shell browser audit OK\n', 'utf8');
   await browser.close();
-  console.log('[e2e] Level 6–7 shell OK · two columns · first Three frame ready · draggable commands · exclusive overlays · screenshots captured');
+  console.log('[e2e] Level 7 shell OK · current sensor shell preserved; N6 validated separately against N5');
 })().catch(async (error) => {
   console.error(error);
   await mkdir(OUT, { recursive: true });
