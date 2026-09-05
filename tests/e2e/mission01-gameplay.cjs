@@ -94,27 +94,44 @@ async function level5() {
 
 async function level6() {
   const page = await openLevel(6);
-  assert(await page.locator('#repeat-palette').isVisible(), 'L6: REPETIR must be available from the start');
+  assert(await page.locator('#repeat-palette').isVisible(), 'L6: REPETIR must remain available');
   assert(await page.locator('#program-list .program-row').count() === 30, 'L6: N5 30-row program editor was not preserved');
   assert(await page.locator('.board-labels-top > *').count() === 8, 'L6: A-H board coordinates missing');
   assert(await page.locator('.board-labels-left > *').count() === 8, 'L6: 1-8 board coordinates missing');
-  await page.locator('#repeat-palette').dblclick();
-  await pointerDrag(page, page.locator('.command-block[data-command="forward"]'), page.locator('.repeat-body[data-repeat-body="0"]'));
-  await page.locator('[data-count="0:1"]').click(); await page.locator('[data-count="0:1"]').click();
-  await page.locator('.command-block[data-command="scan"]').dblclick();
-  await page.locator('.command-block[data-command="analyze"]').dblclick();
-  await page.locator('.command-block[data-command="send"]').dblclick();
-  assert(await page.locator('.repeat-card').count() === 1, 'L6: REPETIR was not created in N5 editor');
-  assert(await page.locator('.nested-chip').count() === 1, 'L6: AVANZAR was not nested in REPETIR');
-  assert((await page.locator('.repeat-card .repeat-count').textContent() || '').includes('4'), 'L6: REPETIR should be ×4');
-  assert(await page.locator('.program-block.block-scan').count() === 1, 'L6: ESCANEAR was not added to program');
-  assert(await page.locator('.program-block.block-analyze').count() === 1, 'L6: ANALIZAR was not added to program');
-  assert(await page.locator('.program-block.block-send').count() === 1, 'L6: ENVIAR DATOS was not added to program');
-  await page.locator('#run-btn').click(); await page.locator('#success-overlay.visible').waitFor({ timeout: 30_000 });
+  assert(await page.locator('.command-block[data-command="scan"]').isVisible(), 'L6: ESCANEAR missing');
+  assert(await page.locator('.command-block[data-command="analyze"]').isVisible(), 'L6: ANALIZAR missing');
+  assert(await page.locator('.command-block[data-command="send"]').isVisible(), 'L6: ENVIAR DATOS missing');
+  assert(await page.getByText('PUNTO DE COMUNICACIÓN', { exact: true }).count() >= 0, 'L6: communication checkpoint contract missing');
+
+  // Graceful failure: ANALIZAR before ESCANEAR must preserve the program.
+  await addAccessibleCommands(page, ['analyze']);
+  assert(await page.locator('.program-block').count() === 1, 'L6: premature action program was not built');
+  await page.locator('#run-btn').click();
+  await page.waitForFunction(() => (document.getElementById('feedback')?.textContent || '').includes('todavía no tiene datos'));
+  assert(await page.locator('.program-block').count() === 1, 'L6: premature ANALIZAR erased the program');
+  assert(!await page.locator('#success-overlay').isVisible(), 'L6: premature ANALIZAR must not complete the level');
+
+  await page.locator('#clear-btn').click();
+  const solution = ['forward','forward','forward','scan','analyze','left','forward','forward','forward','send'];
+  await addAccessibleCommands(page, solution);
+  assert(await page.locator('.program-block').count() === solution.length, 'L6: two-checkpoint solution was not built');
+  assert(await page.locator('.repeat-card').count() === 0, 'L6: REPETIR must be optional, not required by the solution');
+  await page.locator('#run-btn').click();
+  await page.locator('#success-overlay.visible').waitFor({ timeout: 30_000 });
   const science = await page.locator('#success-data').textContent() || '';
-  assert(science.includes('Escaneo completado'), 'L6: scientific result missing scan');
-  assert(science.includes('Análisis completado'), 'L6: scientific result missing analysis');
-  assert(science.includes('Datos enviados'), 'L6: scientific result missing transmission');
+  assert(science.includes('Dato obtenido'), 'L6: scientific result missing obtained data');
+  assert(science.includes('Resultado interpretado'), 'L6: scientific result missing interpretation');
+  assert(science.includes('ApuLab Station'), 'L6: scientific result missing communication destination');
+
+  const telemetry = await page.evaluate(() => JSON.parse(sessionStorage.getItem('apulab.level6.telemetry') || '[]'));
+  const eventNames = telemetry.map((x) => x.event);
+  for (const name of ['level_started','program_started','premature_action','science_action','data_sent','level_completed']) {
+    assert(eventNames.includes(name), `L6: telemetry event missing ${name}`);
+  }
+  const completed = telemetry.findLast((x) => x.event === 'level_completed');
+  assert(completed?.payload?.science_order_correct === true, 'L6: science_order_correct must be true for valid completion');
+  assert(completed?.payload?.premature_action_count >= 1, 'L6: premature action count was not preserved');
+
   await page.evaluate(() => { window.__e2eTransitions = []; window.addEventListener('message', (event) => { if (event.data?.type === 'apulab-level-complete') window.__e2eTransitions.push(event.data); }); });
   await page.locator('#continue-btn').click(); await page.waitForFunction(() => window.__e2eTransitions?.some((x) => x.level === 6 && x.nextLevel === 7));
   await closeLevel();
@@ -180,5 +197,5 @@ async function level7() {
   await level3(); await level4(); await level5(); await level6(); await level7();
   assert(runtimeErrors.length === 0, `runtime errors detected:\n${runtimeErrors.join('\n')}`);
   await context.tracing.stop(); await browser.close();
-  console.log('[e2e] Mission 01 gameplay OK · N3 real · N4 real · N5 route→REPETIR · N6 science · N7 unknown sample + 3 functional sensors');
+  console.log('[e2e] Mission 01 gameplay OK · N3 real · N4 real · N5 route→REPETIR · N6 obtain→interpret→communicate · N7 unknown sample + 3 functional sensors');
 })().catch(async (error) => { console.error(error); await saveEvidence(error); try { await browser?.close(); } catch (_) {} process.exitCode = 1; });
