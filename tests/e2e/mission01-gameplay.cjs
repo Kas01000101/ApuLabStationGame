@@ -10,9 +10,7 @@ let context;
 let currentPage;
 const runtimeErrors = [];
 
-const assert = (condition, message) => {
-  if (!condition) throw new Error(message);
-};
+const assert = (condition, message) => { if (!condition) throw new Error(message); };
 
 async function saveEvidence(error) {
   await mkdir(EVIDENCE_DIR, { recursive: true });
@@ -21,9 +19,7 @@ async function saveEvidence(error) {
     try { await currentPage.screenshot({ path: resolve(EVIDENCE_DIR, 'failure.png'), fullPage: true }); } catch (_) {}
     try { await writeFile(resolve(EVIDENCE_DIR, 'page.html'), await currentPage.content(), 'utf8'); } catch (_) {}
   }
-  if (context) {
-    try { await context.tracing.stop({ path: resolve(EVIDENCE_DIR, 'trace.zip') }); } catch (_) {}
-  }
+  if (context) { try { await context.tracing.stop({ path: resolve(EVIDENCE_DIR, 'trace.zip') }); } catch (_) {} }
 }
 
 async function openLevel(level) {
@@ -124,37 +120,52 @@ async function level6() {
   await closeLevel();
 }
 
+async function equipSensor(page, id) {
+  await page.locator(`.sensor-option[data-sensor="${id}"]`).click();
+  await page.locator('#equip-sensor-btn').click();
+  await page.locator('#sensor-overlay').waitFor({ state: 'hidden' });
+}
+
 async function level7() {
   const page = await openLevel(7);
-  assert(await page.locator('#repeat-palette').isVisible(), 'L7: REPETIR must be available from the start');
+  assert(await page.locator('#sensor-overlay.visible').isVisible(), 'L7: sensor selection must appear before programming');
+  assert(await page.locator('.sensor-option').count() === 3, 'L7: exactly three sensor options are required');
+  assert(await page.locator('#repeat-palette').isVisible(), 'L7: REPETIR must remain available from the start');
   assert(await page.locator('#program-list .program-row').count() === 30, 'L7: canonical 30-row program editor missing');
   assert(await page.locator('.board-labels-top > *').count() === 8, 'L7: A-H board coordinates missing');
   assert(await page.locator('.board-labels-left > *').count() === 8, 'L7: 1-8 board coordinates missing');
-  assert(await page.locator('.command-block[data-command="read"]').isVisible(), 'L7: LEER SENSOR missing');
-  assert(await page.locator('.command-block[data-command="record"]').isVisible(), 'L7: REGISTRAR DATO missing');
-  assert(await page.locator('.command-block[data-command="send"]').isVisible(), 'L7: ENVIAR DATOS missing');
+  assert(await page.locator('.command-block[data-command="analyzeSample"]').isVisible(), 'L7: ANALIZAR MUESTRA missing');
+  assert(await page.locator('.command-block[data-command="read"]').count() === 0, 'L7: legacy LEER SENSOR returned');
+  assert(await page.locator('.command-block[data-command="record"]').count() === 0, 'L7: legacy REGISTRAR DATO returned');
+  assert(await page.locator('.command-block[data-command="send"]').count() === 0, 'L7: legacy ENVIAR DATOS returned');
 
-  // REPETIR ×2: AVANZAR, AVANZAR, LEER SENSOR, REGISTRAR DATO.
-  await page.locator('#repeat-palette').dblclick();
-  const body = page.locator('.repeat-body[data-repeat-body="0"]');
-  await pointerDrag(page, page.locator('.command-block[data-command="forward"]'), body);
-  await pointerDrag(page, page.locator('.command-block[data-command="forward"]'), body);
-  await pointerDrag(page, page.locator('.command-block[data-command="read"]'), body);
-  await pointerDrag(page, page.locator('.command-block[data-command="record"]'), body);
-  await page.locator('.command-block[data-command="forward"]').dblclick();
-  await page.locator('.command-block[data-command="send"]').dblclick();
-
-  assert(await page.locator('.repeat-card').count() === 1, 'L7: REPETIR was not created in canonical editor');
-  assert(await page.locator('.nested-chip').count() === 4, 'L7: repeated sensor sequence must contain four blocks');
-  assert((await page.locator('.repeat-card .repeat-count').textContent() || '').includes('2'), 'L7: REPETIR should remain ×2');
-  assert(await page.locator('.program-block.block-send').count() === 1, 'L7: ENVIAR DATOS was not added after the loop');
-
+  await equipSensor(page, 'temperature');
+  const route = ['forward','forward','forward','forward','right','forward','forward','forward','forward','analyzeSample'];
+  await addAccessibleCommands(page, route);
+  const programCount = await page.locator('.program-block').count();
+  assert(programCount === route.length, 'L7: route to the unknown sample was not built');
   await page.locator('#run-btn').click();
-  await page.locator('#success-overlay.visible').waitFor({ timeout: 30_000 });
-  const finalData = await page.locator('#success-data').textContent() || '';
-  assert(finalData.includes('SENSOR 1') && finalData.includes('18 °C'), 'L7: final evidence missing SENSOR 1');
-  assert(finalData.includes('SENSOR 2') && finalData.includes('23 °C'), 'L7: final evidence missing SENSOR 2');
-  assert(finalData.includes('Datos enviados'), 'L7: final evidence missing transmission');
+  await page.locator('#analysis-overlay.visible').waitFor({ timeout: 30_000 });
+  assert((await page.locator('#analysis-result').textContent() || '').includes('-58 °C'), 'L7: temperature sensor did not return a real reading');
+  await page.locator('#change-sensor-btn').click();
+  assert(await page.locator('.program-block').count() === programCount, 'L7: changing sensor erased the program');
+
+  await equipSensor(page, 'proximity');
+  await page.locator('#run-btn').click();
+  await page.locator('#analysis-overlay.visible').waitFor({ timeout: 30_000 });
+  assert((await page.locator('#analysis-result').textContent() || '').includes('DISTANCIA: 0.4 m'), 'L7: proximity sensor did not return a real reading');
+  await page.locator('#change-sensor-btn').click();
+  assert(await page.locator('.program-block').count() === programCount, 'L7: second sensor change erased the program');
+
+  await equipSensor(page, 'mineral');
+  await page.locator('#run-btn').click();
+  await page.locator('#analysis-overlay.visible').waitFor({ timeout: 30_000 });
+  const mineral = await page.locator('#analysis-result').textContent() || '';
+  assert(mineral.includes('Hierro') && mineral.includes('DETECTADO'), 'L7: mineral analysis missing iron result');
+  assert(mineral.includes('Silicatos') && mineral.includes('DETECTADOS'), 'L7: mineral analysis missing silicate result');
+  assert(mineral.includes('Firma mineral') && mineral.includes('COMPATIBLE'), 'L7: mineral signature missing');
+  await page.locator('#close-analysis-btn').click();
+  await page.locator('#success-overlay.visible').waitFor({ timeout: 10_000 });
   assert((await page.locator('#continue-btn').textContent() || '').includes('FINALIZAR'), 'L7: terminal action must not point to a fake level 8');
   await page.locator('#continue-btn').click();
   assert((await page.locator('#continue-btn').textContent() || '').includes('MISIÓN COMPLETADA'), 'L7: terminal mission state was not confirmed');
@@ -169,5 +180,5 @@ async function level7() {
   await level3(); await level4(); await level5(); await level6(); await level7();
   assert(runtimeErrors.length === 0, `runtime errors detected:\n${runtimeErrors.join('\n')}`);
   await context.tracing.stop(); await browser.close();
-  console.log('[e2e] Mission 01 gameplay OK · N3 real · N4 real · N5 route→REPETIR · N6 science · N7 canonical sensor loop');
+  console.log('[e2e] Mission 01 gameplay OK · N3 real · N4 real · N5 route→REPETIR · N6 science · N7 unknown sample + 3 functional sensors');
 })().catch(async (error) => { console.error(error); await saveEvidence(error); try { await browser?.close(); } catch (_) {} process.exitCode = 1; });
