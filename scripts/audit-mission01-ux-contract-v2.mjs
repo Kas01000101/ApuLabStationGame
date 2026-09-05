@@ -7,7 +7,7 @@ function arrayBody(source,marker,label){const start=source.indexOf(marker);if(st
 function exploreCount(level,html){
   if(level===7){const m=html.match(/const CFG=(\{.*?\});\n/);if(!m)fail('cfg_missing',`l${level}`);let cfg;try{cfg=JSON.parse(m[1])}catch{fail('cfg_json',`l${level}`)}return Array.isArray(cfg.explore)?cfg.explore.length:0}
   const marker=level<=2?'const guidedExplanation = [':'const exploreSteps=';
-  const body=arrayBody(html,marker,`l${level}`);return(body.match(/\btitle\s*:/g)||[]).length
+  const body=arrayBody(html,marker,`l${level}`);return(body.match(/(?:\btitle\s*:|"title"\s*:)/g)||[]).length
 }
 const levels=new Map();for(let level=1;level<=7;level++)levels.set(level,await readFile(resolve(OUT,`level${level}.html`),'utf8'));
 for(const [level,html] of levels){if(!html.includes(`${level} / 7`)&&!html.includes(`${level}/7`))fail('progress',`l${level}`);if(html.includes(`${level} / 8`)||html.includes(`${level}/8`))fail('legacy_progress',`l${level}`);const steps=exploreCount(level,html);if(steps<1||steps>4)fail('explore_max4',`l${level}:${steps}`)}
