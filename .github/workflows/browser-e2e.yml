@@ -98,7 +98,7 @@ jobs:
 
   gameplay:
     runs-on: ubuntu-latest
-    timeout-minutes: 28
+    timeout-minutes: 32
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -142,7 +142,12 @@ jobs:
           APULAB_BASE_URL: http://127.0.0.1:4173
         run: node tests/e2e/mission01-gameplay.cjs
 
-      - name: Level 6-7 shell visual contract
+      - name: Level 6 physical parity with Level 5
+        env:
+          APULAB_BASE_URL: http://127.0.0.1:4173
+        run: node tests/e2e/mission01-level6-n5-parity.cjs
+
+      - name: Level 7 shell visual contract
         env:
           APULAB_BASE_URL: http://127.0.0.1:4173
         run: node tests/e2e/mission01-level67-shell.cjs
@@ -152,7 +157,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: mission01-level67-visual-evidence
-          path: test-results/level67-shell
+          path: |
+            test-results/level6-n5-parity
+            test-results/level67-shell
           if-no-files-found: ignore
           retention-days: 5
 
