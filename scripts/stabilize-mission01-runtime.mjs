@@ -79,19 +79,10 @@ for (let level = 1; level <= 7; level += 1) {
       html = requireReplace(html, audioClassAnchor, sfxContract, 'level1-sfx-contract');
     }
 
-    const guardedFunctions = [
-      'unlockAudio',
-      'requestMusicDuck',
-      'playUiClick',
-      'playGuideTick',
-      'playConfettiChime',
-    ];
-
+    const guardedFunctions = ['unlockAudio','requestMusicDuck','playUiClick','playGuideTick','playConfettiChime'];
     for (const name of guardedFunctions) {
       const pattern = new RegExp(`(const ${name}\\s*=\\s*\\([^)]*\\)\\s*=>\\s*\\{\\n)(?!\\s*if \\(!isSfxEnabled\\(\\)\\) return;)`);
-      if (!pattern.test(html) && !html.includes(`const ${name}`)) {
-        throw new Error(`mission01_stabilize_level1_audio_function_missing:${name}`);
-      }
+      if (!pattern.test(html) && !html.includes(`const ${name}`)) throw new Error(`mission01_stabilize_level1_audio_function_missing:${name}`);
       html = html.replace(pattern, `$1    if (!isSfxEnabled()) return;\n`);
     }
   }
@@ -100,42 +91,30 @@ for (let level = 1; level <= 7; level += 1) {
     html = requireReplace(html, '</head>', `${LEVEL5_REPEAT_VISIBILITY_CSS}\n</head>`, 'level5-repeat-hidden-style');
   }
 
-  if (level === 6 && html.includes('APULAB_LEVEL6_FROM_LEVEL5_V1')) {
-    for (const token of [
+  const derivedCanonical =
+    (level === 6 && html.includes('APULAB_LEVEL6_FROM_LEVEL5_V1')) ||
+    (level === 7 && html.includes('APULAB_LEVEL7_FROM_LEVEL5_V1'));
+
+  if (derivedCanonical) {
+    const required = [
       'id="board-shell" class="board-shell"',
       'id="program-list" class="program-list"',
       'id="repeat-palette"',
-      'data-command="scan"',
-      'data-command="analyze"',
-      'data-command="send"',
-    ]) {
-      if (!html.includes(token)) throw new Error(`mission01_stabilize_level6_n5_shell_missing:${token}`);
-    }
+    ];
+    if (level === 6) required.push('data-command="scan"','data-command="analyze"','data-command="send"');
+    if (level === 7) required.push('data-command="read"','data-command="record"','data-command="send"');
+    for (const token of required) if (!html.includes(token)) throw new Error(`mission01_stabilize_level${level}_canonical_shell_missing:${token}`);
   } else if (level === 6 || level === 7) {
     const canonicalShell = html.includes('class="panel simulator"') && html.includes('class="panel editor"');
     if (canonicalShell) {
-      if (!html.includes("d.querySelector('.node-remove').onclick=(e)=>")) {
-        throw new Error(`mission01_stabilize_level${level}_canonical_repeat_remove_missing`);
-      }
-      if (!html.includes('.repeat-head{display:flex') || !html.includes('padding-right:24px')) {
-        throw new Error(`mission01_stabilize_level${level}_canonical_repeat_spacing_missing`);
-      }
+      if (!html.includes("d.querySelector('.node-remove').onclick=(e)=>")) throw new Error(`mission01_stabilize_level${level}_canonical_repeat_remove_missing`);
+      if (!html.includes('.repeat-head{display:flex') || !html.includes('padding-right:24px')) throw new Error(`mission01_stabilize_level${level}_canonical_repeat_spacing_missing`);
     } else {
       if (!html.includes(LEVEL67_REPEAT_CONTROL_CSS)) {
-        html = requireReplace(
-          html,
-          '.program-node.repeat{background:#C9F6F7}',
-          `.program-node.repeat{background:#C9F6F7}${LEVEL67_REPEAT_CONTROL_CSS}`,
-          `level${level}-repeat-control-css`,
-        );
+        html = requireReplace(html, '.program-node.repeat{background:#C9F6F7}', `.program-node.repeat{background:#C9F6F7}${LEVEL67_REPEAT_CONTROL_CSS}`, `level${level}-repeat-control-css`);
       }
       if (!html.includes('class="node-remove repeat-remove"')) {
-        html = requireReplace(
-          html,
-          LEVEL67_REPEAT_OLD_HTML,
-          LEVEL67_REPEAT_NEW_HTML,
-          `level${level}-repeat-remove-handler`,
-        );
+        html = requireReplace(html, LEVEL67_REPEAT_OLD_HTML, LEVEL67_REPEAT_NEW_HTML, `level${level}-repeat-remove-handler`);
       }
     }
   }
@@ -143,4 +122,4 @@ for (let level = 1; level <= 7; level += 1) {
   await writeFile(path, html, 'utf8');
 }
 
-console.info('[mission01] STABILIZATION PATCH OK · Three local completo N1–N7 · Poppins N1–N7 · SFX global · N1=15.0V · REPETIR N5 oculto · N6 derivado de N5 respetado · N7 shell canónico');
+console.info('[mission01] STABILIZATION PATCH OK · Three local N1–N7 · Poppins · SFX · N1=15V · N5 repeat hidden · N6/N7 canonical shells preserved');
