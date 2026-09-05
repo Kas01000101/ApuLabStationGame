@@ -50,7 +50,8 @@ const runEnd = html.indexOf('function completeLevel()', runStart);
 if (runStart < 0 || runEnd < 0) fail('run_program_bounds');
 const runProgram = html.slice(runStart, runEnd);
 if (runProgram.includes('resetScienceState()')) fail('run_must_preserve_valid_science_progress');
-if (!runProgram.includes("if(!scienceScanned||!scienceAnalyzed||!scienceSent)")) fail('science_completion_contract_missing');
+if (!runProgram.includes("if(!scienceScanned||!scienceAnalyzed||!scienceSent||!atCommunicationPoint())")) fail('science_completion_contract_missing_final_position');
+if (!runProgram.includes('AYNI debe finalizar en el punto de comunicación.')) fail('final_position_feedback_missing');
 
 const clearStart = html.indexOf("document.getElementById('clear-btn').onclick=");
 if (clearStart < 0) fail('clear_handler_missing');
@@ -59,4 +60,4 @@ for (const token of ['program=[]', 'resetScienceState()', 'resetRover()', "recor
   if (!clearSnippet.includes(token)) fail(`clear_contract:${token}`);
 }
 
-console.info('[mission01] LEVEL 6 CONTRACT HARDENING OK · click/drag/keyboard · REPETIR optional · N5 tutorial removed · graceful failure/reset · spontaneous reuse telemetry');
+console.info('[mission01] LEVEL 6 CONTRACT HARDENING OK · click/drag/keyboard · REPETIR optional · N5 tutorial removed · graceful failure/reset · final communication position · spontaneous reuse telemetry');
