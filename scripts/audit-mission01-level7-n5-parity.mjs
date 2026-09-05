@@ -21,31 +21,39 @@ for (const token of [
   'id="program-scroll-down"',
   'id="repeat-palette"',
   'AYNI_FRONT_ORIENTATION',
-  'data-command="read"',
-  'data-command="record"',
-  'data-command="send"',
-  'SENSOR 1',
-  'SENSOR 2',
-  'LEER SENSOR',
-  'REGISTRAR DATO',
-  'ENVIAR DATOS',
+  'data-command="analyzeSample"',
+  'ANALIZAR MUESTRA',
+  'SENSOR DE TEMPERATURA',
+  'SENSOR DE PROXIMIDAD',
+  'ANALIZADOR DE MINERALES',
+  'RANURA DE SENSOR',
+  'MUESTRA DE INTERÉS',
+  'CAMBIAR SENSOR',
+  '-58 °C',
+  'DISTANCIA: 0.4 m',
+  'Hierro ............. DETECTADO',
+  'Silicatos .......... DETECTADOS',
+  'Firma mineral ...... COMPATIBLE',
   'MISIÓN 01 COMPLETADA',
 ]) if (!l7.includes(token)) fail(`missing:${token}`);
 
-for (const token of ['class="panel simulator"','class="panel editor"','class="board-wrap"','grid-template-columns:990px 614px','Tu programa aparecerá aquí.','AYNI · FRENTE · LUZ CYAN']) {
-  if (l7.includes(token)) fail(`parallel_shell_leak:${token}`);
-}
+for (const token of [
+  'class="panel simulator"','class="panel editor"','class="board-wrap"',
+  'grid-template-columns:990px 614px','Tu programa aparecerá aquí.','AYNI · FRENTE · LUZ CYAN',
+  'data-command="read"','data-command="record"','data-command="send"'
+]) if (l7.includes(token)) fail(`legacy_or_parallel_contract:${token}`);
+
 if (l7.includes('apulab-repeat-focus')) fail('repeat_tutorial_leak');
 if (/nextLevel\s*:\s*8|CONTINUAR AL NIVEL 8/.test(l7)) fail('fake_level8');
 if (!/repeatUnlocked\s*=\s*true/.test(l7)) fail('repeat_not_available');
-if (!l7.includes('if(!usesRepeat())')) fail('repeat_not_required');
-if (!l7.includes('sensorRecords.length<2')) fail('two_sensor_requirement_missing');
+if (l7.includes('if(!usesRepeat())')) fail('repeat_must_not_be_required');
 if (!l7.includes("type:'apulab-level-ready', level:7")) fail('ready_identity');
 if (!l7.includes("type:'apulab-runtime-error',level:7")) fail('error_identity');
+if (!l7.includes("localStorage.setItem('apulab.level7.sensor',equippedSensorId)")) fail('sensor_persistence_missing');
+if (!l7.includes("feedback.textContent='Programa conservado. Cambia únicamente el sensor.'")) fail('program_preservation_missing');
 
-// La estructura crítica de N5 debe seguir presente en N7.
 for (const token of ['board-shell','board-labels-top','board-labels-left','program-list','program-scroll','repeat-card','command-block']) {
   if (!l5.includes(token) || !l7.includes(token)) fail(`canonical_structure:${token}`);
 }
 
-console.info('[mission01] LEVEL 7 ↔ N5 STATIC PARITY OK · 1672×941 · 950×664 · editor 01–30 · AYNI · sensores');
+console.info('[mission01] LEVEL 7 ↔ N5 STATIC PARITY OK · shell canónico · muestra desconocida · 1 ranura · 3 sensores · ANALIZAR MUESTRA');
