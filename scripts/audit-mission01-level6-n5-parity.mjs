@@ -75,10 +75,10 @@ if (n6Canvas[1] !== '950' || n6Canvas[2] !== '664') fail('canvas_expected_950x66
 if (!/repeatUnlocked\s*=\s*true/.test(l6)) fail('repeat_not_available');
 if (/id="repeat-palette"[^>]*\shidden\b/.test(l6)) fail('repeat_still_hidden');
 if (l6.includes('if(!usesRepeat())')) fail('repeat_must_be_optional');
-if (!l6.includes('if(!scienceScanned||!scienceAnalyzed||!scienceSent)')) fail('science_cycle_not_required');
+if (!l6.includes('if(!scienceScanned||!scienceAnalyzed||!scienceSent||!atCommunicationPoint())')) fail('science_cycle_or_final_checkpoint_not_required');
 
 for (const forbidden of ['SENSOR DE TEMPERATURA','SENSOR DE PROXIMIDAD','ANALIZADOR DE MINERALES','RANURA DE SENSOR','ANALIZAR MUESTRA']) {
   if (l6.includes(forbidden)) fail(`level7_content_leaked:${forbidden}`);
 }
 
-console.info('[mission01] LEVEL 6 ↔ N5 PARITY OK · mismo shell 1672×941/950×664 · dos checkpoints · ciencia añadida · REPETIR opcional');
+console.info('[mission01] LEVEL 6 ↔ N5 PARITY OK · mismo shell 1672×941/950×664 · dos checkpoints · cierre en comunicación · REPETIR opcional');
