@@ -101,7 +101,8 @@ async function level6() {
   assert(await page.locator('.command-block[data-command="scan"]').isVisible(), 'L6: ESCANEAR missing');
   assert(await page.locator('.command-block[data-command="analyze"]').isVisible(), 'L6: ANALIZAR missing');
   assert(await page.locator('.command-block[data-command="send"]').isVisible(), 'L6: ENVIAR DATOS missing');
-  assert(await page.getByText('PUNTO DE COMUNICACIÓN', { exact: true }).count() >= 0, 'L6: communication checkpoint contract missing');
+  await page.waitForFunction(() => window.apulabLevel6QA?.hasCommunicationPoint() === true);
+  assert(await page.evaluate(() => window.apulabLevel6QA?.hasCommunicationPoint() === true), 'L6: communication checkpoint contract missing');
 
   // Graceful failure: ANALIZAR before ESCANEAR must preserve the program.
   await addAccessibleCommands(page, ['analyze']);
