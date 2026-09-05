@@ -149,21 +149,45 @@ async function level5() {
 
 async function level6() {
   const page = await openLevel(6);
-  await page.waitForFunction(() => document.documentElement.dataset.apulabSceneReady === 'true', null, { timeout: 10_000 });
 
-  await page.locator('.command[data-command="repeat"]').click();
-  await page.locator('.command[data-command="forward"]').click();
-  await page.locator('.program-node.repeat .inc').click();
-  await page.locator('.program-node.repeat .inc').click();
-  await page.locator('#exit-repeat').click();
-  await page.locator('.command[data-command="scan"]').click();
-  await page.locator('.command[data-command="analyze"]').click();
-  await page.locator('.command[data-command="send"]').click();
+  assert(await page.locator('#repeat-palette').isVisible(), 'L6: REPETIR must be available from the start');
+  assert(await page.locator('#program-list .program-row').count() === 30, 'L6: N5 30-row program editor was not preserved');
+  assert(await page.locator('.board-labels-top > *').count() === 8, 'L6: A-H board coordinates missing');
+  assert(await page.locator('.board-labels-left > *').count() === 8, 'L6: 1-8 board coordinates missing');
 
-  assert((await page.locator('.program-node.repeat .repeat-count').textContent() || '').includes('4'), 'L6: REPETIR should be ×4');
+  // Mismo flujo físico de N5: REPETIR en la fila 01, AVANZAR arrastrado dentro y ×4.
+  await page.locator('#repeat-palette').dblclick();
+  await pointerDrag(page, page.locator('.command-block[data-command="forward"]'), page.locator('.repeat-body[data-repeat-body="0"]'));
+  await page.locator('[data-count="0:1"]').click();
+  await page.locator('[data-count="0:1"]').click();
+
+  // Los nuevos comandos científicos son extensiones del mismo command-block N5.
+  await page.locator('.command-block[data-command="scan"]').dblclick();
+  await page.locator('.command-block[data-command="analyze"]').dblclick();
+  await page.locator('.command-block[data-command="send"]').dblclick();
+
+  assert(await page.locator('.repeat-card').count() === 1, 'L6: REPETIR was not created in N5 editor');
+  assert(await page.locator('.nested-chip').count() === 1, 'L6: AVANZAR was not nested in REPETIR');
+  assert((await page.locator('.repeat-card .repeat-count').textContent() || '').includes('4'), 'L6: REPETIR should be ×4');
+  assert(await page.locator('.program-block.block-scan').count() === 1, 'L6: ESCANEAR was not added to program');
+  assert(await page.locator('.program-block.block-analyze').count() === 1, 'L6: ANALIZAR was not added to program');
+  assert(await page.locator('.program-block.block-send').count() === 1, 'L6: ENVIAR DATOS was not added to program');
+
   await page.locator('#run-btn').click();
-  await page.locator('#success-overlay.visible').waitFor({ timeout: 20_000 });
-  assert((await page.locator('#success-data').textContent() || '').length > 0, 'L6: scientific result was not written');
+  await page.locator('#success-overlay.visible').waitFor({ timeout: 30_000 });
+  const science = await page.locator('#success-data').textContent() || '';
+  assert(science.includes('Escaneo completado'), 'L6: scientific result missing scan');
+  assert(science.includes('Análisis completado'), 'L6: scientific result missing analysis');
+  assert(science.includes('Datos enviados'), 'L6: scientific result missing transmission');
+
+  await page.evaluate(() => {
+    window.__e2eTransitions = [];
+    window.addEventListener('message', (event) => {
+      if (event.data?.type === 'apulab-level-complete') window.__e2eTransitions.push(event.data);
+    });
+  });
+  await page.locator('#continue-btn').click();
+  await page.waitForFunction(() => window.__e2eTransitions?.some((x) => x.level === 6 && x.nextLevel === 7));
   await closeLevel();
 }
 
@@ -205,7 +229,7 @@ async function level7() {
   assert(runtimeErrors.length === 0, `runtime errors detected:\n${runtimeErrors.join('\n')}`);
   await context.tracing.stop();
   await browser.close();
-  console.log('[e2e] Mission 01 gameplay OK · N3 real · N4 real · N5 long route → REPETIR attention → compressed route → N6 · N6 science · N7 sensors');
+  console.log('[e2e] Mission 01 gameplay OK · N3 real · N4 real · N5 route→REPETIR · N6 N5-shell science · N7 sensors');
 })().catch(async (error) => {
   console.error(error);
   await saveEvidence(error);

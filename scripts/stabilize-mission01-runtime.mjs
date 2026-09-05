@@ -100,7 +100,18 @@ for (let level = 1; level <= 7; level += 1) {
     html = requireReplace(html, '</head>', `${LEVEL5_REPEAT_VISIBILITY_CSS}\n</head>`, 'level5-repeat-hidden-style');
   }
 
-  if (level === 6 || level === 7) {
+  if (level === 6 && html.includes('APULAB_LEVEL6_FROM_LEVEL5_V1')) {
+    for (const token of [
+      'id="board-shell" class="board-shell"',
+      'id="program-list" class="program-list"',
+      'id="repeat-palette"',
+      'data-command="scan"',
+      'data-command="analyze"',
+      'data-command="send"',
+    ]) {
+      if (!html.includes(token)) throw new Error(`mission01_stabilize_level6_n5_shell_missing:${token}`);
+    }
+  } else if (level === 6 || level === 7) {
     const canonicalShell = html.includes('class="panel simulator"') && html.includes('class="panel editor"');
     if (canonicalShell) {
       if (!html.includes("d.querySelector('.node-remove').onclick=(e)=>")) {
@@ -132,4 +143,4 @@ for (let level = 1; level <= 7; level += 1) {
   await writeFile(path, html, 'utf8');
 }
 
-console.info('[mission01] STABILIZATION PATCH OK · Three local completo N1–N7 · Poppins N1–N7 · SFX global · N1=15.0V · REPETIR N5 oculto · N6/N7 shell canónico respetado');
+console.info('[mission01] STABILIZATION PATCH OK · Three local completo N1–N7 · Poppins N1–N7 · SFX global · N1=15.0V · REPETIR N5 oculto · N6 derivado de N5 respetado · N7 shell canónico');

@@ -12,7 +12,15 @@ for (const level of [1, 2, 3, 4, 5, 6, 7]) {
   const hasHeight = /(?:height\s*:\s*941px|DESIGN_(?:HEIGHT|H)\s*=\s*941|DESIGN_H\s*=\s*941)/.test(html);
   if (!hasWidth || !hasHeight) fail('logical_canvas_missing', `l${level}`);
 
-  if (level >= 6) {
+  if (level === 6 && html.includes('APULAB_LEVEL6_FROM_LEVEL5_V1')) {
+    if (!html.includes('width:1672px;height:941px')) fail('fixed_stage_missing', 'l6');
+    if (!/(?:const\s+)?DESIGN_(?:W|WIDTH)\s*=\s*1672/.test(html)) fail('n5_design_width_missing', 'l6');
+    if (!/(?:const\s+)?DESIGN_(?:H|HEIGHT)\s*=\s*941/.test(html)) fail('n5_design_height_missing', 'l6');
+    if (!/stage\.style\.transform\s*=\s*`scale\(\$\{s\}\)`/.test(html) && !html.includes("stage.style.setProperty('--apulab-stage-scale'")) {
+      fail('scale_application_missing', 'l6');
+    }
+    if (/\.stage\{[^}]*width:100%;height:100%/.test(html)) fail('responsive_free_stage_forbidden', 'l6');
+  } else if (level >= 6) {
     if (!html.includes('id="apulab-stage-fit-1672x941"')) fail('fit_script_missing', `l${level}`);
     if (!html.includes('width:1672px;height:941px')) fail('fixed_stage_missing', `l${level}`);
     if (!html.includes("stage.style.setProperty('--apulab-stage-scale'")) fail('scale_application_missing', `l${level}`);
