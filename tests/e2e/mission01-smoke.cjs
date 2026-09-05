@@ -142,6 +142,15 @@ async function persistEvidence(error) {
     assert(runtime.poppinsDeclared, `level ${level}: Poppins missing from computed font stack`);
     assert(runtime.poppinsLink, `level ${level}: Google Fonts Poppins stylesheet missing`);
 
+    if (level === 7) {
+      const sensorOverlay = frame.locator('#sensor-overlay.visible');
+      await sensorOverlay.waitFor({ state: 'visible', timeout: 5_000 });
+      assert(await frame.locator('.sensor-option').count() === 3, 'level 7: expected exactly three sensor choices');
+      await frame.locator('.sensor-option[data-sensor="mineral"]').click();
+      await frame.locator('#equip-sensor-btn').click();
+      await frame.locator('#sensor-overlay').waitFor({ state: 'hidden', timeout: 5_000 });
+    }
+
     await finishExploreLifecycle(frame, level);
 
     const guide = frame.getByRole('button', { name: /GUÍA/i }).first();
@@ -182,7 +191,7 @@ async function persistEvidence(error) {
 
   await context.tracing.stop();
   await browser.close();
-  console.log('[e2e] Mission 01 browser smoke OK · real hit-target clicks · menu → demo → intro skip → N1→N7 · WebGL/Poppins/help/runtime clean');
+  console.log('[e2e] Mission 01 browser smoke OK · real hit-target clicks · menu → demo → intro skip → N1→N7 · WebGL/Poppins/help/runtime clean · N7 sensor selection handled');
 })().catch(async (error) => {
   console.error(error);
   await persistEvidence(error);
