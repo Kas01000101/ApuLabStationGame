@@ -57,11 +57,10 @@ if ((l7.match(/(?:\{title:|\{"title":)/g) || []).length < 4) fail('l7_explore_st
 
 for (const [level, html] of [[6,l6],[7,l7]]) {
   if (!html.includes('new THREE.WebGLRenderer')) fail(`three_${level}`);
-  if (!html.includes('renderer.dispose()')) fail(`renderer_dispose_${level}`);
+  if (!html.includes('function __apulabDisposeLevelV127()')) fail(`structured_disposer_${level}`);
+  if (!html.includes('window.__apulabStopAllAnimationFrames?.()')) fail(`raf_cancel_${level}`);
   if (!html.includes('renderer.forceContextLoss?.()')) fail(`context_loss_${level}`);
-  if (!html.includes("type==='apulab-dispose'")) fail(`dispose_message_${level}`);
-  if (!html.includes("requestAnimationFrame=(cb)=>")) fail(`raf_guard_${level}`);
-  if (!html.includes('scene.traverse((obj)=>')) fail(`gpu_dispose_${level}`);
+  if (!html.includes('pagehide')) fail(`pagehide_${level}`);
   if (!html.includes("document.getElementById('journal-overlay')?.classList.remove('visible')") && !html.includes("closeTransientUI('success')")) fail(`overlay_exclusive_${level}`);
   const match = html.match(/<script type="module">\n([\s\S]*?)\n<\/script>/);
   if (!match) fail(`module_script_${level}`);
