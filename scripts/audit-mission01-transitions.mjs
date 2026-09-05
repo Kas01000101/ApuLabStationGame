@@ -70,24 +70,18 @@ for (const level of [1, 2]) {
   if (!html.includes('pagehide')) fail('native_pagehide', `l${level}`);
 }
 
-// N6 ahora hereda literalmente el runtime de N5 y, por tanto, su disposer estructurado.
-for (const level of [3, 4, 5, 6]) {
+// N3–N7 usan el disposer estructurado de la familia canónica de programación.
+for (const level of [3, 4, 5, 6, 7]) {
   const html = await readFile(resolve(OUT, `level${level}.html`), 'utf8');
   if (level === 6 && !html.includes('APULAB_LEVEL6_FROM_LEVEL5_V1')) fail('l6_source');
+  if (level === 7 && !html.includes('APULAB_LEVEL7_FROM_LEVEL5_V1')) fail('l7_source');
   if (!html.includes('function __apulabDisposeLevelV127()')) fail('structured_disposer', `l${level}`);
   if (!html.includes('window.__apulabStopAllAnimationFrames?.()')) fail('structured_raf_cancel', `l${level}`);
   if (!html.includes('renderer.forceContextLoss?.()')) fail('structured_context_release', `l${level}`);
   if (!html.includes('pagehide')) fail('structured_pagehide', `l${level}`);
 }
 
-// N7 conserva el runtime nuevo independiente en este PR.
-{
-  const html = await readFile(resolve(OUT, 'level7.html'), 'utf8');
-  if (!html.includes('rafIds.clear()')) fail('new_raf_cancel', 'l7');
-  if (!html.includes('renderer.dispose()')) fail('new_renderer_dispose', 'l7');
-  if (!html.includes('renderer.forceContextLoss?.()')) fail('new_context_release', 'l7');
-  if (!html.includes('pagehide')) fail('new_pagehide', 'l7');
-  if (/nextLevel\s*:\s*8|CONTINUAR AL NIVEL 8/.test(html)) fail('fake_level8');
-}
+const l7 = await readFile(resolve(OUT, 'level7.html'), 'utf8');
+if (/nextLevel\s*:\s*8|CONTINUAR AL NIVEL 8/.test(l7)) fail('fake_level8');
 
-console.info('[mission01] TRANSITION CONTRACT V5 OK · N6 usa cleanup estructurado heredado de N5 · N7 conserva cleanup vigente');
+console.info('[mission01] TRANSITION CONTRACT V6 OK · N6/N7 usan cleanup estructurado heredado de N5 · sin nivel 8');

@@ -5,7 +5,6 @@ const OUT=resolve(process.cwd(),'public/missions/mission01');
 function fail(code,detail=''){throw new Error(`mission01_ux_contract_v2:${code}${detail?`:${detail}`:''}`)}
 function arrayBody(source,marker,label){const start=source.indexOf(marker);if(start<0)fail('array_start',label);const bracket=source.indexOf('[',start);let depth=0,quote=null,escaped=false;for(let i=bracket;i<source.length;i++){const ch=source[i];if(quote){if(escaped){escaped=false;continue}if(ch==='\\'){escaped=true;continue}if(ch===quote)quote=null;continue}if(ch==='"'||ch==="'"||ch==='`'){quote=ch;continue}if(ch==='[')depth++;else if(ch===']'&&--depth===0)return source.slice(bracket+1,i)}fail('array_end',label)}
 function exploreCount(level,html){
-  if(level===7){const m=html.match(/const CFG=(\{.*?\});\n/);if(!m)fail('cfg_missing',`l${level}`);let cfg;try{cfg=JSON.parse(m[1])}catch{fail('cfg_json',`l${level}`)}return Array.isArray(cfg.explore)?cfg.explore.length:0}
   const marker=level<=2?'const guidedExplanation = [':'const exploreSteps=';
   const body=arrayBody(html,marker,`l${level}`);return(body.match(/(?:\btitle\s*:|"title"\s*:)/g)||[]).length
 }
@@ -46,15 +45,20 @@ for(const level of [3,4,5]){
 }
 {
  const level=7,html=levels.get(level);
+ if(!html.includes('APULAB_LEVEL7_FROM_LEVEL5_V1'))fail('l7_source');
  if(/id="guide-btn"[^>]*disabled/.test(html)||/id="explore-btn"[^>]*disabled/.test(html))fail('optional_help_disabled',`l${level}`);
- const exploreVisible=html.includes("info.className='info-panel visible explore'")||html.includes("info.className='info-panel visible apulab-explore-yellow'");
- if(!exploreVisible)fail('explore_yellow',`l${level}`);
- if(!html.includes("info.className='info-panel visible'"))fail('guide_visible',`l${level}`);
- if(!html.includes('GUÍA · 3 PASOS')||!html.includes('guide-task')||!html.includes("'completed'"))fail('guide_structure',`l${level}`);
- if(!html.includes('AYNI · FRENTE = LUZ CYAN'))fail('ayni_front',`l${level}`);
- if(!html.includes('REPETIR × N')||!html.includes('usesRepeat()'))fail('repeat_required',`l${level}`);
- if(!html.includes('class="panel simulator"')||!html.includes('class="panel editor"'))fail('shared_programming_shell',`l${level}`);
+ if(!html.includes('AYNI_FRONT_ORIENTATION'))fail('ayni_front',`l${level}`);
+ if(!html.includes('id="repeat-palette"')||!html.includes('REPETIR'))fail('repeat_available',`l${level}`);
+ if(html.includes('if(!usesRepeat())'))fail('repeat_must_be_optional',`l${level}`);
+ if(!html.includes('id="board-shell" class="board-shell"')||!html.includes('id="program-list" class="program-list"'))fail('n5_programming_shell',`l${level}`);
+ if(!html.includes('id="board-canvas" width="950" height="664"'))fail('board_geometry',`l${level}`);
+ if(!html.includes('class="board-labels-top"')||!html.includes('class="board-labels-left"'))fail('board_coordinates',`l${level}`);
+ if(html.includes('class="panel simulator"')||html.includes('class="panel editor"')||html.includes('class="board-wrap"'))fail('parallel_shell',`l${level}`);
+ for(const token of ['LA MUESTRA DESCONOCIDA','MUESTRA DE INTERÉS','RANURA DE SENSOR','SENSOR DE TEMPERATURA','SENSOR DE PROXIMIDAD','ANALIZADOR DE MINERALES','data-command="analyzeSample"','ANALIZAR MUESTRA','CAMBIAR SENSOR'])if(!html.includes(token))fail('sensor_contract',`l${level}:${token}`);
+ for(const legacy of ['data-command="read"','data-command="record"','data-command="send"'])if(html.includes(legacy))fail('legacy_sensor_command',`l${level}:${legacy}`);
+ if(!html.includes("function openJournal(){document.getElementById('info-panel')?.classList.remove('visible')"))fail('journal_single_owner',`l${level}`);
+ if(html.includes('AYNI · FRENTE = LUZ CYAN')||html.includes('AYNI · FRENTE · LUZ CYAN'))fail('legacy_ayni_label',`l${level}`);
 }
 const expected=[[1,2,'Nivel 1'],[2,3,'Nivel 2'],[3,4,'Nivel 3'],[4,5,'Nivel 4'],[5,6,'Nivel 5'],[6,7,'NIVEL 6']];for(const [level,next,label] of expected){const html=levels.get(level);if(!html.includes(label)&&!html.includes(label.toUpperCase()))fail('level_label',`l${level}`);if(!html.includes(`nextLevel: ${next}`)&&!html.includes(`nextLevel:${next}`)&&!html.includes(`CONTINUAR AL NIVEL ${next}`))fail('next_level',`l${level}->${next}`)}
 if(/nextLevel\s*:\s*8|CONTINUAR AL NIVEL 8/.test(levels.get(7)))fail('fake_level8');
-console.info('[mission01] UX CONTRACT V2 OK · ayudas opcionales · EXPLORAR máximo 4 · N6=N5 real + ciencia · N7 shell vigente');
+console.info('[mission01] UX CONTRACT V2 OK · ayudas opcionales · EXPLORAR máximo 4 · N6 ciencia + N7 muestra desconocida/3 sensores + REPETIR opcional');
