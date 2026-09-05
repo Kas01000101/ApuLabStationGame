@@ -14,8 +14,8 @@ for (const level of [1, 2, 3, 4, 5, 6, 7]) {
 
   if (level === 6 && html.includes('APULAB_LEVEL6_FROM_LEVEL5_V1')) {
     if (!html.includes('width:1672px;height:941px')) fail('fixed_stage_missing', 'l6');
-    if (!/const\s+DESIGN_(?:W|WIDTH)\s*=\s*1672/.test(html)) fail('n5_design_width_missing', 'l6');
-    if (!/const\s+DESIGN_(?:H|HEIGHT)\s*=\s*941/.test(html)) fail('n5_design_height_missing', 'l6');
+    if (!/(?:const\s+)?DESIGN_(?:W|WIDTH)\s*=\s*1672/.test(html)) fail('n5_design_width_missing', 'l6');
+    if (!/(?:const\s+)?DESIGN_(?:H|HEIGHT)\s*=\s*941/.test(html)) fail('n5_design_height_missing', 'l6');
     if (!/stage\.style\.transform\s*=\s*`scale\(\$\{s\}\)`/.test(html) && !html.includes("stage.style.setProperty('--apulab-stage-scale'")) {
       fail('scale_application_missing', 'l6');
     }
