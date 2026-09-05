@@ -132,16 +132,6 @@ jobs:
           cat /tmp/apulab-gameplay-preview.log
           exit 1
 
-      - name: Real electronics N1 to N2
-        env:
-          APULAB_BASE_URL: http://127.0.0.1:4173
-        run: node tests/e2e/mission01-electronics.cjs
-
-      - name: Real gameplay N3 to N7
-        env:
-          APULAB_BASE_URL: http://127.0.0.1:4173
-        run: node tests/e2e/mission01-gameplay.cjs
-
       - name: Level 6 physical parity with Level 5
         env:
           APULAB_BASE_URL: http://127.0.0.1:4173
@@ -151,6 +141,16 @@ jobs:
         env:
           APULAB_BASE_URL: http://127.0.0.1:4173
         run: node tests/e2e/mission01-level6-navigation-identity.cjs
+
+      - name: Real electronics N1 to N2
+        env:
+          APULAB_BASE_URL: http://127.0.0.1:4173
+        run: node tests/e2e/mission01-electronics.cjs
+
+      - name: Real gameplay N3 to N7
+        env:
+          APULAB_BASE_URL: http://127.0.0.1:4173
+        run: node tests/e2e/mission01-gameplay.cjs
 
       - name: Level 7 shell visual contract
         env:
