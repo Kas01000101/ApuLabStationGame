@@ -17,7 +17,7 @@ const css = `<style id="apulab-level6-palette-fit">
 /* Mantener exactamente la caja de COMANDOS de N5. Solo se compacta el grupo nuevo de CIENCIA. */
 .apulab-science-palette{margin-top:0!important;padding-top:6px!important}
 .apulab-science-palette .palette-group-title{margin-bottom:5px!important}
-.apulab-science-palette .command-block{height:56px!important;margin-bottom:6px!important}
+.apulab-science-palette .command-block{height:54px!important;margin-bottom:6px!important}
 .apulab-science-palette .command-block:last-child{margin-bottom:0!important}
 </style>`;
 
@@ -26,7 +26,7 @@ html = html.replace('</head>', `${css}\n</head>`);
 for (const token of [
   'id="apulab-level6-palette-fit"',
   '.apulab-science-palette{margin-top:0!important;padding-top:6px!important}',
-  '.apulab-science-palette .command-block{height:56px!important;margin-bottom:6px!important}',
+  '.apulab-science-palette .command-block{height:54px!important;margin-bottom:6px!important}',
 ]) if (!html.includes(token)) fail(`contract:${token}`);
 
 await writeFile(LEVEL6, html, 'utf8');
