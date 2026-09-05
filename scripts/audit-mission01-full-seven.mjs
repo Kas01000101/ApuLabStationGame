@@ -53,7 +53,7 @@ if (l6.includes('apulab-repeat-focus')) fail('l6_n5_repeat_tutorial_leak');
 if (!/repeatUnlocked\s*=\s*true/.test(l6)) fail('l6_repeat_available');
 if (!l6.includes('if(!usesRepeat())')) fail('l6_repeat_required');
 if (!l6.includes('if(!scienceScanned||!scienceAnalyzed||!scienceSent)')) fail('l6_science_required');
-if ((l6.match(/\{title:/g) || []).length < 4) fail('l6_explore_steps');
+if ((l6.match(/(?:\{title:|\{"title":)/g) || []).length < 4) fail('l6_explore_steps');
 
 const l7 = levels.get(7);
 for (const token of ['SENSORES Y BUCLES','REPETIR × N','LEER SENSOR','REGISTRAR DATO','ENVIAR DATOS','GUÍA · 3 PASOS','SENSOR 1','SENSOR 2','MISIÓN 01 COMPLETADA']) {
@@ -64,7 +64,6 @@ if (!l7.includes('records.length<2')) fail('l7_requires_two_sensors');
 if (!l7.includes("const LEVEL=7")) fail('l7_identity');
 if (!l7.includes('class="panel simulator"') || !l7.includes('class="panel editor"')) fail('l7_shell');
 
-// N7 conserva el shell configurado vigente. N6 se audita por paridad con N5 arriba.
 {
   const html = l7;
   const exploreVisible = html.includes("info.className='info-panel visible explore'") || html.includes("info.className='info-panel visible apulab-explore-yellow'");
