@@ -46,9 +46,17 @@ jobs:
           grep -Fq 'CONTINUAR AL NIVEL 7' public/missions/mission01/level6.html
           grep -Fq 'MISIÓN 01 COMPLETADA' public/missions/mission01/level7.html
           grep -Fq 'MISIÓN CIENTÍFICA' public/missions/mission01/level6.html
-          grep -Fq 'SENSORES Y BUCLES' public/missions/mission01/level7.html
+          grep -Fq 'LA MUESTRA DESCONOCIDA' public/missions/mission01/level7.html
+          grep -Fq 'ANALIZAR MUESTRA' public/missions/mission01/level7.html
+          grep -Fq 'SENSOR DE TEMPERATURA' public/missions/mission01/level7.html
+          grep -Fq 'SENSOR DE PROXIMIDAD' public/missions/mission01/level7.html
+          grep -Fq 'ANALIZADOR DE MINERALES' public/missions/mission01/level7.html
+          grep -Fq 'RANURA DE SENSOR' public/missions/mission01/level7.html
           grep -Fq 'REPETIR × N' public/missions/mission01/level6.html
           grep -Fq 'REPETIR × N' public/missions/mission01/level7.html
+          ! grep -Fq 'data-command="read"' public/missions/mission01/level7.html
+          ! grep -Fq 'data-command="record"' public/missions/mission01/level7.html
+          ! grep -Fq 'data-command="send"' public/missions/mission01/level7.html
           grep -Fq '"totalLevels": 7' public/missions/mission01/manifest.json
           grep -Fq '"availableLevels"' public/missions/mission01/manifest.json
           grep -Fq '"level": 7' public/missions/mission01/manifest.json
