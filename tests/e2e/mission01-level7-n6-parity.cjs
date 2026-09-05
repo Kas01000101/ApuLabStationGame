@@ -62,7 +62,11 @@ async function shot(name){await mkdir(OUT,{recursive:true});await page.screensho
   assert(n7.sensors.send.bottom<=n7.editorFooter.y+2,`L7: ENVIAR DATOS overlaps footer (${n7.sensors.send.bottom} > ${n7.editorFooter.y})`);
   assert(await page.locator('.panel.simulator,.panel.editor,.board-wrap').count()===0,'L7: parallel legacy shell returned');
   assert(await page.locator('#apulab-repeat-arrow,.apulab-repeat-focus').count()===0,'L7: N5 REPETIR tutorial leaked into N7');
-  assert((await page.locator('body').innerText()).includes('SENSOR 1')&&(await page.locator('body').innerText()).includes('SENSOR 2'),'L7: two sensor labels missing');
+  const board = page.locator('#board-canvas');
+  assert((await board.getAttribute('role')) === 'img', 'L7: sensor board must expose image semantics');
+  const boardLabel = await board.getAttribute('aria-label') || '';
+  assert(boardLabel.includes('SENSOR 1') && boardLabel.includes('SENSOR 2'), 'L7: accessible sensor labels missing');
+  assert(boardLabel.includes('18 °C') && boardLabel.includes('23 °C'), 'L7: accessible sensor values missing');
 
   await page.locator('#guide-btn').click(); await page.locator('#info-panel.visible').waitFor({timeout:5000});
   await page.locator('#journal-btn').click(); await page.locator('#journal-overlay.visible').waitFor({timeout:5000});
@@ -72,5 +76,5 @@ async function shot(name){await mkdir(OUT,{recursive:true});await page.screensho
   assert(errors.length===0,`runtime errors detected:\n${errors.join('\n')}`);
   await writeFile(resolve(OUT,'metrics.json'),JSON.stringify({n6,n7},null,2),'utf8');
   await browser.close();
-  console.log('[e2e] N6→N7 PARITY OK · 1672×941 · same shell/footer · 950×664 board · 30 rows · sensors contained');
+  console.log('[e2e] N6→N7 PARITY OK · 1672×941 · same shell/footer · 950×664 board · 30 rows · sensors contained + accessible');
 })().catch(async(error)=>{console.error(error);await mkdir(OUT,{recursive:true});await writeFile(resolve(OUT,'runtime.log'),`${String(error?.stack||error)}\n\n${errors.join('\n')}\n`,'utf8');try{if(page)await page.screenshot({path:resolve(OUT,'failure.png'),fullPage:true})}catch(_){}try{await browser?.close()}catch(_){}process.exitCode=1;});
