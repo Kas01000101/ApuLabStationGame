@@ -48,15 +48,17 @@ for(const level of [3,4,5]){
  if(!html.includes('APULAB_LEVEL7_FROM_LEVEL5_V1'))fail('l7_source');
  if(/id="guide-btn"[^>]*disabled/.test(html)||/id="explore-btn"[^>]*disabled/.test(html))fail('optional_help_disabled',`l${level}`);
  if(!html.includes('AYNI_FRONT_ORIENTATION'))fail('ayni_front',`l${level}`);
- if(!html.includes('REPETIR')||!html.includes('usesRepeat()'))fail('repeat_required',`l${level}`);
+ if(!html.includes('id="repeat-palette"')||!html.includes('REPETIR'))fail('repeat_available',`l${level}`);
+ if(html.includes('if(!usesRepeat())'))fail('repeat_must_be_optional',`l${level}`);
  if(!html.includes('id="board-shell" class="board-shell"')||!html.includes('id="program-list" class="program-list"'))fail('n5_programming_shell',`l${level}`);
  if(!html.includes('id="board-canvas" width="950" height="664"'))fail('board_geometry',`l${level}`);
  if(!html.includes('class="board-labels-top"')||!html.includes('class="board-labels-left"'))fail('board_coordinates',`l${level}`);
  if(html.includes('class="panel simulator"')||html.includes('class="panel editor"')||html.includes('class="board-wrap"'))fail('parallel_shell',`l${level}`);
- for(const token of ['SENSOR 1','SENSOR 2','LEER SENSOR','REGISTRAR DATO','ENVIAR DATOS'])if(!html.includes(token))fail('sensor_contract',`l${level}:${token}`);
+ for(const token of ['LA MUESTRA DESCONOCIDA','MUESTRA DE INTERÉS','RANURA DE SENSOR','SENSOR DE TEMPERATURA','SENSOR DE PROXIMIDAD','ANALIZADOR DE MINERALES','data-command="analyzeSample"','ANALIZAR MUESTRA','CAMBIAR SENSOR'])if(!html.includes(token))fail('sensor_contract',`l${level}:${token}`);
+ for(const legacy of ['data-command="read"','data-command="record"','data-command="send"'])if(html.includes(legacy))fail('legacy_sensor_command',`l${level}:${legacy}`);
  if(!html.includes("function openJournal(){document.getElementById('info-panel')?.classList.remove('visible')"))fail('journal_single_owner',`l${level}`);
  if(html.includes('AYNI · FRENTE = LUZ CYAN')||html.includes('AYNI · FRENTE · LUZ CYAN'))fail('legacy_ayni_label',`l${level}`);
 }
 const expected=[[1,2,'Nivel 1'],[2,3,'Nivel 2'],[3,4,'Nivel 3'],[4,5,'Nivel 4'],[5,6,'Nivel 5'],[6,7,'NIVEL 6']];for(const [level,next,label] of expected){const html=levels.get(level);if(!html.includes(label)&&!html.includes(label.toUpperCase()))fail('level_label',`l${level}`);if(!html.includes(`nextLevel: ${next}`)&&!html.includes(`nextLevel:${next}`)&&!html.includes(`CONTINUAR AL NIVEL ${next}`))fail('next_level',`l${level}->${next}`)}
 if(/nextLevel\s*:\s*8|CONTINUAR AL NIVEL 8/.test(levels.get(7)))fail('fake_level8');
-console.info('[mission01] UX CONTRACT V2 OK · ayudas opcionales · EXPLORAR máximo 4 · N6 ciencia + N7 sensores sobre shell canónico N5');
+console.info('[mission01] UX CONTRACT V2 OK · ayudas opcionales · EXPLORAR máximo 4 · N6 ciencia + N7 muestra desconocida/3 sensores + REPETIR opcional');
