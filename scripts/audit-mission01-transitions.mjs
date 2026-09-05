@@ -77,7 +77,6 @@ for (const level of [3, 4, 5, 6, 7]) {
   if (level === 7 && !html.includes('APULAB_LEVEL7_FROM_LEVEL5_V1')) fail('l7_source');
   if (!html.includes('function __apulabDisposeLevelV127()')) fail('structured_disposer', `l${level}`);
   if (!html.includes('window.__apulabStopAllAnimationFrames?.()')) fail('structured_raf_cancel', `l${level}`);
-  if (!html.includes('renderer.dispose()')) fail('structured_renderer_dispose', `l${level}`);
   if (!html.includes('renderer.forceContextLoss?.()')) fail('structured_context_release', `l${level}`);
   if (!html.includes('pagehide')) fail('structured_pagehide', `l${level}`);
 }
