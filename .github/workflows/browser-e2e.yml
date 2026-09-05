@@ -147,6 +147,11 @@ jobs:
           APULAB_BASE_URL: http://127.0.0.1:4173
         run: node tests/e2e/mission01-level6-n5-parity.cjs
 
+      - name: Level 6 runtime identity and navigation
+        env:
+          APULAB_BASE_URL: http://127.0.0.1:4173
+        run: node tests/e2e/mission01-level6-navigation-identity.cjs
+
       - name: Level 7 shell visual contract
         env:
           APULAB_BASE_URL: http://127.0.0.1:4173
