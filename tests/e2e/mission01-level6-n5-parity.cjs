@@ -10,7 +10,6 @@ let context;
 let page;
 
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
-const rect = (el) => { const r = el.getBoundingClientRect(); return { x:r.x,y:r.y,width:r.width,height:r.height }; };
 
 async function open(level) {
   if (page) await page.close();
@@ -29,7 +28,7 @@ async function metrics() {
       const el = document.querySelector(selector);
       if (!el) return null;
       const r = el.getBoundingClientRect();
-      return { x:r.x,y:r.y,width:r.width,height:r.height };
+      return { x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom };
     };
     const stage = document.querySelector('#stage');
     return {
@@ -37,10 +36,16 @@ async function metrics() {
       main: R('.main'),
       simulator: R('#board-shell'),
       editor: R('.editor'),
+      editorFooter: R('.editor-footer'),
       canvas: R('#board-canvas'),
       palette: R('.palette'),
       workspace: R('.workspace'),
       program: R('#program-list'),
+      science: {
+        scan: R('.command-block[data-command="scan"]'),
+        analyze: R('.command-block[data-command="analyze"]'),
+        send: R('.command-block[data-command="send"]'),
+      },
       stage: R('#stage'),
       stageLogicalWidth: stage?.style.width || getComputedStyle(stage).width,
       stageLogicalHeight: stage?.style.height || getComputedStyle(stage).height,
@@ -65,6 +70,14 @@ function compareRect(name, a, b, tolerance = 2) {
   }
 }
 
+function assertInside(name, child, parent, tolerance = 2) {
+  assert(child && parent, `${name}: missing geometry`);
+  assert(child.x >= parent.x - tolerance, `${name}: left edge escaped palette (${child.x} < ${parent.x})`);
+  assert(child.right <= parent.right + tolerance, `${name}: right edge escaped palette (${child.right} > ${parent.right})`);
+  assert(child.y >= parent.y - tolerance, `${name}: top edge escaped palette (${child.y} < ${parent.y})`);
+  assert(child.bottom <= parent.bottom + tolerance, `${name}: bottom edge escaped palette (${child.bottom} > ${parent.bottom})`);
+}
+
 async function screenshot(name) {
   await mkdir(OUT, { recursive: true });
   await page.screenshot({ path: resolve(OUT, `${name}.png`), fullPage: true });
@@ -86,7 +99,7 @@ async function screenshot(name) {
   const n6 = await metrics();
   await screenshot('n6-initial');
 
-  for (const name of ['header','main','simulator','editor','canvas','palette','workspace','program']) {
+  for (const name of ['header','main','simulator','editor','editorFooter','canvas','palette','workspace','program']) {
     compareRect(name, n5[name], n6[name], 2);
   }
   assert(n6.stage && Math.abs(n6.stage.width - 1672) <= 2 && Math.abs(n6.stage.height - 941) <= 2,
@@ -100,6 +113,11 @@ async function screenshot(name) {
   assert(await page.locator('.command-block[data-command="scan"]').isVisible(), 'L6: ESCANEAR missing from N5 palette');
   assert(await page.locator('.command-block[data-command="analyze"]').isVisible(), 'L6: ANALIZAR missing from N5 palette');
   assert(await page.locator('.command-block[data-command="send"]').isVisible(), 'L6: ENVIAR DATOS missing from N5 palette');
+  for (const [name, scienceRect] of Object.entries(n6.science)) assertInside(`science.${name}`, scienceRect, n6.palette, 2);
+  assert(n6.palette.bottom <= n6.editorFooter.y + 2,
+    `L6: command palette overlaps editor footer (${n6.palette.bottom} > ${n6.editorFooter.y})`);
+  assert(n6.science.send.bottom <= n6.editorFooter.y + 2,
+    `L6: ENVIAR DATOS overlaps editor footer (${n6.science.send.bottom} > ${n6.editorFooter.y})`);
   assert(await page.locator('.panel.simulator,.panel.editor,.board-wrap').count() === 0, 'L6: parallel N6/N7 shell returned');
   assert(await page.locator('#apulab-repeat-arrow,.apulab-repeat-focus').count() === 0, 'L6: N5 REPETIR tutorial attention leaked into N6');
 
@@ -114,7 +132,7 @@ async function screenshot(name) {
   assert(errors.length === 0, `runtime errors detected:\n${errors.join('\n')}`);
   await writeFile(resolve(OUT, 'metrics.json'), JSON.stringify({ n5, n6 }, null, 2), 'utf8');
   await browser.close();
-  console.log('[e2e] N5→N6 PARITY OK · 1672×941 · same geometry · same 950×664 board · 30 rows · science extension');
+  console.log('[e2e] N5→N6 PARITY OK · 1672×941 · same geometry/footer · science contained · 950×664 board · 30 rows');
 })().catch(async (error) => {
   console.error(error);
   await mkdir(OUT, { recursive: true });
