@@ -8,6 +8,7 @@ on:
   pull_request:
     branches:
       - main
+      - refactor/mission01-level6-study-flow
 
 permissions:
   contents: read
@@ -44,31 +45,40 @@ jobs:
           grep -Fq 'CONTINUAR AL NIVEL 4' public/missions/mission01/level3.html
           ! grep -Fq 'NIVEL 4 · PRÓXIMAMENTE' public/missions/mission01/level3.html
           grep -Fq 'CONTINUAR AL NIVEL 7' public/missions/mission01/level6.html
-          grep -Fq 'MISIÓN 01 COMPLETADA' public/missions/mission01/level7.html
           grep -Fq 'INVESTIGAR' public/missions/mission01/level6.html
           grep -Fq 'DATOS CIENTÍFICOS' public/missions/mission01/level6.html
           grep -Fq 'ZONA DE INTERÉS' public/missions/mission01/level6.html
           grep -Fq 'PUNTO DE COMUNICACIÓN' public/missions/mission01/level6.html
           grep -Fq 'OBTENER → INTERPRETAR → COMUNICAR' public/missions/mission01/level6.html
+
           grep -Fq 'LA MUESTRA DESCONOCIDA' public/missions/mission01/level7.html
+          grep -Fq 'MUESTRA DESCONOCIDA' public/missions/mission01/level7.html
+          grep -Fq 'PUNTO DE MISIÓN' public/missions/mission01/level7.html
           grep -Fq 'ANALIZAR MUESTRA' public/missions/mission01/level7.html
-          grep -Fq 'SENSOR DE TEMPERATURA' public/missions/mission01/level7.html
-          grep -Fq 'SENSOR DE PROXIMIDAD' public/missions/mission01/level7.html
-          grep -Fq 'ANALIZADOR DE MINERALES' public/missions/mission01/level7.html
-          grep -Fq 'RANURA DE SENSOR' public/missions/mission01/level7.html
+          grep -Fq 'data-testid="block-analyze-sample"' public/missions/mission01/level7.html
+          grep -Fq 'TEMPERATURA' public/missions/mission01/level7.html
+          grep -Fq 'PROXIMIDAD' public/missions/mission01/level7.html
+          grep -Fq 'ANALIZADOR DE MATERIALES' public/missions/mission01/level7.html
+          grep -Fq 'CAMBIAR INSTRUMENTO' public/missions/mission01/level7.html
+          grep -Fq 'FINALIZAR MISIÓN' public/missions/mission01/level7.html
           grep -Fq 'REPETIR × N' public/missions/mission01/level6.html
           grep -Fq 'REPETIR × N' public/missions/mission01/level7.html
+
           ! grep -Fq 'if(!usesRepeat())' public/missions/mission01/level6.html
-          ! grep -Fq 'SENSOR DE TEMPERATURA' public/missions/mission01/level6.html
-          ! grep -Fq 'SENSOR DE PROXIMIDAD' public/missions/mission01/level6.html
-          ! grep -Fq 'ANALIZADOR DE MINERALES' public/missions/mission01/level6.html
+          ! grep -Fq 'if(!usesRepeat())' public/missions/mission01/level7.html
+          ! grep -Fq 'EQUIPA UN SENSOR' public/missions/mission01/level7.html
+          ! grep -Fq 'EQUIPAR SENSOR' public/missions/mission01/level7.html
+          ! grep -Fq 'RANURA DE SENSOR' public/missions/mission01/level7.html
+          ! grep -Fq 'CAMBIAR SENSOR' public/missions/mission01/level7.html
+          ! grep -Fq 'ANALIZADOR DE MINERALES' public/missions/mission01/level7.html
           ! grep -Fq 'data-command="read"' public/missions/mission01/level7.html
           ! grep -Fq 'data-command="record"' public/missions/mission01/level7.html
           ! grep -Fq 'data-command="send"' public/missions/mission01/level7.html
+          ! grep -R -Fq ' / 8' public/missions/mission01/level*.html
+          ! grep -Fq 'CONTINUAR AL NIVEL 8' public/missions/mission01/level7.html
+
           grep -Fq '"totalLevels": 7' public/missions/mission01/manifest.json
           grep -Fq '"availableLevels"' public/missions/mission01/manifest.json
           grep -Fq '"level": 7' public/missions/mission01/manifest.json
-          ! grep -R -Fq ' / 8' public/missions/mission01/level*.html
-          ! grep -Fq 'CONTINUAR AL NIVEL 8' public/missions/mission01/level7.html
 
           node -e "const m=require('./public/missions/mission01/manifest.json'); const expected='1,2,3,4,5,6,7'; if(m.totalLevels!==7 || m.availableLevels.join(',')!==expected || (m.unavailableLevels||[]).length!==0 || m.levels.length!==7) process.exit(1)"
