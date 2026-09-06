@@ -5,17 +5,26 @@ import { codeHmac, credentialHash, participantId, sqlLiteral, temporaryCredentia
 const pepper = process.env.APULAB_AUTH_PEPPER ?? '';
 if (!pepper) throw new Error('APULAB_AUTH_PEPPER_required');
 const outDir = resolve(process.cwd(), '.private');
-await mkdir(outDir, { recursive: true });
+await mkdir(outDir, { recursive:true });
 
-const access: string[] = ['study_code,temporary_credential'];
-const sql: string[] = ['BEGIN;'];
-for (let i=1;i<=10;i+=1) {
-  const code=`QT-${String(i).padStart(3,'0')}`, credential=temporaryCredential(), id=participantId();
-  access.push(`${code},${credential}`);
-  sql.push(`INSERT INTO apulab_participants(participant_id,participant_code_hash,credential_hash,is_active) VALUES (${sqlLiteral(id)}::uuid,${sqlLiteral(codeHmac(code,pepper))},${sqlLiteral(credentialHash(credential))},true) ON CONFLICT (participant_code_hash) DO NOTHING;`);
-  sql.push(`INSERT INTO apulab_study_assignments(study_id,participant_id,study_condition,assignment_method,is_active) VALUES ('APULAB-QA-2026',${sqlLiteral(id)}::uuid,'game','qa',true) ON CONFLICT (study_id,participant_id) DO NOTHING;`);
+const generated = Array.from({length:10}, (_,index) => {
+  const code = `QT-${String(index+1).padStart(3,'0')}`;
+  const credential = temporaryCredential();
+  return { code, credential, id:participantId(), codeHash:codeHmac(code, pepper), credentialHash:credentialHash(credential) };
+});
+
+const sql: string[] = [
+  'BEGIN;',
+  '-- Fail before writing anything if any QT code already exists. Credential rotation must be explicit.',
+  `DO $$ BEGIN IF EXISTS (SELECT 1 FROM apulab_participants WHERE participant_code_hash IN (${generated.map((x) => sqlLiteral(x.codeHash)).join(',')})) THEN RAISE EXCEPTION 'QT participant already exists; use an explicit credential-rotation procedure'; END IF; END $$;`,
+];
+for (const item of generated) {
+  sql.push(`INSERT INTO apulab_participants(participant_id,participant_code_hash,credential_hash,is_active) VALUES (${sqlLiteral(item.id)}::uuid,${sqlLiteral(item.codeHash)},${sqlLiteral(item.credentialHash)},true);`);
+  sql.push(`INSERT INTO apulab_study_assignments(study_id,participant_id,study_condition,assignment_method,is_active) VALUES ('APULAB-QA-2026',${sqlLiteral(item.id)}::uuid,'game','qa',true);`);
 }
 sql.push('COMMIT;');
-await writeFile(resolve(outDir,'qa-access.csv'),`${access.join('\n')}\n`,'utf8');
-await writeFile(resolve(outDir,'qa-seed.sql'),`${sql.join('\n')}\n`,'utf8');
-console.info('[research] Generated QT-001 → QT-010 locally in .private/. Nothing was uploaded or deployed.');
+
+const access = ['study_code,temporary_credential', ...generated.map((x) => `${x.code},${x.credential}`)];
+await writeFile(resolve(outDir, 'qa-access.csv'), access.join('\n') + '\n', { encoding:'utf8', mode:0o600 });
+await writeFile(resolve(outDir, 'qa-seed.sql'), sql.join('\n') + '\n', { encoding:'utf8', mode:0o600 });
+console.info('[research] Prepared QT-001 → QT-010 files in .private/. Seed SQL fails if a QT identity already exists.');
