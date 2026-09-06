@@ -48,15 +48,15 @@ if (l6.includes('id="guide-btn"')) fail('l6_top_guide_returned');
 
 const l7 = levels.get(7);
 for (const token of [
-  'APULAB_LEVEL7_FROM_LEVEL5_V1','APULAB_LEVEL7_INSTRUMENT_UI_V2','data-apulab-shell-source="level5"','LA MUESTRA DESCONOCIDA','MUESTRA DESCONOCIDA','PUNTO DE MISIÓN','REPETIR','ANALIZAR MUESTRA','data-command="analyzeSample"','data-testid="block-analyze-sample"','TEMPERATURA','PROXIMIDAD','ANALIZADOR DE MATERIALES','CAMBIAR INSTRUMENTO','−58 °C','0.4 m','HIERRO','SILICATOS','FINALIZAR MISIÓN','id="board-shell" class="board-shell"','id="board-canvas" width="950" height="664"','class="board-labels-top"','class="board-labels-left"','id="program-list" class="program-list"','id="program-scroll"','AYNI_FRONT_ORIENTATION',
+  'APULAB_LEVEL7_FROM_LEVEL5_V1','APULAB_LEVEL7_INSTRUMENT_UI_V2','APULAB_LEVEL7_FINAL_GDD_V1','data-apulab-shell-source="level5"','LA MUESTRA DESCONOCIDA','MUESTRA DESCONOCIDA','PUNTO FINAL','REPETIR','ANALIZAR MUESTRA','data-command="analyzeSample"','data-testid="block-analyze-sample"','data-testid="level7-guide"','data-testid="level7-sample-checkpoint"','data-testid="level7-final-checkpoint"','TEMPERATURA','PROXIMIDAD','ANALIZADOR DE MATERIALES','CAMBIAR INSTRUMENTO','−58 °C','0.4 m','HIERRO','SILICATOS','FINALIZAR MISIÓN','id="board-shell" class="board-shell"','id="board-canvas" width="950" height="664"','class="board-labels-top"','class="board-labels-left"','id="program-list" class="program-list"','id="program-scroll"','AYNI_FRONT_ORIENTATION',
 ]) if (!l7.includes(token)) fail(`l7_${token}`);
-if (/nextLevel\s*:\s*8|CONTINUAR AL NIVEL 8/.test(l7)) fail('l7_fake_level8');
+if (/nextLevel\s*:\s*8|CONTINUAR AL NIVEL 8|SIGUIENTE NIVEL|level8\.html|mission01-level8/.test(l7)) fail('l7_fake_level8');
 if (l7.includes('class="panel simulator"') || l7.includes('class="panel editor"') || l7.includes('class="board-wrap"')) fail('l7_parallel_shell');
 if (l7.includes('apulab-repeat-focus')) fail('l7_n5_repeat_tutorial_leak');
 if (!/repeatUnlocked\s*=\s*true/.test(l7)) fail('l7_repeat_available');
 if (l7.includes('if(!usesRepeat())')) fail('l7_repeat_must_be_optional');
-for (const legacy of ['data-command="read"','data-command="record"','data-command="send"','EQUIPA UN SENSOR','EQUIPAR SENSOR','RANURA DE SENSOR','CAMBIAR SENSOR','ANALIZADOR DE MINERALES','ESPECTRÓMETRO']) if (l7.includes(legacy)) fail(`l7_legacy_${legacy}`);
-for (const event of ['level_started','program_started','program_modified','sample_checkpoint_reached','sample_analyze_requested','instrument_modal_opened','instrument_selected','sample_analyzed','instrument_changed','relevant_instrument_selected','help_requested','final_checkpoint_reached','mission_completed']) if (!l7.includes(event)) fail(`l7_telemetry_${event}`);
+for (const legacy of ['data-command="read"','data-command="record"','data-command="send"','EQUIPA UN SENSOR','EQUIPAR SENSOR','RANURA DE SENSOR','CAMBIAR SENSOR','ANALIZADOR DE MINERALES','ESPECTRÓMETRO','id="guide-btn"']) if (l7.includes(legacy)) fail(`l7_legacy_${legacy}`);
+for (const event of ['level_started','program_started','program_modified','sample_reached','sample_analyze_requested','instrument_modal_opened','instrument_selected','sample_analyzed','instrument_changed','relevant_instrument_selected','final_point_reached','explore_opened','bitacora_opened','level_completed']) if (!l7.includes(event)) fail(`l7_telemetry_${event}`);
 if (!l7.includes("if(!relevantInstrumentUsed||!atFinalCheckpoint())return")) fail('l7_completion_gate');
 if (!l7.includes('pendingAnalysisResolve=resolve;openInstrumentSelector()')) fail('l7_pause_for_choice');
 if (!l7.includes("document.getElementById('clear-btn')?.addEventListener('click',()=>{resetLevel7ScienceState()")) fail('l7_reset_contract');
@@ -100,5 +100,5 @@ if (/DISPOSE_HANDOFF_MS|handoffTimer/.test(source)) fail('legacy_handoff');
 console.info('[mission01] FULL 1–7 AUDIT OK');
 console.info('[mission01] N1–N5 legacy/remapped contracts preserved');
 console.info('[mission01] N6: fixed 1→5 guide + OBTENER → INTERPRETAR → COMUNICAR + two checkpoints + optional REPETIR');
-console.info('[mission01] N7: PREGUNTA → DATO NECESARIO → INSTRUMENTO → RESULTADO + mission endpoint + optional REPETIR');
+console.info('[mission01] N7: PREGUNTA → DATO NECESARIO → INSTRUMENTO → RESULTADO + PUNTO FINAL + optional REPETIR');
 console.info('[mission01] Navigation verified: 1→2→3→4→5→6→7 · one iframe · no fake level 8');
