@@ -1,5 +1,6 @@
 import { GameState } from './GameState';
 import { TelemetryService } from './TelemetryService';
+import { SyncService } from './SyncService';
 import { getResearchRepository } from './research/ResearchRepositoryProvider';
 import { getResearchEnvironment } from '../config/researchConfig';
 
@@ -37,11 +38,16 @@ export class SessionService {
 
   async complete(): Promise<boolean> {
     const state = GameState.getInstance();
+    if (state.status === 'completed') return true;
     state.status = 'completed';
     TelemetryService.getInstance().recordEvent('session_completed', {});
+    // Ensure the terminal N7 events and session_completed have had a chance to reach
+    // the backend before asking it to mark the session complete. Failure remains non-blocking.
+    await SyncService.processQueue();
     const repo = getResearchRepository();
     if (!repo.completeSession) return true;
     const result = await repo.completeSession(state.sessionId, state.sessionProof);
+    if (!result.success) console.warn('[ApuLab] Session completion is pending backend confirmation.', result.error);
     return result.success;
   }
 }
