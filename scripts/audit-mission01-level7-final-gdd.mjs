@@ -9,6 +9,7 @@ const fail=(code)=>{throw new Error(`mission01_level7_final_gdd_audit:${code}`)}
 if(CFG.level!==7||CFG.totalLevels!==7)fail('identity');
 if(CFG.obstacles.length>5)fail(`rocks:${CFG.obstacles.length}`);
 if(CFG.sensorOptions.length!==3)fail(`instruments:${CFG.sensorOptions.length}`);
+if(CFG.sensorOptions.map(x=>x.id).join(',')!=='temperature,proximity,materials')fail('instrument_ids');
 if(CFG.explore.length!==2)fail(`explore:${CFG.explore.length}`);
 if(CFG.guide.length!==5)fail(`guide:${CFG.guide.length}`);
 
