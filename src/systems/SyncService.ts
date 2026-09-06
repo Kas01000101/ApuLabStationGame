@@ -7,66 +7,97 @@ const BATCH_SIZE = RESEARCH_CONFIG.maxBatchEvents;
 const BASE_RETRY_MS = 5_000;
 const MAX_RETRY_MS = 60_000;
 
+type RetryState = { failures: number; nextAttemptAt: number };
+
 export class SyncService {
   private static activePromise: Promise<void> | null = null;
-  private static nextAttemptAt = 0;
-  private static consecutiveFailures = 0;
-  private static onlineListenerBound = false;
+  private static readonly retryBySession = new Map<string, RetryState>();
+  private static listenersBound = false;
 
   static processQueue(): Promise<void> {
-    this.bindOnlineRetry();
-    // Callers that need a flush (notably session completion) must await the
-    // same in-flight synchronization instead of returning early and racing it.
+    this.bindRetryListeners();
     if (this.activePromise) return this.activePromise;
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return Promise.resolve();
-    if (Date.now() < this.nextAttemptAt) return Promise.resolve();
 
-    const operation = this.runQueue();
-    this.activePromise = operation.finally(() => {
-      if (this.activePromise === operation || this.activePromise != null) this.activePromise = null;
-    });
+    const operation = this.runAllPendingSessions();
+    this.activePromise = operation.finally(() => { this.activePromise = null; });
     return this.activePromise;
   }
 
-  private static async runQueue(): Promise<void> {
-    try {
-      const repository = getResearchRepository();
-      const state = GameState.getInstance();
+  static async syncSession(sessionId: string): Promise<void> {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+    const retry = this.retryBySession.get(sessionId);
+    if (retry && Date.now() < retry.nextAttemptAt) return;
 
-      // Re-read after each batch so events enqueued while a sync is running
-      // (for example session_completed immediately after level_completed)
-      // are included before an awaited flush resolves.
+    const context = LocalQueueService.getSessionContext(sessionId);
+    if (!context) {
+      console.warn('[ApuLab] Pending research data has no recoverable session sync context.', sessionId);
+      return;
+    }
+
+    const repository = getResearchRepository();
+    try {
       while (true) {
-        const pending = LocalQueueService.getEvents().filter((event) => event.sync_status !== 'synced');
-        if (pending.length === 0) return;
+        const pending = LocalQueueService.getEventsBySession(sessionId);
+        if (!pending.length) break;
         const batch = pending.slice(0, BATCH_SIZE);
-        const result = await repository.saveEvents(batch, state.sessionProof);
+        const result = await repository.saveEvents(batch, context.sync_token);
         if (!result.success) {
-          batch.forEach((event) => LocalQueueService.updateStatus(event.event_id, 'failed'));
-          this.scheduleRetry();
+          for (const event of batch) LocalQueueService.updateStatus(event.event_id, 'failed');
+          this.scheduleRetry(sessionId);
           return;
         }
         LocalQueueService.removeEvents(batch.map((event) => event.event_id));
-        this.consecutiveFailures = 0;
-        this.nextAttemptAt = 0;
+        this.clearRetry(sessionId);
       }
+
+      const completion = LocalQueueService.getPendingCompletion(sessionId);
+      if (completion && repository.completeSession) {
+        const result = await repository.completeSession(sessionId, context.sync_token);
+        if (!result.success) {
+          LocalQueueService.markCompletionFailed(sessionId);
+          this.scheduleRetry(sessionId);
+          return;
+        }
+        LocalQueueService.markCompletionSynced(sessionId);
+        const state = GameState.getInstance();
+        if (state.sessionId === sessionId && state.status === 'completed_pending_sync') state.status = 'completed';
+      }
+
+      this.clearRetry(sessionId);
+      LocalQueueService.removeSessionContextIfSettled(sessionId);
     } catch (error) {
-      this.scheduleRetry();
-      console.warn('[ApuLab] Telemetry sync failed.', error);
+      this.scheduleRetry(sessionId);
+      console.warn('[ApuLab] Telemetry sync failed for one session.', sessionId, error);
     }
   }
 
-  private static scheduleRetry(): void {
-    this.consecutiveFailures += 1;
-    this.nextAttemptAt = Date.now() + Math.min(MAX_RETRY_MS, BASE_RETRY_MS * (2 ** Math.min(4, this.consecutiveFailures - 1)));
+  private static async runAllPendingSessions(): Promise<void> {
+    for (const sessionId of LocalQueueService.getPendingSessions()) {
+      await this.syncSession(sessionId);
+    }
   }
 
-  private static bindOnlineRetry(): void {
-    if (this.onlineListenerBound || typeof window === 'undefined') return;
-    this.onlineListenerBound = true;
+  private static scheduleRetry(sessionId: string): void {
+    const previous = this.retryBySession.get(sessionId) ?? { failures: 0, nextAttemptAt: 0 };
+    const failures = previous.failures + 1;
+    const delay = Math.min(MAX_RETRY_MS, BASE_RETRY_MS * (2 ** Math.min(4, failures - 1)));
+    this.retryBySession.set(sessionId, { failures, nextAttemptAt: Date.now() + delay });
+  }
+
+  private static clearRetry(sessionId: string): void {
+    this.retryBySession.delete(sessionId);
+  }
+
+  private static bindRetryListeners(): void {
+    if (this.listenersBound || typeof window === 'undefined') return;
+    this.listenersBound = true;
     window.addEventListener('online', () => {
-      this.nextAttemptAt = 0;
+      this.retryBySession.clear();
       void this.processQueue();
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') void this.processQueue();
     });
   }
 }
