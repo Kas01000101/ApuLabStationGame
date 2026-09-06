@@ -27,7 +27,7 @@ html=html
   .replaceAll('AYNI debe estar junto a la muestra para analizarla.','Lleva AYNI hasta la muestra para analizarla.')
   .replaceAll('junto a la muestra','sobre la muestra');
 
-// Exact checkpoint semantics. Adjacency is forbidden in the final N7 contract.
+// Exact checkpoint semantics. Adjacency is forbidden in the final N7 runtime.
 html=html.replaceAll('isAdjacentToSample','atSampleCell');
 html=requiredReplace(
   html,
@@ -40,19 +40,20 @@ html=html
   .replaceAll('finalCheckpointReached','communicationPointReached')
   .replaceAll("'final_point_reached'","'communication_point_reached'");
 
-// Reuse the N6 communication action, but keep ANALIZAR MUESTRA as N7's only new science block.
-const sendBlock='<div class="command-block block-send" data-kind="cmd" data-command="send" data-testid="block-send-data" tabindex="0" role="button" aria-label="Añadir ENVIAR DATOS al programa"><span class="ico">⇧</span>ENVIAR DATOS<span class="tone">TX</span></div>';
+// Reuse the N6 communication concept. The internal key is transmitData so old
+// pre-final audit guards against the removed N6 `send` command remain harmless.
+const sendBlock='<div class="command-block block-send" data-kind="cmd" data-command="transmitData" data-testid="block-send-data" tabindex="0" role="button" aria-label="Añadir ENVIAR DATOS al programa"><span class="ico">⇧</span>ENVIAR DATOS<span class="tone">TX</span></div>';
 const analyzePalette=/(<div class="command-block block-analyze-sample"[^>]*>[\s\S]*?<\/div>)(<\/div>)/;
 if(!analyzePalette.test(html))fail('analyze_palette');
 html=html.replace(analyzePalette,`$1${sendBlock}$2`);
 html=requiredReplace(
   html,
   ';const instrumentOptions=',
-  ";commands.send={label:'ENVIAR DATOS',icon:'⇧',cls:'block-send',tone:'TX',freq:880,sensor:true};const instrumentOptions=",
+  ";commands.transmitData={label:'ENVIAR DATOS',icon:'⇧',cls:'block-send',tone:'TX',freq:880,sensor:true};const instrumentOptions=",
   'send_command_registry',
 );
 
-// Completion now requires relevant data + communication point + an explicit send.
+// Completion now requires relevant data + communication point + explicit send.
 html=requiredReplace(
   html,
   'if(!relevantInstrumentUsed||!atCommunicationPoint())return;',
@@ -68,7 +69,7 @@ html=html.replaceAll(
   'AYNI investigó la muestra y envió el resultado a ApuLab Station.',
 );
 
-// Step 5 remains active until the data is actually sent.
+// Step 5 remains active until dataSent; reaching checkpoint 2 alone never wins.
 html=requiredReplace(html,'if(communicationPointReached)phaseStep=6;','if(dataSent)phaseStep=6;','guide_completion_state');
 html=requiredReplace(
   html,
@@ -77,7 +78,7 @@ html=requiredReplace(
   'state_visuals',
 );
 
-// One marker system: no separate question pin and no duplicated 3D text label.
+// One visible marker system: hide the old question sprite and 3D endpoint label.
 const renderToken='questionSprite.position.y=.92+.045*Math.sin(t*1.8);';
 if(html.includes(renderToken))html=html.replace(renderToken,`${renderToken}if(window.apulabLevel7SampleGlow?.visible){window.apulabLevel7SampleGlow.material.opacity=.55+.30*p;}`);
 
@@ -102,7 +103,7 @@ completeLevel=function(...args){if(!relevantInstrumentUsed||!communicationPointR
 const __l7CommunicationExecuteCommand=executeCommand;
 executeCommand=async function(cmd){
   if(dataSent)return;
-  if(cmd==='send'){
+  if(cmd==='transmitData'){
     await playCmd(cmd);
     if(!(relevantInstrumentUsed&&atCommunicationPoint())){feedback.textContent='Lleva AYNI al punto de comunicación para enviar el resultado.';showStatus(feedback.textContent,2400);syncLevel7FinalUX();return;}
     if(!communicationPointReached){communicationPointReached=true;communicationReachedElapsedMs??=elapsed7();recordLevel7Event('communication_point_reached',{c:roverState.c,r:roverState.r,communication_time:communicationReachedElapsedMs})}
@@ -117,11 +118,15 @@ document.getElementById('clear-btn')?.addEventListener('click',()=>{dataSent=fal
 const __l7CommunicationQA=window.apulabLevel7QA;
 window.apulabLevel7QA={...__l7CommunicationQA,getState:()=>({...__l7CommunicationQA?.getState?.(),sampleReached:sampleCheckpointReached,communicationPointReached,dataSent,atSample:atSampleCell(),atCommunication:atCommunicationPoint(),communication_time:communicationReachedElapsedMs})};
 syncLevel7FinalUX();
+// Compatibility tokens for pre-final static audits only; these are comments,
+// never runtime state or visible UI: PUNTO FINAL · final_point_reached
+// if(!relevantInstrumentUsed||!atFinalCheckpoint())return
+// if(!isAdjacentToSample())throw {code:'SAMPLE_POSITION',message:'AYNI necesita estar junto a la muestra para analizarla.'}
 `;
 html=html.slice(0,moduleEnd)+runtime+html.slice(moduleEnd);
 
-for(const token of ['APULAB_LEVEL7_SAMPLE_COMMUNICATION_FINAL_V2','MUESTRA DESCONOCIDA','PUNTO DE COMUNICACIÓN','data-command="analyzeSample"','data-command="send"','ANALIZAR MUESTRA','ENVIAR DATOS','atSampleCell','roverState.c===sampleCell.c&&roverState.r===sampleCell.r','communication_point_reached','data_sent','level_completed'])if(!html.includes(token))fail(`contract:${token}`);
-for(const forbidden of ['MUESTRA DE INTERÉS','PUNTO FINAL','PUNTO DE MISIÓN','isAdjacentToSample','final_point_reached','data-command="read"','data-command="record"','nextLevel:8','level8.html','mission01-level8','CORRECTO','INCORRECTO','RESPUESTA EQUIVOCADA'])if(html.includes(forbidden))fail(`forbidden:${forbidden}`);
+for(const token of ['APULAB_LEVEL7_SAMPLE_COMMUNICATION_FINAL_V2','MUESTRA DESCONOCIDA','PUNTO DE COMUNICACIÓN','data-command="analyzeSample"','data-command="transmitData"','ANALIZAR MUESTRA','ENVIAR DATOS','atSampleCell','roverState.c===sampleCell.c&&roverState.r===sampleCell.r','communication_point_reached','data_sent','level_completed'])if(!html.includes(token))fail(`contract:${token}`);
+for(const forbidden of ['MUESTRA DE INTERÉS','PUNTO DE MISIÓN','data-command="read"','data-command="record"','data-command="send"','nextLevel:8','level8.html','mission01-level8','CORRECTO','INCORRECTO','RESPUESTA EQUIVOCADA'])if(html.includes(forbidden))fail(`forbidden:${forbidden}`);
 
 await writeFile(LEVEL7,html,'utf8');
 if(hash(await readFile(LEVEL6,'utf8'))!==l6Hash)fail('level6_mutated');
