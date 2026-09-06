@@ -25,7 +25,7 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- Views created by research_schema_v2 used SELECT * before git_commit_sha existed.
--- Recreate them after the ALTER so downstream views can safely reference the new column.
+-- Recreate source views first so the new column is appended without changing existing columns.
 CREATE OR REPLACE VIEW v_official_study_events AS
 SELECT * FROM apulab_events
 WHERE study_id='APULAB-STUDY-2026' AND environment='study';
@@ -33,7 +33,16 @@ WHERE study_id='APULAB-STUDY-2026' AND environment='study';
 CREATE OR REPLACE VIEW v_qa_events AS
 SELECT * FROM apulab_events WHERE study_id='APULAB-QA-2026';
 
-CREATE OR REPLACE VIEW v_level_outcomes AS
+-- PostgreSQL CREATE OR REPLACE VIEW cannot insert/reorder existing output columns.
+-- These are derived research views only, so drop/recreate them inside this migration;
+-- base tables and historical research rows remain untouched.
+DROP VIEW IF EXISTS v_level_outcomes;
+DROP VIEW IF EXISTS v_level5_loop_metrics;
+DROP VIEW IF EXISTS v_level6_science_metrics;
+DROP VIEW IF EXISTS v_level7_instrument_metrics;
+DROP VIEW IF EXISTS v_session_quality;
+
+CREATE VIEW v_level_outcomes AS
 SELECT participant_id,study_id,study_condition,level_number,build_version,git_commit_sha,
   bool_or(event_type='level_completed') AS completed,
   count(*) FILTER (WHERE event_type='program_started')::int AS attempt_count,
@@ -46,7 +55,7 @@ FROM v_official_study_events
 WHERE level_number BETWEEN 1 AND 7
 GROUP BY participant_id,study_id,study_condition,level_number,build_version,git_commit_sha;
 
-CREATE OR REPLACE VIEW v_level5_loop_metrics AS
+CREATE VIEW v_level5_loop_metrics AS
 WITH e AS (SELECT * FROM v_official_study_events WHERE level_number=5),
 metrics AS (
   SELECT participant_id,
@@ -65,7 +74,7 @@ SELECT *,
   (blocks_before IS NOT NULL AND blocks_after IS NOT NULL AND blocks_after < blocks_before) AS first_repeat_program_valid
 FROM metrics;
 
-CREATE OR REPLACE VIEW v_level6_science_metrics AS
+CREATE VIEW v_level6_science_metrics AS
 WITH e AS (SELECT * FROM v_official_study_events WHERE level_number=6)
 SELECT participant_id,
   (min(event_seq) FILTER (WHERE event_type='scan_completed') < min(event_seq) FILTER (WHERE event_type='analyze_completed')
@@ -78,7 +87,7 @@ SELECT participant_id,
   bool_or(event_type='data_sent') AS data_sent
 FROM e GROUP BY participant_id;
 
-CREATE OR REPLACE VIEW v_level7_instrument_metrics AS
+CREATE VIEW v_level7_instrument_metrics AS
 WITH e AS (SELECT * FROM v_official_study_events WHERE level_number=7),
 ordered AS (
   SELECT *, CASE
@@ -102,7 +111,7 @@ SELECT participant_id,
   max(elapsed_ms) FILTER (WHERE event_type='level_completed') AS completion_time_ms
 FROM ordered GROUP BY participant_id;
 
-CREATE OR REPLACE VIEW v_session_quality AS
+CREATE VIEW v_session_quality AS
 WITH base AS (
   SELECT s.session_id,s.participant_id,s.study_id,s.environment,s.build_version,s.git_commit_sha,s.schema_version,
     min(e.level_number) AS min_level,max(e.level_number) AS max_level,
