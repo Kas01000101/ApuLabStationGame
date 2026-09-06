@@ -1,4 +1,5 @@
 import { TelemetryService } from './TelemetryService';
+import { SessionService } from './SessionService';
 import { canonicalizeEventType } from '../research/telemetry/eventRegistry';
 
 type MissionTelemetryMessage = {
@@ -13,6 +14,7 @@ type MissionTelemetryMessage = {
 };
 
 let installed = false;
+let completing = false;
 
 export function installMission01TelemetryBridge(): void {
   if (installed) return;
@@ -50,6 +52,11 @@ export function installMission01TelemetryBridge(): void {
       elapsedMs: Number.isFinite(Number(data.elapsed_ms)) ? Math.max(0, Math.round(Number(data.elapsed_ms))) : undefined,
       attemptNumber: Number.isInteger(Number(data.attempt_number)) && Number(data.attempt_number) >= 1 ? Number(data.attempt_number) : undefined,
     });
+
+    if (canonical === 'level_completed' && levelNumber === 7 && !completing) {
+      completing = true;
+      void new SessionService().complete().finally(() => { completing = false; });
+    }
   });
 }
 
