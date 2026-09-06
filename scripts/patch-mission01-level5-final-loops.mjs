@@ -60,7 +60,6 @@ function replaceArray(source, marker, replacement, code) {
   fail(`array_end:${code}`);
 }
 
-// Scope guard: final N5 patch is intentionally applied AFTER N6/N7 are generated.
 const untouched = new Map();
 for (const level of [1,2,3,4,6,7]) {
   const text = await readFile(resolve(OUT, `level${level}.html`), 'utf8');
@@ -71,15 +70,11 @@ let html = await readFile(LEVEL5, 'utf8');
 if (!html.includes('APULAB_LEVEL5_TWO_PHASE_REPEAT_V3')) fail('missing_two_phase_base');
 if (html.includes('APULAB_LEVEL5_FINAL_LOOPS_V1')) fail('already_applied');
 
-// ---------------------------------------------------------------------------
-// Identity + scope: N5 teaches only loops.
-// ---------------------------------------------------------------------------
 html = html
   .replace(/<title>[\s\S]*?<\/title>/, '<title>AYNI · Nivel 5 · SIMPLIFICAR · Bucles</title>')
   .replace(/<div class="title">[\s\S]*?<\/div><div class="subtitle">[\s\S]*?<\/div>/,
     '<div class="title">SIMPLIFICAR</div><div class="subtitle">RECONOCE UN PATRÓN Y USA REPETIR PARA ACORTAR TU PROGRAMA.</div>');
 
-// GUÍA superior desaparece. EXPLORAR y BITÁCORA permanecen.
 html = html.replace(/<button id="guide-btn"[^>]*>[\s\S]*?<\/button>/, '');
 html = html.replace("document.getElementById('guide-btn').disabled=false;document.getElementById('guide-btn').classList.remove('is-recommended');", '');
 const guideHandlerStart = html.indexOf("document.getElementById('guide-btn').onclick=()=>{");
@@ -89,24 +84,18 @@ if (guideHandlerStart >= 0) {
   html = html.slice(0, guideHandlerStart) + "document.getElementById('info-close').onclick=" + html.slice(guideHandlerEnd + ";document.getElementById('info-close').onclick=".length);
 }
 
-// EXPLORAR final: máximo 2 estados y sin entregar una ruta para copiar.
 const exploreSteps = [
   { title: 'RECONOCE UN PATRÓN', text: 'Un patrón aparece cuando una acción se repite.', hint: 'Observa tu programa cuando ya logre llegar a la bandera.', focus: 'workspace' },
   { title: 'AGRUPA LA REPETICIÓN', text: 'REPETIR permite ejecutar varias veces una misma instrucción.', hint: 'Primero haz funcionar la ruta larga; después podrás simplificarla.', focus: 'run' },
 ];
 html = replaceArray(html, 'const exploreSteps=', `const exploreSteps=${JSON.stringify(exploreSteps)}`, 'explore_steps');
 
-// El tutorial rosa legacy con flecha era demasiado prescriptivo para la versión final.
 html = html
   .replace(/<style id="apulab-repeat-focus-style">[\s\S]*?<\/style>\s*/g, '')
   .replace(/<script id="apulab-repeat-focus-runtime">[\s\S]*?<\/script>\s*/g, '')
   .replace(/window\.apulabRepeatFocus\?\.start\?\.\(\);?/g, '')
   .replace(/window\.apulabRepeatFocus\?\.stop\?\.\(\);?/g, '');
 
-// ---------------------------------------------------------------------------
-// Meta única: reemplaza el marcador amarillo legacy por BANDERA + LOSETA.
-// Usa exactamente la coordenada goal existente; no mueve la meta lógica.
-// ---------------------------------------------------------------------------
 const flagScene = `const flagGroup=new THREE.Group();scene.add(flagGroup);
 const goalTileMat=new THREE.MeshBasicMaterial({color:0xF4C75E,transparent:true,opacity:.28,depthWrite:false,side:THREE.DoubleSide});
 const goalTile=new THREE.Mesh(new THREE.PlaneGeometry(.96,.96),goalTileMat);goalTile.rotation.x=-Math.PI/2;goalTile.position.y=.018;flagGroup.add(goalTile);
@@ -119,9 +108,6 @@ html = replaceBetween(html, 'const flagGroup=new THREE.Group();', 'function clea
 const loadBoardStage = `function loadBoardStage(){stageIndex=0;start={...stages[0].start};goal={...stages[0].goal};const gp=cellPos(goal.c,goal.r);flagGroup.position.set(gp.x,.22,gp.z);startRing.position.copy(cellPos(start.c,start.r));startRing.position.y=.30;setRover(start.c,start.r,start.dir);rebuildObstacles();window.apulabLevel5GoalCell={c:goal.c,r:goal.r};document.getElementById('objective-tag').textContent='PASO 1 · LLEVA AYNI HASTA LA BANDERA'}`;
 html = replaceFunction(html, 'function loadBoardStage(', loadBoardStage);
 
-// ---------------------------------------------------------------------------
-// Barra inferior fija, 4 pasos, estado derivado del gameplay real.
-// ---------------------------------------------------------------------------
 const guideTexts = [
   'Lleva AYNI hasta la bandera.',
   'Observa qué acciones se repiten.',
@@ -154,9 +140,6 @@ const style = `<style id="apulab-level5-final-loops-style">
 </style>`;
 html = html.replace('</head>', `${style}\n</head>`);
 
-// ---------------------------------------------------------------------------
-// Editor input contract and edit telemetry.
-// ---------------------------------------------------------------------------
 const bindProgramEvents = `function bindProgramEvents(){document.querySelectorAll('[data-del]').forEach(b=>b.onclick=e=>{e.stopPropagation();if(executing)return;const removed=program[+b.dataset.del];program.splice(+b.dataset.del,1);lastFailure=null;recordLevel5ProgramEdit('delete',level5BlockType(removed));renderProgram()});document.querySelectorAll('[data-ndel]').forEach(b=>b.onclick=e=>{e.stopPropagation();if(executing)return;const [i,j]=b.dataset.ndel.split(':').map(Number);const removed=program[i].body[j];program[i].body.splice(j,1);lastFailure=null;recordLevel5ProgramEdit('repeat_body_delete',level5BlockType(removed));renderProgram()});document.querySelectorAll('[data-count]').forEach(b=>{b.tabIndex=0;b.setAttribute('aria-label',(b.dataset.count||'').endsWith(':1')?'Aumentar repeticiones':'Disminuir repeticiones');b.onclick=e=>{e.stopPropagation();if(executing)return;const [i,d]=b.dataset.count.split(':').map(Number);const before=program[i].count;program[i].count=Math.max(2,Math.min(9,program[i].count+d));lastFailure=null;if(program[i].count!==before){recordLevel5Event('repeat_count_changed',{repeat_n:program[i].count,previous_repeat_n:before,elapsed_ms:level5Elapsed()});recordLevel5ProgramEdit('repeat_count','repeat')}renderProgram()};b.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();b.click()}}});document.querySelectorAll('.program-block[data-top]').forEach(el=>el.onpointerdown=e=>startDrag(e,{source:'top',index:+el.dataset.top,item:clone(program[+el.dataset.top])},el));document.querySelectorAll('.repeat-card[data-top] > .repeat-head').forEach(head=>head.onpointerdown=e=>{const card=head.parentElement,i=+card.dataset.top;startDrag(e,{source:'top',index:i,item:clone(program[i])},card)});document.querySelectorAll('.nested-chip').forEach(el=>el.onpointerdown=e=>{if(e.target.closest('button'))return;const i=+el.dataset.nestedTop,j=+el.dataset.nestedBody;startDrag(e,{source:'nested',top:i,body:j,item:clone(program[i].body[j])},el)})}`;
 html = replaceFunction(html, 'function bindProgramEvents()', bindProgramEvents);
 
@@ -169,9 +152,6 @@ html = replaceFunction(html, 'function appendItem(', appendItem);
 const bindPalette = `function bindPalette(){const bindCmd=el=>{el.tabIndex=0;el.setAttribute('role','button');if(!el.getAttribute('aria-label'))el.setAttribute('aria-label',\`Añadir \${String(el.textContent||el.dataset.command||'comando').replace(/\\s+/g,' ').trim()} al programa\`);let clickTimer=0;el.onpointerdown=e=>{if(executing||e.button!==0)return;const sx=e.clientX,sy=e.clientY,id=e.pointerId;let moved=false;const move=ev=>{if(ev.pointerId===id&&Math.hypot(ev.clientX-sx,ev.clientY-sy)>7)moved=true};const up=ev=>{if(ev.pointerId!==id)return;document.removeEventListener('pointermove',move);if(!moved){clearTimeout(clickTimer);clickTimer=setTimeout(()=>appendItem({type:'cmd',cmd:el.dataset.command}),170)}};document.addEventListener('pointermove',move,{passive:true});document.addEventListener('pointerup',up,{once:true});startDrag(e,{source:'palette',item:{type:'cmd',cmd:el.dataset.command}},el)};el.ondblclick=e=>{e.preventDefault();clearTimeout(clickTimer);appendItem({type:'cmd',cmd:el.dataset.command})};el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();appendItem({type:'cmd',cmd:el.dataset.command})}}};document.querySelectorAll('.command-block[data-kind="cmd"]').forEach(bindCmd);const rp=document.getElementById('repeat-palette');rp.tabIndex=0;rp.setAttribute('role','button');rp.setAttribute('aria-label','Añadir REPETIR al programa');let repeatClickTimer=0;const consumeRepeatAttention=()=>rp.classList.remove('level5-repeat-ready');rp.onpointerdown=e=>{if(!repeatUnlocked||executing||e.button!==0)return;consumeRepeatAttention();const sx=e.clientX,sy=e.clientY,id=e.pointerId;let moved=false;const move=ev=>{if(ev.pointerId===id&&Math.hypot(ev.clientX-sx,ev.clientY-sy)>7)moved=true};const up=ev=>{if(ev.pointerId!==id)return;document.removeEventListener('pointermove',move);if(!moved){clearTimeout(repeatClickTimer);repeatClickTimer=setTimeout(()=>appendItem({type:'repeat',count:2,body:[]}),170)}};document.addEventListener('pointermove',move,{passive:true});document.addEventListener('pointerup',up,{once:true});startDrag(e,{source:'palette',item:{type:'repeat',count:2,body:[]}},rp)};rp.ondblclick=e=>{e.preventDefault();clearTimeout(repeatClickTimer);if(repeatUnlocked){consumeRepeatAttention();appendItem({type:'repeat',count:2,body:[]})}};rp.onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&repeatUnlocked){e.preventDefault();consumeRepeatAttention();appendItem({type:'repeat',count:2,body:[]})}}}`;
 html = replaceFunction(html, 'function bindPalette()', bindPalette);
 
-// ---------------------------------------------------------------------------
-// Pedagogical state and telemetry are kept inside the existing N5 module.
-// ---------------------------------------------------------------------------
 const moduleStart = html.indexOf('<script type="module">');
 const moduleEnd = html.indexOf('</script>', moduleStart);
 if (moduleStart < 0 || moduleEnd < 0) fail('module_range');
@@ -193,10 +173,10 @@ function recordLevel5ProgramEdit(edit_type,block_type='unknown'){level5State.pro
 function level5FirstRepeatN(){const r=(program||[]).find(isRepeat);return r?.count||null}
 function level5PatternRuns(){const runs=[];let start=0;while(start<program.length){const item=program[start];if(!item||isRepeat(item)){start++;continue}let end=start+1;while(end<program.length&&!isRepeat(program[end])&&program[end]?.cmd===item.cmd)end++;if(end-start>=2)runs.push({start,end,cmd:item.cmd,count:end-start});start=end}return runs}
 function clearLevel5Pattern(){document.querySelectorAll('.program-row.apulab-pattern-repeat').forEach(el=>el.classList.remove('apulab-pattern-repeat'))}
-function highlightLevel5Pattern(){clearLevel5Pattern();const runs=level5PatternRuns();const rows=[...document.querySelectorAll('#program-list .program-row')];for(const run of runs)for(let i=run.start;i<run.end;i++)rows[i]?.classList.add('apulab-pattern-repeat');const best=runs.sort((a,b)=>b.count-a.count)[0];const label=best?.cmd==='forward'?'AVANZAR':best?.cmd==='left'?'GIRAR IZQ.':best?.cmd==='right'?'GIRAR DER.':'ACCIÓN';document.getElementById('level5-pattern-copy').textContent=best?\`${label} se repite ${best.count} veces.\`:'Hay acciones que se repiten.';return best}
+function highlightLevel5Pattern(){clearLevel5Pattern();const runs=level5PatternRuns();const rows=[...document.querySelectorAll('#program-list .program-row')];for(const run of runs)for(let i=run.start;i<run.end;i++)rows[i]?.classList.add('apulab-pattern-repeat');const best=runs.sort((a,b)=>b.count-a.count)[0];const label=best?.cmd==='forward'?'AVANZAR':best?.cmd==='left'?'GIRAR IZQ.':best?.cmd==='right'?'GIRAR DER.':'ACCIÓN';document.getElementById('level5-pattern-copy').textContent=best?(label+' se repite '+best.count+' veces.'):'Hay acciones que se repiten.';return best}
 function level5GuideStep(){if(level5State.completed)return 5;if(level5State.repeatUsed)return 4;if(level5State.patternShown||level5State.repeatUnlocked)return 3;if(level5State.longSolutionCompleted)return 2;return 1}
 function syncLevel5UX(){const step=level5GuideStep();document.querySelectorAll('.level5-guide-step').forEach(el=>{const n=+el.dataset.step;el.classList.toggle('is-active',n===step);el.classList.toggle('is-done',n<step)});const fill=document.getElementById('level5-guide-fill');if(fill)fill.style.width=step<=1?'0%':step===2?'25%':step===3?'50%':step===4?'75%':'75%';const objective=document.getElementById('objective-tag');if(objective)objective.textContent=level5State.completed?'NIVEL COMPLETADO':step===1?'PASO 1 · LLEVA AYNI HASTA LA BANDERA':step===2?'PASO 2 · OBSERVA QUÉ ACCIONES SE REPITEN':step===3?'PASO 3 · USA REPETIR PARA AGRUPARLAS':'PASO 4 · VUELVE A PROBAR EL PROGRAMA';const rp=document.getElementById('repeat-palette');if(rp&&level5State.repeatUnlocked&&!level5State.repeatUsed)rp.classList.add('level5-repeat-ready');if(level5State.repeatUsed)rp?.classList.remove('level5-repeat-ready');updateLevel5Journal()}
-function updateLevel5Journal(){const text=document.getElementById('journal-text');if(text){const before=level5State.initialBlockCount==null?'pendiente':level5State.initialBlockCount+' bloques';const after=level5State.finalBlockCount==null?'pendiente':level5State.finalBlockCount+' bloques';text.textContent=\`PROGRAMA INICIAL · ${before} · PROGRAMA CON REPETIR · ${after}${level5State.finalBlockCount!=null?' · Mismo recorrido, menos instrucciones.':''}\`}}
+function updateLevel5Journal(){const text=document.getElementById('journal-text');if(text){const before=level5State.initialBlockCount==null?'pendiente':level5State.initialBlockCount+' bloques';const after=level5State.finalBlockCount==null?'pendiente':level5State.finalBlockCount+' bloques';text.textContent='PROGRAMA INICIAL · '+before+' · PROGRAMA CON REPETIR · '+after+(level5State.finalBlockCount!=null?' · Mismo recorrido, menos instrucciones.':'')}}
 async function level5HandleFirstGoal(){level5State.longSolutionCompleted=true;level5State.goalReached=true;level5State.initialBlockCount=level5ExecutableBlockCount();level5State.initialProgram=serialize(program);level5State.initialCompletionTime=level5Elapsed();recordLevel5Event('goal_reached',{phase:'initial',used_repeat:false,block_count:level5State.initialBlockCount,attempt_number:level5State.attemptCount});recordLevel5Event('initial_program_completed',{block_count:level5State.initialBlockCount,attempt_number:level5State.attemptCount,completion_time_ms:level5State.initialCompletionTime,used_repeat:false});feedback.textContent='Tu programa funciona.';showStatus('Tu programa funciona.',900);syncLevel5UX();await sleep(650);level5State.patternShown=true;const pattern=highlightLevel5Pattern();recordLevel5Event('pattern_highlighted',{pattern_command:pattern?.cmd||null,repeat_count:pattern?.count||null});feedback.textContent='Ahora observa qué acciones se repiten.';showStatus('Ahora observa qué acciones se repiten.',1100);syncLevel5UX();await sleep(650);unlockRepeat()}
 function level5HandleFinalGoal(){level5State.goalReached=true;level5State.repeatUsed=level5UsesRepeat();const count=level5ExecutableBlockCount();recordLevel5Event('goal_reached',{phase:'refactored',used_repeat:level5State.repeatUsed,block_count:count,attempt_number:level5State.attemptCount});if(!level5State.repeatUsed){feedback.textContent='Ahora usa REPETIR para agrupar las acciones repetidas.';showStatus(feedback.textContent,2400);return}if(level5State.initialBlockCount==null||count>=level5State.initialBlockCount){feedback.textContent='La ruta funciona. Ahora haz el programa más corto con REPETIR.';showStatus(feedback.textContent,2600);return}level5State.finalBlockCount=count;level5State.finalProgram=serialize(program);if(!level5RefactorEventSent){level5RefactorEventSent=true;recordLevel5Event('program_refactored',{blocks_before:level5State.initialBlockCount,blocks_after:count,reduction_pct:Math.round((1-count/level5State.initialBlockCount)*1000)/10,repeat_n:level5FirstRepeatN()})}completeLevel()}
 const __level5CompleteLevel=completeLevel;
@@ -213,17 +193,13 @@ level5LastProgramSignature=level5ProgramSignature();recordLevel5Event('level_sta
 `;
 html = html.slice(0, moduleEnd) + runtime + html.slice(moduleEnd);
 
-// Replace unlock only AFTER level5 runtime helpers are present in module scope.
 const unlockFinal = `function unlockRepeat(){repeatUnlocked=true;phase='compress';level5State.repeatUnlocked=true;document.getElementById('repeat-palette').hidden=false;document.getElementById('repeat-palette').classList.add('level5-repeat-ready');const state=document.getElementById('control-state');if(state)state.textContent='DISPONIBLE';document.getElementById('control-locked')?.classList.add('hidden');try{localStorage.setItem('apulab.level5.repeatUnlocked','1');localStorage.setItem('apulab.repeat.learned','1')}catch{}recordLevel5Event('repeat_unlocked',{time_to_repeat_unlock:level5Elapsed()});feedback.textContent='Puedes usar REPETIR para agrupar acciones que se repiten.';showStatus(feedback.textContent,2200);syncLevel5UX()}`;
 html = replaceFunction(html, 'function unlockRepeat()', unlockFinal);
 
-// Success gate: first arrival records the long program; second arrival must be shorter and use REPETIR.
 const successNeedle = "if(phase==='discover'){unlockRepeat();return}if(!usesSequenceRepeat()){feedback.textContent='Ahora usa REPETIR para organizar la ruta.';showStatus('REPETIR desbloqueado · úsalo para completar el nivel.',2800);return}completeLevel()}";
 if (!html.includes(successNeedle)) fail('legacy_success_gate');
 html = html.replace(successNeedle, "if(phase==='discover'){await level5HandleFirstGoal();return}level5HandleFinalGoal()}");
 
-// LIMPIAR follows the current project policy: it clears the program but preserves the learned phase after unlock.
-// This is intentionally documented in QA and leaves no visual residue from the current program.
 const clearMarker = "document.getElementById('clear-btn').onclick=()=>";
 if (html.includes(clearMarker)) {
   const clearRange = functionRange(html, clearMarker);
@@ -232,7 +208,6 @@ if (html.includes(clearMarker)) {
   html = html.slice(0, clearRange.start) + wrapped + html.slice(clearRange.end);
 }
 
-// Static/runtime contract.
 for (const token of [
   'APULAB_LEVEL5_FINAL_LOOPS_V1','SIMPLIFICAR','RECONOCE UN PATRÓN Y USA REPETIR PARA ACORTAR TU PROGRAMA.',
   'data-testid="level5-guide"','data-testid="level5-guide-step-1"','data-testid="level5-guide-step-4"',
