@@ -14,7 +14,7 @@ export type AuthenticatedParticipant = {
 export interface ResearchRepository {
   readonly mode: 'mock' | 'supabase';
   authenticateParticipant(input: { studyCode: string; credential: string }): Promise<RepositoryResult<AuthenticatedParticipant>>;
-  createSession(session: SessionData, sessionProof?: string | null): Promise<RepositoryResult>;
-  saveEvents(events: QueueEvent[], sessionProof?: string | null): Promise<RepositoryResult<{ accepted: number }>>;
-  completeSession?(sessionId: string, sessionProof?: string | null): Promise<RepositoryResult>;
+  createSession(session: SessionData, sessionProof: string | null, sessionSyncToken: string): Promise<RepositoryResult>;
+  saveEvents(events: QueueEvent[], sessionSyncToken: string): Promise<RepositoryResult<{ accepted: number }>>;
+  completeSession?(sessionId: string, sessionSyncToken: string): Promise<RepositoryResult>;
 }
