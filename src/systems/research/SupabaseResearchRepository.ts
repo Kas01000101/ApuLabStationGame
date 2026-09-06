@@ -10,15 +10,19 @@ export class SupabaseResearchRepository implements ResearchRepository {
     return SupabaseClient.authenticateParticipant(input.studyCode, input.credential);
   }
 
-  createSession(session: SessionData, sessionProof?: string | null): Promise<RepositoryResult> {
-    return SupabaseClient.post('/session', { session, session_proof: sessionProof ?? null });
+  createSession(session: SessionData, sessionProof: string | null, sessionSyncToken: string): Promise<RepositoryResult> {
+    return SupabaseClient.post('/session', {
+      session,
+      session_proof: sessionProof,
+      session_sync_token: sessionSyncToken,
+    });
   }
 
-  saveEvents(events: QueueEvent[], sessionProof?: string | null): Promise<RepositoryResult<{ accepted: number }>> {
-    return SupabaseClient.post('/events', { events, session_proof: sessionProof ?? null });
+  saveEvents(events: QueueEvent[], sessionSyncToken: string): Promise<RepositoryResult<{ accepted: number }>> {
+    return SupabaseClient.post('/events', { events, session_sync_token: sessionSyncToken });
   }
 
-  completeSession(sessionId: string, sessionProof?: string | null): Promise<RepositoryResult> {
-    return SupabaseClient.post('/session/complete', { session_id: sessionId, session_proof: sessionProof ?? null });
+  completeSession(sessionId: string, sessionSyncToken: string): Promise<RepositoryResult> {
+    return SupabaseClient.post('/session/complete', { session_id: sessionId, session_sync_token: sessionSyncToken });
   }
 }
