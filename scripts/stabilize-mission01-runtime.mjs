@@ -84,7 +84,7 @@ for (let level = 1; level <= 7; level += 1) {
     const required = ['id="board-shell" class="board-shell"','id="program-list" class="program-list"','id="repeat-palette"'];
     if (level === 6) required.push('data-command="scan"','data-command="analyze"','data-command="send"');
     if (level === 7) {
-      required.push('APULAB_LEVEL7_INSTRUMENT_UI_V2','data-command="analyzeSample"','data-testid="block-analyze-sample"','MUESTRA DESCONOCIDA','PUNTO DE MISIÓN','TEMPERATURA','PROXIMIDAD','ANALIZADOR DE MATERIALES','CAMBIAR INSTRUMENTO');
+      required.push('APULAB_LEVEL7_INSTRUMENT_UI_V2','data-command="analyzeSample"','data-testid="block-analyze-sample"','MUESTRA DESCONOCIDA','PUNTO FINAL','TEMPERATURA','PROXIMIDAD','ANALIZADOR DE MATERIALES','CAMBIAR INSTRUMENTO');
       for (const legacy of ['data-command="read"','data-command="record"','data-command="send"','EQUIPA UN SENSOR','EQUIPAR SENSOR','RANURA DE SENSOR','CAMBIAR SENSOR','SENSOR DE TEMPERATURA','SENSOR DE PROXIMIDAD','ANALIZADOR DE MINERALES']) {
         if (html.includes(legacy)) throw new Error(`mission01_stabilize_level7_legacy_contract:${legacy}`);
       }

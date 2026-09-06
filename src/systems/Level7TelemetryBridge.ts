@@ -5,16 +5,22 @@ const LEVEL7_EVENT_TYPES = new Set([
   'level_started',
   'program_started',
   'program_modified',
-  'sample_checkpoint_reached',
+  'sample_reached',
   'sample_analyze_requested',
   'instrument_modal_opened',
   'instrument_selected',
   'sample_analyzed',
   'instrument_changed',
   'relevant_instrument_selected',
-  'help_requested',
+  'final_point_reached',
+  'explore_opened',
+  'bitacora_opened',
+  'level_completed',
+  // Compatibility with pre-final N7 previews only.
+  'sample_checkpoint_reached',
   'final_checkpoint_reached',
   'mission_completed',
+  'help_requested',
 ]);
 
 type Level7TelemetryMessage = {
@@ -46,8 +52,6 @@ export function installLevel7TelemetryBridge(): void {
       : {};
     const state = GameState.getInstance();
 
-    // Study/session identity is authoritative in the parent application.
-    // Do not accept iframe-supplied IDs and do not add names, email or other PII.
     const { participant_id: _ignoredParticipant, session_id: _ignoredSession, ...safePayload } = rawPayload;
     TelemetryService.getInstance().recordEvent(eventType, {
       ...safePayload,

@@ -53,7 +53,7 @@ jobs:
 
           grep -Fq 'LA MUESTRA DESCONOCIDA' public/missions/mission01/level7.html
           grep -Fq 'MUESTRA DESCONOCIDA' public/missions/mission01/level7.html
-          grep -Fq 'PUNTO DE MISIÓN' public/missions/mission01/level7.html
+          grep -Fq 'PUNTO FINAL' public/missions/mission01/level7.html
           grep -Fq 'ANALIZAR MUESTRA' public/missions/mission01/level7.html
           grep -Fq 'data-testid="block-analyze-sample"' public/missions/mission01/level7.html
           grep -Fq 'TEMPERATURA' public/missions/mission01/level7.html
