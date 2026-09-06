@@ -14,6 +14,7 @@ export const COMMON_EVENTS = [
   'task_completed',
   'premature_action',
   'sync_failed',
+  'storage_pressure',
 ] as const;
 
 export const LEVEL_EVENTS = {
@@ -42,6 +43,10 @@ export const LEVEL_EVENTS = {
     'goal_reached',
   ],
   4: [
+    'command_added',
+    'command_removed',
+    'command_moved',
+    'command_executed',
     'collision_detected',
     'program_modified_after_failure',
     'goal_reached',
@@ -90,19 +95,23 @@ export const OFFICIAL_EVENT_TYPES = new Set<string>([
   ...Object.values(LEVEL_EVENTS).flat(),
 ]);
 
-/**
- * Runtime-only compatibility aliases. Values are the canonical v2 event names.
- * Legacy names are never part of the official research export contract.
- */
+/** Runtime-only aliases. Legacy names are never exported as official v2 names. */
 export const COMPATIBILITY_EVENT_ALIASES: Readonly<Record<string, ResearchEventType | null>> = {
   mission_completed: 'level_completed',
+  level4_completed: 'level_completed',
   sample_checkpoint_reached: 'sample_reached',
   final_checkpoint_reached: 'communication_point_reached',
   final_point_reached: 'communication_point_reached',
   hint_requested: 'help_requested',
   challenge_completed: 'task_completed',
   challenge_failed: 'premature_action',
-  // N6 emits richer canonical scan/analyze events as well; this coarse legacy event is discarded.
+  block_added: 'command_added',
+  block_removed: 'command_removed',
+  block_reordered: 'command_moved',
   science_action: null,
   instrument_change_requested: null,
+  feedback_shown: null,
+  program_restarted: null,
+  program_cleared: 'program_modified',
+  scenario_changed: null,
 };
