@@ -1,53 +1,49 @@
+import { RESEARCH_CONFIG } from '../config/researchConfig';
+import type { ResearchEventType } from '../research/telemetry/events';
+import { sanitizeTelemetryPayload, type TelemetryPayload } from '../research/telemetry/payloads';
+
 export type QueueEvent = {
   event_id: string;
   session_id: string;
+  event_seq: number;
   scene_id: string;
-  event_type: string;
-  payload: Record<string, unknown>;
-  sync_status: 'pending' | 'synced' | 'failed';
+  level_number: number | null;
+  task_id: string | null;
+  event_type: ResearchEventType;
+  attempt_number: number | null;
+  elapsed_ms: number | null;
+  payload: TelemetryPayload;
+  result: string | null;
+  error_code: string | null;
+  hint_used: boolean;
   timestamp: string;
+  sync_status: 'pending' | 'synced' | 'failed';
 };
 
-const KEY = 'apulab_telemetry_events';
-const MAX_PAYLOAD_BYTES = 8192;
-const MAX_QUEUE_EVENTS = 500;
-
-const FORBIDDEN_KEYS = new Set([
-  'name', 'first_name', 'last_name', 'email', 'phone', 'address',
-  'document_id', 'birth_date', 'school', 'credential', 'password',
-  'credential_hash', 'participant_code', 'audio', 'video', 'image',
-  'screenshot', 'html', '__proto__', 'prototype', 'constructor',
-]);
+const KEY = 'apulab_telemetry_events_v2';
+const MAX_QUEUE_EVENTS = 2000;
 
 export class LocalQueueService {
   static getEvents(): QueueEvent[] {
     try {
       const parsed: unknown = JSON.parse(localStorage.getItem(KEY) ?? '[]');
-      if (!Array.isArray(parsed)) return [];
-      return parsed.filter(isQueueEvent);
-    } catch {
-      return [];
-    }
+      return Array.isArray(parsed) ? parsed.filter(isQueueEvent) : [];
+    } catch { return []; }
   }
 
   static addEvent(event: QueueEvent): void {
-    const safeEvent: QueueEvent = {
-      ...event,
-      payload: validateSafePayload(event.payload),
-    };
-
-    const current = this.getEvents();
-    const withoutDuplicate = current.filter((item) => item.event_id !== safeEvent.event_id);
-    let next = [...withoutDuplicate, safeEvent];
+    const safeEvent: QueueEvent = { ...event, payload: sanitizeTelemetryPayload(event.payload, RESEARCH_CONFIG.maxPayloadBytes) };
+    const byId = new Map(this.getEvents().map((item) => [item.event_id, item]));
+    byId.set(safeEvent.event_id, safeEvent);
+    let next = [...byId.values()].sort((a,b) => a.event_seq - b.event_seq);
 
     if (next.length > MAX_QUEUE_EVENTS) {
-      // Prefer removing old, already-synced events. Never silently discard pending research data.
-      const pending = next.filter((item) => item.sync_status !== 'synced');
+      const unsynced = next.filter((item) => item.sync_status !== 'synced');
       const synced = next.filter((item) => item.sync_status === 'synced');
-      const roomForSynced = Math.max(0, MAX_QUEUE_EVENTS - pending.length);
-      next = [...synced.slice(-roomForSynced), ...pending].slice(-Math.max(MAX_QUEUE_EVENTS, pending.length));
+      const syncedAllowance = Math.max(0, MAX_QUEUE_EVENTS - unsynced.length);
+      next = [...synced.slice(-syncedAllowance), ...unsynced].sort((a,b) => a.event_seq - b.event_seq);
+      // Research events are never silently discarded merely to satisfy the soft queue cap.
     }
-
     this.write(next);
   }
 
@@ -61,49 +57,18 @@ export class LocalQueueService {
   }
 
   private static write(events: QueueEvent[]): void {
-    try {
-      localStorage.setItem(KEY, JSON.stringify(events));
-    } catch (error) {
-      console.warn('[ApuLab] Could not persist the local telemetry queue.', error);
-    }
+    try { localStorage.setItem(KEY, JSON.stringify(events)); }
+    catch (error) { console.warn('[ApuLab] Could not persist telemetry queue.', error); }
   }
-}
-
-function validateSafePayload(payload: Record<string, unknown>): Record<string, unknown> {
-  if (byteLength(payload) > MAX_PAYLOAD_BYTES) throw new Error('telemetry_payload_too_large');
-
-  const stack: unknown[] = [payload];
-  while (stack.length > 0) {
-    const current = stack.pop();
-    if (Array.isArray(current)) {
-      stack.push(...current);
-      continue;
-    }
-    if (!current || typeof current !== 'object') continue;
-
-    for (const [key, value] of Object.entries(current as Record<string, unknown>)) {
-      if (FORBIDDEN_KEYS.has(key.toLowerCase())) throw new Error('telemetry_payload_forbidden_field');
-      if (value && typeof value === 'object') stack.push(value);
-    }
-  }
-
-  return payload;
-}
-
-function byteLength(value: unknown): number {
-  return new TextEncoder().encode(JSON.stringify(value ?? {})).length;
 }
 
 function isQueueEvent(value: unknown): value is QueueEvent {
   if (!value || typeof value !== 'object') return false;
-  const event = value as Partial<QueueEvent>;
-  return typeof event.event_id === 'string'
-    && typeof event.session_id === 'string'
-    && typeof event.scene_id === 'string'
-    && typeof event.event_type === 'string'
-    && !!event.payload
-    && typeof event.payload === 'object'
-    && !Array.isArray(event.payload)
-    && (event.sync_status === 'pending' || event.sync_status === 'synced' || event.sync_status === 'failed')
-    && typeof event.timestamp === 'string';
+  const e = value as Partial<QueueEvent>;
+  return typeof e.event_id === 'string' && typeof e.session_id === 'string'
+    && Number.isInteger(e.event_seq) && Number(e.event_seq) >= 1
+    && typeof e.scene_id === 'string' && typeof e.event_type === 'string'
+    && !!e.payload && typeof e.payload === 'object' && !Array.isArray(e.payload)
+    && (e.sync_status === 'pending' || e.sync_status === 'synced' || e.sync_status === 'failed')
+    && typeof e.timestamp === 'string';
 }
