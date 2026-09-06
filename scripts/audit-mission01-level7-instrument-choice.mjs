@@ -34,6 +34,9 @@ for (const token of [
   'repeat_instances_n7',
   'changed_after_irrelevant_feedback',
   'window.apulabLevel7QA=',
+  "clickTimer=setTimeout(()=>appendItem({type:'cmd',cmd:el.dataset.command}),170)",
+  "type:'apulab-mission-complete',mission:1,level:7",
+  "button.textContent='MISIÓN COMPLETADA'",
 ]) if (!html.includes(token)) fail(`missing:${token}`);
 
 for (const forbidden of [
@@ -51,6 +54,11 @@ for (const forbidden of [
   'if(!usesRepeat())',
   'nextLevel:8',
   'CONTINUAR AL NIVEL 8',
+  'level:5,nextLevel:6',
+  'DESBLOQUEAR REPETIR',
+  'Usa REPETIR para',
+  'id="unlock-overlay"',
+  'function unlockRepeat()',
 ]) if (html.includes(forbidden)) fail(`forbidden:${forbidden}`);
 
 if (!/repeatUnlocked\s*=\s*true/.test(html)) fail('repeat_not_available');
@@ -64,9 +72,10 @@ if (!html.includes("document.getElementById('clear-btn')?.addEventListener('clic
 if (!html.includes("el.onkeydown=e=>{if(e.key==='Enter'||e.key===' ')")) fail('block_keyboard_contract');
 if (!html.includes("rp.onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&repeatUnlocked)")) fail('repeat_keyboard_contract');
 if (!html.includes('.instrument-option:focus-visible')) fail('modal_focus_visible');
+if (!html.includes("phase='science'")) fail('science_phase');
 
 const explore = html.match(/const exploreSteps=([^;]+);/)?.[1] || '';
 const titles = (explore.match(/"title"/g) || []).length;
 if (titles !== 2) fail(`explore_must_have_2_states:${titles}`);
 
-console.info('[mission01] LEVEL 7 INSTRUMENT CHOICE OK · sample→ANALIZAR→instrument→relevant datum→mission point · REPETIR optional');
+console.info('[mission01] LEVEL 7 INSTRUMENT CHOICE OK · click/drag/keyboard · sample→ANALIZAR→instrument→relevant datum→mission point · terminal mission · REPETIR optional');
