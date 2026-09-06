@@ -13,6 +13,9 @@ on:
       - 'docs/research/**'
       - 'tests/research/**'
       - 'tests/e2e/mission01-research-*.cjs'
+      - 'tests/e2e/mission01-electronics.cjs'
+      - 'tests/e2e/mission01-gameplay-n3-n6.cjs'
+      - 'tests/e2e/mission01-level7-contract.cjs'
       - 'package.json'
       - '.env.example'
       - '.gitignore'
@@ -24,7 +27,7 @@ permissions:
 jobs:
   research-contract:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -82,6 +85,10 @@ jobs:
         env:
           APULAB_BASE_URL: http://127.0.0.1:4173
         run: node tests/e2e/mission01-research-pipeline.cjs
+      - name: Physical Mission 01 N1-N7 research E2E
+        env:
+          APULAB_BASE_URL: http://127.0.0.1:4173
+        run: node tests/e2e/mission01-research-physical.cjs
 
   research-db:
     runs-on: ubuntu-latest
