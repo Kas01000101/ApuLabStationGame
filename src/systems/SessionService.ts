@@ -57,7 +57,9 @@ export class SessionService {
       LocalQueueService.markCompletionPending(state.sessionId);
     }
     await SyncService.processQueue();
-    return state.status === 'completed';
+    // SyncService may complete the same singleton asynchronously. Re-read it instead
+    // of relying on TypeScript's control-flow narrowing of the local `state` reference.
+    return GameState.getInstance().status === 'completed';
   }
 }
 
