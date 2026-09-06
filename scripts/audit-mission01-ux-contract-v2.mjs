@@ -57,7 +57,7 @@ for(const level of [3,4,5]){
  if(!html.includes('id="board-canvas" width="950" height="664"'))fail('board_geometry',`l${level}`);
  if(!html.includes('class="board-labels-top"')||!html.includes('class="board-labels-left"'))fail('board_coordinates',`l${level}`);
  if(html.includes('class="panel simulator"')||html.includes('class="panel editor"')||html.includes('class="board-wrap"'))fail('parallel_shell',`l${level}`);
- for(const token of ['LA MUESTRA DESCONOCIDA','MUESTRA DESCONOCIDA','PUNTO DE MISIÓN','data-command="analyzeSample"','data-testid="block-analyze-sample"','ANALIZAR MUESTRA','TEMPERATURA','PROXIMIDAD','ANALIZADOR DE MATERIALES','CAMBIAR INSTRUMENTO'])if(!html.includes(token))fail('instrument_contract',`l${level}:${token}`);
+ for(const token of ['LA MUESTRA DESCONOCIDA','MUESTRA DESCONOCIDA','PUNTO FINAL','data-command="analyzeSample"','data-testid="block-analyze-sample"','ANALIZAR MUESTRA','TEMPERATURA','PROXIMIDAD','ANALIZADOR DE MATERIALES','CAMBIAR INSTRUMENTO'])if(!html.includes(token))fail('instrument_contract',`l${level}:${token}`);
  for(const legacy of ['data-command="read"','data-command="record"','data-command="send"','RANURA DE SENSOR','EQUIPA UN SENSOR','EQUIPAR SENSOR','CAMBIAR SENSOR','ANALIZADOR DE MINERALES'])if(html.includes(legacy))fail('legacy_sensor_contract',`l${level}:${legacy}`);
  if(!html.includes("function openJournal(){document.getElementById('info-panel')?.classList.remove('visible')"))fail('journal_single_owner',`l${level}`);
  if(html.includes('AYNI · FRENTE = LUZ CYAN')||html.includes('AYNI · FRENTE · LUZ CYAN'))fail('legacy_ayni_label',`l${level}`);
