@@ -28,6 +28,7 @@ async function continueAnalysis(){const b=page.locator('#continue-analysis-btn')
 async function state(){return page.evaluate(()=>window.apulabLevel7QA?.getState?.());}
 async function telemetry(){return page.evaluate(()=>JSON.parse(sessionStorage.getItem('apulab.level7.telemetry')||'[]'));}
 async function shot(name){await mkdir(OUT,{recursive:true});await page.screenshot({path:resolve(OUT,`${name}.png`),fullPage:true});}
+async function waitRunIdle(){await page.waitForFunction(()=>{const b=document.getElementById('run-btn');return b&&!b.disabled;},null,{timeout:30000});await page.waitForTimeout(180);}
 
 const ADJACENT_ROUTE=['forward','forward','forward','forward','right','forward','forward','forward','forward'];
 const EXACT_SAMPLE_ROUTE=['forward','forward','forward','forward','forward','right','forward','forward','forward','forward'];
@@ -37,7 +38,6 @@ const TO_COMMUNICATION=['forward','right','forward','forward','forward','forward
   await mkdir(OUT,{recursive:true});browser=await chromium.launch({headless:true});context=await browser.newContext({viewport:{width:1672,height:941},reducedMotion:'reduce'});await context.addInitScript(()=>{try{localStorage.setItem('apulab.settings.sfx','off')}catch(_){}});
   await openLevel();
 
-  // Identity + one marker per checkpoint + final science palette.
   assert((await page.locator('.level-badge').textContent()||'').includes('NIVEL 7'),'L7: level badge incorrect');
   assert((await page.locator('.btn-progress').textContent()||'').includes('7 / 7'),'L7: progress must be 7 / 7');
   assert(await page.locator('#guide-btn').count()===0,'L7: top GUÍA must not exist');
@@ -55,23 +55,19 @@ const TO_COMMUNICATION=['forward','right','forward','forward','forward','forward
   assert(await page.locator('.instrument-option').count()===3,'L7: exactly three instrument cards required');
   await shot('01-initial-communication-gdd');
 
-  // ANALIZAR MUESTRA input contract: click, Space, drag, Enter.
   const analyze=page.locator('.command-block[data-command="analyzeSample"]');
   await analyze.click();await page.waitForTimeout(220);assert(await page.locator('.program-block').count()===1,'L7: click did not insert analyze');await page.locator('#clear-btn').click();
   await analyze.focus();await analyze.press('Space');assert(await page.locator('.program-block').count()===1,'L7: Space did not insert analyze');await page.locator('#clear-btn').click();
   await pointerDrag(analyze,page.locator('.slot[data-index="0"]'));assert(await page.locator('.program-block').count()===1,'L7: drag did not insert analyze');await page.locator('#clear-btn').click();
 
-  // Adjacent is NOT valid. This route stops exactly one cell below the sample.
   await addCommands([...ADJACENT_ROUTE,'analyzeSample']);await page.locator('#run-btn').click();
   await page.waitForFunction(()=>(document.getElementById('feedback')?.textContent||'').includes('Lleva AYNI hasta la muestra'));
   let s=await state();assert(s.atSample===false,'L7: adjacency incorrectly counted as sample cell');assert(s.sampleReached===false,'L7: adjacency incorrectly set sampleReached');assert(!await page.getByTestId('block-analyze-sample').evaluate(el=>el.classList.contains('is-ready')),'L7: analyze glows while AYNI is beside sample');assert(!await page.locator('#success-overlay').isVisible(),'L7: adjacent analyze completed mission');
   await shot('02-adjacent-rejected');
 
-  // Exact occupancy activates sample state before analysis.
-  await openLevel();await addCommands(EXACT_SAMPLE_ROUTE);await page.locator('#run-btn').click();await page.waitForTimeout(500);
+  await openLevel();await addCommands(EXACT_SAMPLE_ROUTE);await page.locator('#run-btn').click();await waitRunIdle();
   s=await state();assert(s.atSample===true,'L7: AYNI did not finish exactly on sample');assert(s.sampleReached===true,'L7: exact sample occupancy did not set sampleReached');assert(await page.getByTestId('block-analyze-sample').evaluate(el=>el.classList.contains('is-ready')),'L7: ANALIZAR MUESTRA not highlighted while AYNI is on sample');assert((await page.locator('#objective-tag').textContent()||'').includes('ANALIZA LA MUESTRA'),'L7: guide/objective did not advance to analysis');await shot('03-ayni-on-sample');
 
-  // Exact sample → selector → Temperature → Proximity → Materials.
   await addCommands(['analyzeSample']);await page.locator('#run-btn').click();await page.locator('#sensor-overlay.visible').waitFor({timeout:25000});assert(await page.locator('.instrument-option').count()===3,'L7: selector changed card count');await shot('04-selector-equal-options');
   await choose('temperature','click');assert((await page.locator('#analysis-result').textContent()||'').includes('−58 °C'),'L7: temperature reading missing');assert(!await page.locator('#level7-final-checkpoint').evaluate(el=>el.classList.contains('is-active')),'L7: temperature activated checkpoint 2');await changeInstrument('click');
   await choose('proximity','space');assert((await page.locator('#analysis-result').textContent()||'').includes('0.4 m'),'L7: proximity reading missing');assert(!await page.locator('#level7-final-checkpoint').evaluate(el=>el.classList.contains('is-active')),'L7: proximity activated checkpoint 2');await changeInstrument('space');
@@ -79,14 +75,11 @@ const TO_COMMUNICATION=['forward','right','forward','forward','forward','forward
   assert(await page.locator('#level7-final-checkpoint').evaluate(el=>el.classList.contains('is-active')),'L7: materials did not activate communication checkpoint');s=await state();assert(s.instrumentSelectionCount===3&&s.instrumentChangeCount===2,'L7: instrument metrics incorrect');assert(s.changedAfterIrrelevantFeedback===true,'L7: strategy-change metric missing');
   await page.locator('#journal-btn').click();await page.locator('#journal-overlay.visible').waitFor({timeout:5000});const journal=await page.locator('#journal-text').textContent()||'';assert(journal.includes('−58 °C')&&journal.includes('0.4 m')&&journal.includes('Hierro')&&journal.includes('Silicatos'),'L7: BITÁCORA did not preserve readings');await page.locator('#journal-close').click().catch(()=>{});
 
-  // Reaching communication after relevant data is insufficient without ENVIAR DATOS.
-  await openLevel();const withoutSend=[...EXACT_SAMPLE_ROUTE,'analyzeSample',...TO_COMMUNICATION];await addCommands(withoutSend);await page.locator('#run-btn').click();await page.locator('#sensor-overlay.visible').waitFor({timeout:25000});await choose('materials');await continueAnalysis();await page.waitForTimeout(900);s=await state();assert(s.communicationPointReached===true,'L7: communication point not reached');assert(s.dataSent===false,'L7: dataSent became true without ENVIAR DATOS');assert(!await page.locator('#success-overlay').isVisible(),'L7: reaching checkpoint 2 completed mission without send');assert(await page.locator('.block-send').first().evaluate(el=>el.classList.contains('is-ready')),'L7: ENVIAR DATOS not highlighted at checkpoint 2');await shot('05-communication-waits-for-send');
+  await openLevel();const withoutSend=[...EXACT_SAMPLE_ROUTE,'analyzeSample',...TO_COMMUNICATION];await addCommands(withoutSend);await page.locator('#run-btn').click();await page.locator('#sensor-overlay.visible').waitFor({timeout:25000});await choose('materials');await continueAnalysis();await waitRunIdle();s=await state();assert(s.communicationPointReached===true,'L7: communication point not reached');assert(s.dataSent===false,'L7: dataSent became true without ENVIAR DATOS');assert(!await page.locator('#success-overlay').isVisible(),'L7: reaching checkpoint 2 completed mission without send');assert(await page.locator('.block-send').first().evaluate(el=>el.classList.contains('is-ready')),'L7: ENVIAR DATOS not highlighted at checkpoint 2');await shot('05-communication-waits-for-send');
 
-  // Complete without REPETIR: materials first + explicit ENVIAR DATOS.
   await openLevel();const noRepeat=[...EXACT_SAMPLE_ROUTE,'analyzeSample',...TO_COMMUNICATION,'transmitData'];await addCommands(noRepeat);assert(await page.locator('.repeat-card').count()===0,'L7: no-repeat solution contains REPETIR');await page.locator('#run-btn').click();await page.locator('#sensor-overlay.visible').waitFor({timeout:25000});await choose('materials');await continueAnalysis();await page.locator('#success-overlay.visible').waitFor({timeout:25000});s=await state();assert(s.firstInstrument==='materials','L7: materials-first solution not preserved');assert(s.used_repeat_n7===false,'L7: no-repeat telemetry wrong');assert(s.communicationPointReached===true&&s.dataSent===true,'L7: final communication state incomplete');assert((await page.locator('#continue-btn').textContent()||'').includes('FINALIZAR MISIÓN'),'L7: final CTA incorrect');
   const events=await telemetry();const names=events.map(x=>x.event);for(const e of ['level_started','sample_reached','sample_analyze_requested','instrument_modal_opened','instrument_selected','sample_analyzed','relevant_instrument_selected','communication_point_reached','data_sent','program_modified','level_completed'])assert(names.includes(e),`L7: telemetry missing ${e}`);assert(!page.url().includes('level8'),'L7: navigated to level8');await shot('06-completed-without-repeat');
 
-  // Complete with REPETIR voluntarily.
   await openLevel();const prefix=[...EXACT_SAMPLE_ROUTE,'analyzeSample','forward','right'];await addCommands(prefix);await page.locator('#repeat-palette').focus();await page.locator('#repeat-palette').press('Enter');const ri=prefix.length;await pointerDrag(page.locator('.command-block[data-command="forward"]'),page.locator(`[data-repeat-body="${ri}"]`));await page.locator(`[data-count="${ri}:1"]`).click();await page.locator(`[data-count="${ri}:1"]`).click();await addCommands(['transmitData']);await page.locator('#run-btn').click();await page.locator('#sensor-overlay.visible').waitFor({timeout:25000});await choose('materials');await continueAnalysis();await page.locator('#success-overlay.visible').waitFor({timeout:25000});s=await state();assert(s.used_repeat_n7===true&&s.repeat_instances_n7===1,'L7: repeat solution telemetry incorrect');assert(s.dataSent===true,'L7: repeat path did not send data');await shot('07-completed-with-repeat');
 
   assert(errors.length===0,`runtime errors detected:\n${errors.join('\n')}`);await writeFile(resolve(OUT,'state.json'),JSON.stringify(s,null,2),'utf8');await browser.close();console.log('[e2e] LEVEL 7 COMMUNICATION FINAL OK · adjacency rejected · exact sample occupancy · 3 instruments · explicit ENVIAR DATOS · with/without REPETIR · no N8');
