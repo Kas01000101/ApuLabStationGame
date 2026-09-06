@@ -24,6 +24,15 @@ DO $$ BEGIN
     CHECK (sync_token_hash IS NULL OR length(sync_token_hash) >= 43) NOT VALID;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+-- Views created by research_schema_v2 used SELECT * before git_commit_sha existed.
+-- Recreate them after the ALTER so downstream views can safely reference the new column.
+CREATE OR REPLACE VIEW v_official_study_events AS
+SELECT * FROM apulab_events
+WHERE study_id='APULAB-STUDY-2026' AND environment='study';
+
+CREATE OR REPLACE VIEW v_qa_events AS
+SELECT * FROM apulab_events WHERE study_id='APULAB-QA-2026';
+
 CREATE OR REPLACE VIEW v_level_outcomes AS
 SELECT participant_id,study_id,study_condition,level_number,build_version,git_commit_sha,
   bool_or(event_type='level_completed') AS completed,
