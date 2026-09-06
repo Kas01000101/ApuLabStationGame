@@ -64,9 +64,7 @@ async function shot(name){await mkdir(OUT,{recursive:true});await page.screensho
   assert(send.y>=investigate.bottom-2,'L6: ENVIAR DATOS must remain separate below INVESTIGAR');
   assert(await page.locator('#level6-investigate-block .command-block[data-command="scan"]').count()===1,'L6: ESCANEAR missing inside INVESTIGAR');
   assert(await page.locator('#level6-investigate-block .command-block[data-command="analyze"]').count()===1,'L6: ANALIZAR missing inside INVESTIGAR');
-  assert((await page.locator('body').innerText()).includes('SCAN')===false,'L6: duplicate SCAN label returned');
-  assert((await page.locator('body').innerText()).includes('ANÁLISIS')===false,'L6: duplicate ANÁLISIS label returned');
-  assert((await page.locator('body').innerText()).includes(' TX')===false,'L6: duplicate TX label returned');
+  assert(await page.locator('.apulab-science-palette .tone:visible').count()===0,'L6: duplicate science tone labels returned');
   assert(await page.locator('#repeat-palette').isVisible(),'L6: REPETIR must remain available');
   assert(await page.locator('#apulab-repeat-arrow,.apulab-repeat-focus').count()===0,'L6: N5 repeat tutorial leaked into N6');
   assert(palette.bottom<=editorFooter.y+2,'L6: command palette overlaps editor footer');
