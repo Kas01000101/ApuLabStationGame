@@ -43,7 +43,8 @@ for(const level of [3,4,5]){
  if(html.includes('class="panel simulator"')||html.includes('class="panel editor"'))fail('parallel_shell','l6');
  for(const token of ['INVESTIGAR','DATOS CIENTÍFICOS','ZONA DE INTERÉS','PUNTO DE COMUNICACIÓN','ESCANEAR','ANALIZAR','ENVIAR DATOS','OBTENER → INTERPRETAR → COMUNICAR'])if(!html.includes(token))fail('science_contract',`l6:${token}`);
  for(const forbidden of ['SENSOR DE TEMPERATURA','SENSOR DE PROXIMIDAD','ANALIZADOR DE MINERALES','RANURA DE SENSOR','ANALIZAR MUESTRA'])if(html.includes(forbidden))fail('l7_concept_leak',`l6:${forbidden}`);
- if(!html.includes("function openJournal(){document.getElementById('info-panel')?.classList.remove('visible')"))fail('journal_single_owner','l6');
+ if(html.includes('APULAB_LEVEL6_FINAL_UX_V1')&&html.includes('id="guide-btn"'))fail('l6_top_guide_removed');
+ if(!html.includes("function openJournal(){emitLevel6Event('bitacora_opened'")||!html.includes("document.getElementById('info-panel')?.classList.remove('visible')"))fail('journal_single_owner','l6');
 }
 {
  const level=7,html=levels.get(level);
@@ -65,4 +66,4 @@ for(const level of [3,4,5]){
 }
 const expected=[[1,2,'Nivel 1'],[2,3,'Nivel 2'],[3,4,'Nivel 3'],[4,5,'Nivel 4'],[5,6,'Nivel 5'],[6,7,'NIVEL 6']];for(const [level,next,label] of expected){const html=levels.get(level);if(!html.includes(label)&&!html.includes(label.toUpperCase()))fail('level_label',`l${level}`);if(!html.includes(`nextLevel: ${next}`)&&!html.includes(`nextLevel:${next}`)&&!html.includes(`CONTINUAR AL NIVEL ${next}`))fail('next_level',`l${level}->${next}`)}
 if(/nextLevel\s*:\s*8|CONTINUAR AL NIVEL 8/.test(levels.get(7)))fail('fake_level8');
-console.info('[mission01] UX CONTRACT V2 OK · N6 obtiene/interpreta/comunica · N7 pregunta→dato→instrumento→resultado · ayudas opcionales');
+console.info('[mission01] UX CONTRACT V2 OK · N6 obtiene/interpreta/comunica con guía fija · N7 pregunta→dato→instrumento→resultado · ayudas opcionales');
