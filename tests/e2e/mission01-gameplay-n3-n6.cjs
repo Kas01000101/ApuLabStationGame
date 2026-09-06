@@ -25,8 +25,47 @@ async function level3(){const page=await openLevel(3);for(let i=0;i<5;i+=1)await
 
 async function level4(){const page=await openLevel(4);const solution=['forward','right','forward','forward','left','forward','forward','forward'];await addAccessibleCommands(page,solution);assert(await page.locator('.program-block').count()===solution.length,'L4: program command count mismatch');await page.locator('#run-btn').click();await page.locator('#success-overlay.visible').waitFor({timeout:25000});await closeLevel()}
 
-async function level5(){const page=await openLevel(5);assert(await page.locator('#repeat-palette').isHidden(),'L5: REPETIR must start locked');const firstSolution=['left','forward','forward','forward','forward','forward','forward','right','forward','forward','forward','forward','forward','forward'];await addLegacyCommandsByDoubleClick(page,firstSolution);await page.locator('#run-btn').click();await page.locator('#repeat-palette').waitFor({state:'visible',timeout:30000});await page.locator('#clear-btn').click();await page.locator('.command-block[data-command="left"]').dblclick();await page.locator('#repeat-palette').dblclick();await pointerDrag(page,page.locator('.command-block[data-command="forward"]'),page.locator('.repeat-body[data-repeat-body="1"]'));for(let i=0;i<4;i+=1)await page.locator('[data-count="1:1"]').click();await page.locator('.command-block[data-command="right"]').dblclick();await page.locator('#repeat-palette').dblclick();await pointerDrag(page,page.locator('.command-block[data-command="forward"]'),page.locator('.repeat-body[data-repeat-body="3"]'));for(let i=0;i<4;i+=1)await page.locator('[data-count="3:1"]').click();await page.locator('#run-btn').click();await page.locator('#success-overlay.visible').waitFor({timeout:30000});await closeLevel()}
+async function level5(){
+  const page=await openLevel(5);
+  await page.waitForFunction(()=>!!window.apulabLevel5QA?.getState,null,{timeout:10000});
+  let state=await page.evaluate(()=>window.apulabLevel5QA.getState());
+  assert(state.goalCell?.c===6&&state.goalCell?.r===3,`L5: expected G4 goal (6,3), got (${state.goalCell?.c},${state.goalCell?.r})`);
+  assert(await page.locator('#repeat-palette').isHidden(),'L5: REPETIR must start locked');
+
+  // G4: A7 → G7 → G4 = 6F, L, 3F. Primera solución obligatoriamente sin REPETIR.
+  const firstSolution=['forward','forward','forward','forward','forward','forward','left','forward','forward','forward'];
+  await addLegacyCommandsByDoubleClick(page,firstSolution);
+  assert(await page.locator('.program-block').count()===10,'L5: first solution must contain 10 commands');
+  await page.locator('#run-btn').click();
+  await page.locator('#repeat-palette').waitFor({state:'visible',timeout:30000});
+  await page.waitForFunction(()=>window.apulabLevel5QA.getState().longSolutionCompleted===true,null,{timeout:10000});
+  state=await page.evaluate(()=>window.apulabLevel5QA.getState());
+  assert(state.initialBlockCount===10,`L5: expected initial count 10, got ${state.initialBlockCount}`);
+  assert(state.completed===false,'L5: first solution must not complete level');
+
+  // Segunda solución: REPETIR×6 {AVANZAR}, GIRAR IZQ., REPETIR×3 {AVANZAR} = 5 ejecutables.
+  await page.locator('#clear-btn').click();
+  await page.waitForTimeout(200);
+  const repeat=page.locator('#repeat-palette');
+  await repeat.dblclick();
+  await pointerDrag(page,page.locator('.command-block[data-command="forward"]'),page.locator('.repeat-body[data-repeat-body="0"]'));
+  for(let i=0;i<4;i+=1)await page.locator('[data-count="0:1"]').click();
+  await page.locator('.command-block[data-command="left"]').dblclick();
+  await repeat.dblclick();
+  await pointerDrag(page,page.locator('.command-block[data-command="forward"]'),page.locator('.repeat-body[data-repeat-body="2"]'));
+  await page.locator('[data-count="2:1"]').click();
+
+  state=await page.evaluate(()=>window.apulabLevel5QA.getState());
+  assert(state.currentBlockCount===5,`L5: expected compact count 5, got ${state.currentBlockCount}`);
+  assert(state.currentBlockCount<state.initialBlockCount,'L5: compact solution must be shorter');
+  await page.locator('#run-btn').click();
+  await page.locator('#success-overlay.visible').waitFor({timeout:30000});
+  state=await page.evaluate(()=>window.apulabLevel5QA.getState());
+  assert(state.completed===true&&state.usedRepeat===true,'L5: compact REPETIR solution did not complete');
+  assert(state.finalBlockCount===5,`L5: expected final count 5, got ${state.finalBlockCount}`);
+  await closeLevel();
+}
 
 async function level6(){const page=await openLevel(6);assert(await page.locator('#repeat-palette').isVisible(),'L6: REPETIR must remain available');await addAccessibleCommands(page,['analyze']);await page.locator('#run-btn').click();await page.waitForFunction(()=>(document.getElementById('feedback')?.textContent||'').includes('todavía no tiene datos'));assert(await page.locator('.program-block').count()===1,'L6: premature ANALIZAR erased program');await page.locator('#clear-btn').click();const solution=['forward','forward','forward','scan','analyze','left','forward','forward','forward','send'];await addAccessibleCommands(page,solution);await page.locator('#run-btn').click();await page.locator('#success-overlay.visible').waitFor({timeout:30000});const telemetry=await page.evaluate(()=>JSON.parse(sessionStorage.getItem('apulab.level6.telemetry')||'[]'));const names=telemetry.map(x=>x.event);for(const event of ['premature_action','science_action','data_sent','level_completed'])assert(names.includes(event),`L6: telemetry missing ${event}`);await closeLevel()}
 
-(async()=>{browser=await chromium.launch({headless:true});context=await browser.newContext({viewport:{width:1672,height:941},reducedMotion:'reduce'});await context.addInitScript(()=>{try{localStorage.setItem('apulab.settings.sfx','off')}catch(_){}});await level3();await level4();await level5();await level6();assert(runtimeErrors.length===0,`runtime errors detected:\n${runtimeErrors.join('\n')}`);await browser.close();console.log('[e2e] Mission 01 gameplay N3→N6 OK · N7 covered by dedicated instrument-choice contract')})().catch(async(error)=>{console.error(error);await mkdir(EVIDENCE_DIR,{recursive:true});await writeFile(resolve(EVIDENCE_DIR,'runtime.log'),`${String(error?.stack||error)}\n\n${runtimeErrors.join('\n')}\n`,'utf8');try{if(currentPage)await currentPage.screenshot({path:resolve(EVIDENCE_DIR,'failure.png'),fullPage:true})}catch(_){}try{await browser?.close()}catch(_){}process.exitCode=1});
+(async()=>{browser=await chromium.launch({headless:true});context=await browser.newContext({viewport:{width:1672,height:941},reducedMotion:'reduce'});await context.addInitScript(()=>{try{localStorage.setItem('apulab.settings.sfx','off')}catch(_){}});await level3();await level4();await level5();await level6();assert(runtimeErrors.length===0,`runtime errors detected:\n${runtimeErrors.join('\n')}`);await browser.close();console.log('[e2e] Mission 01 gameplay N3→N6 OK · N5 G4 10→5 · N7 covered by dedicated instrument-choice contract')})().catch(async(error)=>{console.error(error);await mkdir(EVIDENCE_DIR,{recursive:true});await writeFile(resolve(EVIDENCE_DIR,'runtime.log'),`${String(error?.stack||error)}\n\n${runtimeErrors.join('\n')}\n`,'utf8');try{if(currentPage)await currentPage.screenshot({path:resolve(EVIDENCE_DIR,'failure.png'),fullPage:true})}catch(_){}try{await browser?.close()}catch(_){}process.exitCode=1});

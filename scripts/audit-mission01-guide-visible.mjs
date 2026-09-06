@@ -17,7 +17,7 @@ for (const level of [1, 2]) {
   if (!html.includes('setGuideMode(!guideActive)')) fail('native_click_toggle_missing', `l${level}`);
 }
 
-for (const level of [3, 4, 5]) {
+for (const level of [3, 4]) {
   const html = await readFile(resolve(OUT, `level${level}.html`), 'utf8');
   if (!html.includes('function renderStructuredGuide')) fail('structured_renderer_missing', `l${level}`);
   if (!html.includes("info.classList.add('visible')")) fail('structured_panel_stays_hidden', `l${level}`);
@@ -26,4 +26,13 @@ for (const level of [3, 4, 5]) {
   if (!hasClick) fail('structured_click_missing', `l${level}`);
 }
 
-console.info('[mission01] GUIDE VISIBLE CONTRACT OK · click → panel visible · L1–L5');
+{
+  const html = await readFile(resolve(OUT, 'level5.html'), 'utf8');
+  if (html.includes('id="guide-btn"')) fail('l5_top_guide_returned');
+  if (!html.includes('data-testid="level5-guide"')) fail('l5_fixed_guide_missing');
+  if (!html.includes('GUÍA · <span>REPETIR</span>')) fail('l5_fixed_guide_title');
+  if ((html.match(/class="level5-guide-node"/g) || []).length !== 4) fail('l5_fixed_guide_step_count');
+  if (!html.includes('level5GuideStep()')) fail('l5_gameplay_driven_guide_missing');
+}
+
+console.info('[mission01] GUIDE VISIBLE CONTRACT OK · L1–L4 legacy guides preserved · L5 fixed lower 4-step guide');
