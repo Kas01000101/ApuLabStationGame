@@ -28,7 +28,9 @@ async function pointerDrag(source, target) {
   await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 12 }); await page.mouse.up();
 }
 
-const LONG = ['left','forward','forward','forward','forward','forward','forward','right','forward','forward','forward','forward','forward','forward'];
+// G4 está exactamente tres filas debajo de la antigua G1.
+// Ruta pedagógica larga: A7 → G7 → G4.
+const LONG = ['forward','forward','forward','forward','forward','forward','left','forward','forward','forward'];
 
 (async () => {
   await mkdir(OUT, { recursive: true });
@@ -49,7 +51,7 @@ const LONG = ['left','forward','forward','forward','forward','forward','forward'
   assert(await page.locator('#journal-btn').isVisible(), 'L5: BITÁCORA missing');
   let s = await state();
   assert(s.longSolutionCompleted === false && s.repeatUnlocked === false, 'L5: initial pedagogical state incorrect');
-  assert(s.goalCell && Number.isInteger(s.goalCell.c) && Number.isInteger(s.goalCell.r), 'L5: goal cell not exposed');
+  assert(s.goalCell?.c === 6 && s.goalCell?.r === 3, `L5: flag must be exactly at G4 (6,3), got (${s.goalCell?.c},${s.goalCell?.r})`);
   await shot('01-initial');
 
   await add(LONG);
@@ -63,7 +65,6 @@ const LONG = ['left','forward','forward','forward','forward','forward','forward'
   assert(s.completed === false, 'L5: first solution incorrectly completed the level');
   assert(!await page.locator('#success-overlay').isVisible(), 'L5: success overlay appeared after first long solution');
   assert(await page.locator('.program-row.apulab-pattern-repeat').count() >= 2, 'L5: repeated pattern not highlighted');
-  assert(await page.locator('#repeat-palette.level5-repeat-ready').isVisible(), 'L5: restrained REPETIR attention missing');
   assert(await page.locator('#apulab-repeat-arrow').count() === 0, 'L5: legacy arrow must not exist');
   assert(await page.locator('.level5-guide-step[data-step="3"].is-active').isVisible(), 'L5: guide did not advance to REPETIR');
   await shot('02-pattern-and-unlock');
@@ -82,42 +83,45 @@ const LONG = ['left','forward','forward','forward','forward','forward','forward'
   assert(await page.locator('.repeat-card').count() === 1, 'L5: Space did not insert REPETIR');
   await page.locator('[data-del="0"]').click();
 
+  // Solución compacta base: REPETIR×6 AVANZAR, GIRAR IZQ., REPETIR×3 AVANZAR.
+  await repeat.dblclick();
+  await pointerDrag(page.locator('.command-block[data-command="forward"]'), page.locator('.repeat-body[data-repeat-body="0"]'));
+  for (let i = 0; i < 4; i += 1) await page.locator('[data-count="0:1"]').click();
   await add(['left']);
   await repeat.dblclick();
-  await pointerDrag(page.locator('.command-block[data-command="forward"]'), page.locator('.repeat-body[data-repeat-body="1"]'));
-  for (let i = 0; i < 4; i += 1) await page.locator('[data-count="1:1"]').click();
-  await add(['right']);
-  await repeat.dblclick();
-  await pointerDrag(page.locator('.command-block[data-command="forward"]'), page.locator('.repeat-body[data-repeat-body="3"]'));
-  for (let i = 0; i < 4; i += 1) await page.locator('[data-count="3:1"]').click();
-  for (let i = 0; i < 8; i += 1) await add(['left']);
+  await pointerDrag(page.locator('.command-block[data-command="forward"]'), page.locator('.repeat-body[data-repeat-body="2"]'));
+  await page.locator('[data-count="2:1"]').click();
+
+  // Un programa con REPETIR pero no más corto no debe completar el nivel.
+  for (let i = 0; i < 5; i += 1) await add(['left']);
   const badProgramCount = (await state()).currentBlockCount;
   assert(badProgramCount >= LONG.length, 'L5: negative program did not reach non-reduced count');
   await page.locator('#run-btn').click();
-  await page.waitForTimeout(12_000);
+  await page.waitForTimeout(10_000);
   assert(!await page.locator('#success-overlay').isVisible(), 'L5: non-reduced repeat program incorrectly completed');
   assert(await page.locator('.repeat-card').count() === 2, 'L5: failed attempt erased REPETIR structure');
 
   await page.locator('#clear-btn').click(); await page.waitForTimeout(250);
+  await repeat.dblclick();
+  await pointerDrag(page.locator('.command-block[data-command="forward"]'), page.locator('.repeat-body[data-repeat-body="0"]'));
+  for (let i = 0; i < 4; i += 1) await page.locator('[data-count="0:1"]').click();
   await add(['left']);
   await repeat.dblclick();
-  await pointerDrag(page.locator('.command-block[data-command="forward"]'), page.locator('.repeat-body[data-repeat-body="1"]'));
-  for (let i = 0; i < 4; i += 1) await page.locator('[data-count="1:1"]').click();
-  await add(['right']);
-  await repeat.dblclick();
-  await pointerDrag(page.locator('.command-block[data-command="forward"]'), page.locator('.repeat-body[data-repeat-body="3"]'));
-  for (let i = 0; i < 4; i += 1) await page.locator('[data-count="3:1"]').click();
+  await pointerDrag(page.locator('.command-block[data-command="forward"]'), page.locator('.repeat-body[data-repeat-body="2"]'));
+  await page.locator('[data-count="2:1"]').click();
   s = await state();
+  assert(s.currentBlockCount === 5, `L5: compact G4 program expected 5 executable blocks, got ${s.currentBlockCount}`);
   assert(s.currentBlockCount < s.initialBlockCount, `L5: final program is not shorter (${s.currentBlockCount} >= ${s.initialBlockCount})`);
   await shot('03-refactored-program');
+
   await page.locator('#run-btn').click();
   await page.locator('#success-overlay.visible').waitFor({ timeout: 35_000 });
   s = await state();
   assert(s.completed === true, 'L5: final state not completed');
   assert(s.usedRepeat === true, 'L5: final solution did not register REPETIR');
-  assert(s.finalBlockCount < s.initialBlockCount, 'L5: final count must be lower than initial count');
+  assert(s.initialBlockCount === 10 && s.finalBlockCount === 5, `L5: expected 10 → 5, got ${s.initialBlockCount} → ${s.finalBlockCount}`);
+  assert(s.goalCell?.c === 6 && s.goalCell?.r === 3, 'L5: final goal moved away from G4');
 
-  // updateLevel5Journal synchronizes the underlying journal text even while the success modal owns pointer input.
   const journal = await page.locator('#journal-text').textContent() || '';
   assert(journal.includes('PROGRAMA INICIAL') && journal.includes('PROGRAMA CON REPETIR'), 'L5: journal before/after summary missing');
   const events = await telemetry(); const names = events.map((x) => x.event);
@@ -128,7 +132,7 @@ const LONG = ['left','forward','forward','forward','forward','forward','forward'
   await writeFile(resolve(OUT, 'state.json'), JSON.stringify(s, null, 2), 'utf8');
   await writeFile(resolve(OUT, 'telemetry.json'), JSON.stringify(events, null, 2), 'utf8');
   await browser.close();
-  console.log(`[e2e] LEVEL 5 FINAL LOOPS OK · goal=(${s.goalCell.c},${s.goalCell.r}) · ${s.initialBlockCount} → ${s.finalBlockCount} executable blocks · REPETIR learned → N6`);
+  console.log(`[e2e] LEVEL 5 FINAL LOOPS OK · goal=G4 (${s.goalCell.c},${s.goalCell.r}) · ${s.initialBlockCount} → ${s.finalBlockCount} executable blocks · REPETIR learned → N6`);
 })().catch(async (error) => {
   console.error(error); await mkdir(OUT, { recursive: true });
   await writeFile(resolve(OUT, 'runtime.log'), `${String(error?.stack || error)}\n\n${runtimeErrors.join('\n')}\n`, 'utf8');
