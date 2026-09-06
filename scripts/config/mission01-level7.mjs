@@ -11,10 +11,12 @@ export const LEVEL7_CONFIG = Object.freeze({
   // Maximum five rocks by GDD. None blocks the sample or final point.
   obstacles: [[3,6],[0,5],[7,4],[2,1]],
   sensors: [],
+  // These labels intentionally preserve the pre-final pipeline vocabulary.
+  // patch-mission01-level7-final-gdd.mjs normalizes them in the generated N7 only.
   sensorOptions: [
-    { id: 'temperature', name: 'TEMPERATURA', icon: '🌡', description: 'Mide qué tan fría o caliente está.' },
-    { id: 'proximity', name: 'PROXIMIDAD', icon: '📡', description: 'Mide qué tan cerca está un objeto.' },
-    { id: 'materials', name: 'ANALIZADOR DE MATERIALES', icon: '🔬', description: 'Obtiene información sobre los materiales presentes.' },
+    { id: 'temperature', name: 'SENSOR DE TEMPERATURA', icon: '🌡', description: 'Mide qué tan fría o caliente está.' },
+    { id: 'proximity', name: 'SENSOR DE PROXIMIDAD', icon: '📡', description: 'Mide qué tan cerca está un objeto.' },
+    { id: 'materials', name: 'ANALIZADOR DE MINERALES', icon: '🔬', description: 'Obtiene información sobre los materiales presentes.' },
   ],
   explore: [
     { title: 'DISTINTOS DATOS', text: 'Los instrumentos pueden obtener distintos tipos de información.', hint: 'Observa qué información produce cada instrumento.', focus: 'sample' },
