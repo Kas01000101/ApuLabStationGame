@@ -27,13 +27,16 @@ for (const [level, html] of [[6,l6],[7,l7]]) {
   if (html.includes('apulab-repeat-focus')) fail(`l${level}_repeat_tutorial_leak`);
 }
 
-for (const token of ['APULAB_LEVEL6_FROM_LEVEL5_V1','PUNTO DE ESTUDIO','data-command="scan"','data-command="analyze"','data-command="send"','ESCANEANDO MUESTRA','ANALIZANDO','TRANSMITIENDO A APULAB STATION']) {
+for (const token of ['APULAB_LEVEL6_FROM_LEVEL5_V1','APULAB_LEVEL6_TWO_CHECKPOINTS_V1','INVESTIGAR','DATOS CIENTÍFICOS','ZONA DE INTERÉS','PUNTO DE COMUNICACIÓN','data-command="scan"','data-command="analyze"','data-command="send"','DATO OBTENIDO','RESULTADO INTERPRETADO','DATOS ENVIADOS A APULAB STATION']) {
   if (!l6.includes(token)) fail(`l6_science:${token}`);
 }
+if (l6.includes('if(!usesRepeat())')) fail('l6_repeat_must_be_optional');
+for (const forbidden of ['SENSOR DE TEMPERATURA','SENSOR DE PROXIMIDAD','ANALIZADOR DE MINERALES','ANALIZAR MUESTRA']) if (l6.includes(forbidden)) fail(`l6_level7_leak:${forbidden}`);
+
 for (const token of ['APULAB_LEVEL7_FROM_LEVEL5_V1','LA MUESTRA DESCONOCIDA','MUESTRA DE INTERÉS','data-command="analyzeSample"','ANALIZAR MUESTRA','SENSOR DE TEMPERATURA','SENSOR DE PROXIMIDAD','ANALIZADOR DE MINERALES','RANURA DE SENSOR','CAMBIAR SENSOR','FINALIZAR MISIÓN','MISIÓN 01 COMPLETADA']) {
   if (!l7.includes(token)) fail(`l7_sample:${token}`);
 }
 for (const legacy of ['data-command="read"','data-command="record"','data-command="send"']) if (l7.includes(legacy)) fail(`l7_legacy:${legacy}`);
 if (/nextLevel\s*:\s*8|CONTINUAR AL NIVEL 8/.test(l7)) fail('l7_fake_level8');
 
-console.info('[mission01] LEVEL 6–7 CANONICAL SHELL OK · N6 ciencia + N7 muestra desconocida/3 sensores · ambos derivados de N5');
+console.info('[mission01] LEVEL 6–7 CANONICAL SHELL OK · N6 two-checkpoint science + optional REPETIR · N7 unknown sample/3 sensors');

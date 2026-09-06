@@ -45,7 +45,11 @@ jobs:
           ! grep -Fq 'NIVEL 4 · PRÓXIMAMENTE' public/missions/mission01/level3.html
           grep -Fq 'CONTINUAR AL NIVEL 7' public/missions/mission01/level6.html
           grep -Fq 'MISIÓN 01 COMPLETADA' public/missions/mission01/level7.html
-          grep -Fq 'MISIÓN CIENTÍFICA' public/missions/mission01/level6.html
+          grep -Fq 'INVESTIGAR' public/missions/mission01/level6.html
+          grep -Fq 'DATOS CIENTÍFICOS' public/missions/mission01/level6.html
+          grep -Fq 'ZONA DE INTERÉS' public/missions/mission01/level6.html
+          grep -Fq 'PUNTO DE COMUNICACIÓN' public/missions/mission01/level6.html
+          grep -Fq 'OBTENER → INTERPRETAR → COMUNICAR' public/missions/mission01/level6.html
           grep -Fq 'LA MUESTRA DESCONOCIDA' public/missions/mission01/level7.html
           grep -Fq 'ANALIZAR MUESTRA' public/missions/mission01/level7.html
           grep -Fq 'SENSOR DE TEMPERATURA' public/missions/mission01/level7.html
@@ -54,6 +58,10 @@ jobs:
           grep -Fq 'RANURA DE SENSOR' public/missions/mission01/level7.html
           grep -Fq 'REPETIR × N' public/missions/mission01/level6.html
           grep -Fq 'REPETIR × N' public/missions/mission01/level7.html
+          ! grep -Fq 'if(!usesRepeat())' public/missions/mission01/level6.html
+          ! grep -Fq 'SENSOR DE TEMPERATURA' public/missions/mission01/level6.html
+          ! grep -Fq 'SENSOR DE PROXIMIDAD' public/missions/mission01/level6.html
+          ! grep -Fq 'ANALIZADOR DE MINERALES' public/missions/mission01/level6.html
           ! grep -Fq 'data-command="read"' public/missions/mission01/level7.html
           ! grep -Fq 'data-command="record"' public/missions/mission01/level7.html
           ! grep -Fq 'data-command="send"' public/missions/mission01/level7.html
