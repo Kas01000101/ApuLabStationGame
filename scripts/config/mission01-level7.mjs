@@ -7,7 +7,9 @@ export const LEVEL7_CONFIG = Object.freeze({
   start: { c: 1, r: 7, dir: 0 },
   // Simple final route: N7 evaluates scientific choice, not navigation difficulty.
   goal: { c: 6, r: 6, label: 'PUNTO FINAL' },
-  sample: { c: 5, r: 2, label: 'MUESTRA DESCONOCIDA' },
+  // Legacy intermediate label required by pre-final N7 patches. The final patch
+  // normalizes it to MUESTRA DESCONOCIDA in the generated level7.html only.
+  sample: { c: 5, r: 2, label: 'MUESTRA DE INTERÉS' },
   // Maximum five rocks by GDD. None blocks the sample or final point.
   obstacles: [[3,6],[0,5],[7,4],[2,1]],
   sensors: [],
