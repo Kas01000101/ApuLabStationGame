@@ -1,0 +1,4 @@
+project_id = "apulab-station-local"
+
+[functions.ingest-telemetry]
+verify_jwt = false
