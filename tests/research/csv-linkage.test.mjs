@@ -37,7 +37,7 @@ test('linkage whitelists questionnaire fields and never exports direct PII', asy
     await writeFile(telemetry, `participant_id,event_type,payload\r\n${participantId},level_completed,"{}"\r\n`, 'utf8');
     await writeFile(mapping, `participant_id,participant_code_hash\r\n${participantId},${hash}\r\n`, 'utf8');
     await writeFile(pre, 'study_code,name,email,school,Q9,Q10\r\nQT-001,"Apellido, Nombre",child@example.com,"Colegio, Lima","Respuesta, con coma","Texto ""citado"""\r\n', 'utf8');
-    const run = spawnSync(process.execPath, [resolve(ROOT, 'scripts/research/link-external-forms.ts'), `--telemetry=${telemetry}`, `--mapping=${mapping}`, `--pre=${pre}`], {
+    const run = spawnSync(process.execPath, ['--experimental-strip-types', resolve(ROOT, 'scripts/research/link-external-forms.ts'), `--telemetry=${telemetry}`, `--mapping=${mapping}`, `--pre=${pre}`], {
       cwd: ROOT,
       env: { ...process.env, APULAB_AUTH_PEPPER: pepper },
       encoding:'utf8',
