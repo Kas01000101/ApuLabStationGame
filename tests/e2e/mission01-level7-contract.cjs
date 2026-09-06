@@ -120,7 +120,7 @@ async function shot(name) {
   await page.locator('#clear-btn').click();
   s = await state();
   assert(s.relevantInstrumentUsed === false && s.sampleCheckpointReached === false && s.finalCheckpointReached === false, 'L7: LIMPIAR left scientific flags active');
-  assert(await page.locator('#sensor-overlay,#analysis-overlay').filter({ visible: true }).count().catch(() => 0) === 0, 'L7: LIMPIAR left modal visible');
+  assert(!await page.locator('#sensor-overlay').isVisible() && !await page.locator('#analysis-overlay').isVisible(), 'L7: LIMPIAR left modal visible');
 
   // H. Complete with a normal route, no REPETIR.
   const fullNoRepeat = ['forward','forward','forward','forward','right','forward','forward','forward','forward','analyzeSample','right','right','forward','forward','forward','forward'];
