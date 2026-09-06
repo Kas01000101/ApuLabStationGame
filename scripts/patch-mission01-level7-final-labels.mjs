@@ -15,19 +15,18 @@ let html=await readFile(LEVEL7,'utf8');
 if(!html.includes('APULAB_LEVEL7_FINAL_GDD_V1'))fail('final_gdd_missing');
 if(html.includes('APULAB_LEVEL7_SAMPLE_COMMUNICATION_FINAL_V2'))fail('already_applied');
 
-// Final public terminology: checkpoint 1 is the sample; checkpoint 2 is communication.
 html=html
   .replaceAll('MUESTRA DE INTERÉS','MUESTRA DESCONOCIDA')
   .replaceAll('PUNTO DE MISIÓN','PUNTO DE COMUNICACIÓN')
   .replaceAll('PUNTO FINAL','PUNTO DE COMUNICACIÓN')
   .replaceAll('Lleva AYNI al punto de comunicación.','Lleva AYNI al punto de comunicación y envía los datos.')
+  .replaceAll('Lleva AYNI al punto final.','Lleva AYNI al punto de comunicación y envía los datos.')
   .replaceAll('PASO 5 · LLEVA AYNI AL PUNTO DE COMUNICACIÓN','PASO 5 · LLEVA AYNI AL PUNTO DE COMUNICACIÓN Y ENVÍA LOS DATOS')
   .replaceAll('Necesitamos saber de qué material está hecha esta piedra. ¿Qué instrumento es el más indicado?','Necesitamos saber de qué material está hecha esta piedra.')
   .replaceAll('AYNI necesita estar junto a la muestra para analizarla.','Lleva AYNI hasta la muestra para analizarla.')
   .replaceAll('AYNI debe estar junto a la muestra para analizarla.','Lleva AYNI hasta la muestra para analizarla.')
   .replaceAll('junto a la muestra','sobre la muestra');
 
-// Exact checkpoint semantics. Adjacency is forbidden in the final N7 runtime.
 html=html.replaceAll('isAdjacentToSample','atSampleCell');
 html=requiredReplace(
   html,
@@ -40,8 +39,6 @@ html=html
   .replaceAll('finalCheckpointReached','communicationPointReached')
   .replaceAll("'final_point_reached'","'communication_point_reached'");
 
-// Reuse the N6 communication concept. The internal key is transmitData so old
-// pre-final audit guards against the removed N6 `send` command remain harmless.
 const sendBlock='<div class="command-block block-send" data-kind="cmd" data-command="transmitData" data-testid="block-send-data" tabindex="0" role="button" aria-label="Añadir ENVIAR DATOS al programa"><span class="ico">⇧</span>ENVIAR DATOS<span class="tone">TX</span></div>';
 const analyzePalette=/(<div class="command-block block-analyze-sample"[^>]*>[\s\S]*?<\/div>)(<\/div>)/;
 if(!analyzePalette.test(html))fail('analyze_palette');
@@ -53,7 +50,6 @@ html=requiredReplace(
   'send_command_registry',
 );
 
-// Completion now requires relevant data + communication point + explicit send.
 html=requiredReplace(
   html,
   'if(!relevantInstrumentUsed||!atCommunicationPoint())return;',
@@ -69,7 +65,6 @@ html=html.replaceAll(
   'AYNI investigó la muestra y envió el resultado a ApuLab Station.',
 );
 
-// Step 5 remains active until dataSent; reaching checkpoint 2 alone never wins.
 html=requiredReplace(html,'if(communicationPointReached)phaseStep=6;','if(dataSent)phaseStep=6;','guide_completion_state');
 html=requiredReplace(
   html,
@@ -78,7 +73,6 @@ html=requiredReplace(
   'state_visuals',
 );
 
-// One visible marker system: hide the old question sprite and 3D endpoint label.
 const renderToken='questionSprite.position.y=.92+.045*Math.sin(t*1.8);';
 if(html.includes(renderToken))html=html.replace(renderToken,`${renderToken}if(window.apulabLevel7SampleGlow?.visible){window.apulabLevel7SampleGlow.material.opacity=.55+.30*p;}`);
 
@@ -99,7 +93,7 @@ const sampleAyniGlow=new THREE.Mesh(new THREE.RingGeometry(.48,.66,48),new THREE
 sampleAyniGlow.rotation.x=-Math.PI/2;sampleAyniGlow.position.y=.055;sampleAyniGlow.visible=false;sampleGroup.add(sampleAyniGlow);window.apulabLevel7SampleGlow=sampleAyniGlow;
 questionSprite.visible=false;finalLabel.visible=false;
 const __l7CommunicationCompleteLevel=completeLevel;
-completeLevel=function(...args){if(!relevantInstrumentUsed||!communicationPointReached||!dataSent){if(relevantInstrumentUsed&&atCommunicationPoint()&&!dataSent){feedback.textContent='Ya estás en el punto de comunicación. Usa ENVIAR DATOS.';showStatus('Usa ENVIAR DATOS para comunicar el resultado.',2200)}syncLevel7FinalUX();return;}return __l7CommunicationCompleteLevel(...args)};
+completeLevel=function(...args){if(phase==='complete')return;if(!relevantInstrumentUsed||!communicationPointReached||!dataSent){if(relevantInstrumentUsed&&atCommunicationPoint()&&!dataSent){feedback.textContent='Ya estás en el punto de comunicación. Usa ENVIAR DATOS.';showStatus('Usa ENVIAR DATOS para comunicar el resultado.',2200)}syncLevel7FinalUX();return;}return __l7CommunicationCompleteLevel(...args)};
 const __l7CommunicationExecuteCommand=executeCommand;
 executeCommand=async function(cmd){
   if(dataSent)return;
