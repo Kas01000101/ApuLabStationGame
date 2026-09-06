@@ -37,17 +37,23 @@ async function pointerDrag(source, target) {
   await page.mouse.up();
 }
 
-async function choose(id) {
+async function choose(id, mode = 'enter') {
   const card = page.locator(`.instrument-option[data-instrument="${id}"]`);
-  await card.focus();
-  await card.press('Enter');
+  if (mode === 'click') await card.click();
+  else {
+    await card.focus();
+    await card.press(mode === 'space' ? 'Space' : 'Enter');
+  }
   await page.locator('#analysis-overlay.visible').waitFor({ timeout: 5_000 });
 }
 
-async function changeInstrument() {
+async function changeInstrument(mode = 'enter') {
   const button = page.locator('#change-instrument-btn');
-  await button.focus();
-  await button.press('Enter');
+  if (mode === 'click') await button.click();
+  else {
+    await button.focus();
+    await button.press(mode === 'space' ? 'Space' : 'Enter');
+  }
   await page.locator('#sensor-overlay.visible').waitFor({ timeout: 5_000 });
 }
 
@@ -73,12 +79,29 @@ async function shot(name) {
   context = await browser.newContext({ viewport: { width: 1672, height: 941 }, reducedMotion: 'reduce' });
   await context.addInitScript(() => { try { localStorage.setItem('apulab.settings.sfx', 'off'); } catch (_) {} });
 
-  // A. ANALIZAR MUESTRA away from the sample: graceful failure, program preserved.
   await openLevel();
   assert(await page.locator('#sensor-overlay').isHidden(), 'L7: selector opened before ANALIZAR MUESTRA');
   assert(await page.locator('#repeat-palette').isVisible(), 'L7: REPETIR must be available from start');
+  const analyze = page.locator('.command-block[data-command="analyzeSample"]');
+
+  // Accessibility/input contract: click, Space, drag and Enter all insert the block.
+  await analyze.click();
+  await page.waitForTimeout(260);
+  assert(await page.locator('.program-block').count() === 1, 'L7: click did not add ANALIZAR MUESTRA');
+  await page.locator('#clear-btn').click();
+
+  await analyze.focus();
+  await analyze.press('Space');
+  assert(await page.locator('.program-block').count() === 1, 'L7: Space did not add ANALIZAR MUESTRA');
+  await page.locator('#clear-btn').click();
+
+  await pointerDrag(analyze, page.locator('.slot[data-index="0"]'));
+  assert(await page.locator('.program-block').count() === 1, 'L7: drag did not add ANALIZAR MUESTRA');
+  await page.locator('#clear-btn').click();
+
+  // A. ANALIZAR MUESTRA away from the sample: graceful failure, program preserved.
   await addCommands(['analyzeSample']);
-  assert(await page.locator('.program-block').count() === 1, 'L7: keyboard did not add ANALIZAR MUESTRA');
+  assert(await page.locator('.program-block').count() === 1, 'L7: Enter did not add ANALIZAR MUESTRA');
   await page.locator('#run-btn').click();
   await page.waitForFunction(() => (document.getElementById('feedback')?.textContent || '').includes('junto a la muestra'));
   assert(await page.locator('.program-block').count() === 1, 'L7: premature analysis erased program');
@@ -93,19 +116,24 @@ async function shot(name) {
   await page.locator('#run-btn').click();
   await page.locator('#sensor-overlay.visible').waitFor({ timeout: 25_000 });
   await shot('selector-after-analyze');
-  await choose('temperature');
+
+  // Exercise modal controls through three different input modes.
+  await choose('temperature', 'click');
   assert((await page.locator('#analysis-result').textContent() || '').includes('−58 °C'), 'L7: temperature reading missing');
   assert(!await page.locator('#continue-analysis-btn').isVisible(), 'L7: irrelevant temperature should not continue mission');
-  await changeInstrument();
-  await choose('proximity');
+  await changeInstrument('click');
+
+  await choose('proximity', 'space');
   assert((await page.locator('#analysis-result').textContent() || '').includes('0.4 m'), 'L7: proximity reading missing');
-  await changeInstrument();
-  await choose('materials');
+  await changeInstrument('space');
+
+  await choose('materials', 'enter');
   const materialText = await page.locator('#analysis-result').textContent() || '';
   assert(materialText.includes('HIERRO') && materialText.includes('SILICATOS'), 'L7: materials reading missing');
   assert(await page.locator('#continue-analysis-btn').isVisible(), 'L7: relevant composition should allow continuation');
   await continueAnalysis();
   await page.waitForFunction(() => (document.getElementById('feedback')?.textContent || '').includes('punto final'));
+
   let s = await state();
   assert(s.firstInstrument === 'temperature', 'L7: first instrument telemetry state incorrect');
   assert(s.finalInstrument === 'materials', 'L7: final instrument telemetry state incorrect');
@@ -116,7 +144,7 @@ async function shot(name) {
   assert(!await page.locator('#success-overlay').isVisible(), 'L7: composition alone must not complete mission');
   await shot('materials-result-complete');
 
-  // Reset must remove current scientific progress and visible result state.
+  // Reset removes current scientific progress and visible result state.
   await page.locator('#clear-btn').click();
   s = await state();
   assert(s.relevantInstrumentUsed === false && s.sampleCheckpointReached === false && s.finalCheckpointReached === false, 'L7: LIMPIAR left scientific flags active');
@@ -145,9 +173,14 @@ async function shot(name) {
   assert(completed?.payload?.completed_level === true, 'L7: completion telemetry missing completed_level');
   assert(completed?.payload?.first_choice_relevant === false, 'L7: first_choice_relevant should reflect earlier temperature choice');
   assert(completed?.payload?.changed_after_irrelevant_feedback === true, 'L7: strategy-change metric not preserved across reset');
+
+  // Terminal mission action: no fake level 8 and no inherited 5→6 fallback.
+  await page.locator('#continue-btn').click();
+  assert((await page.locator('#continue-btn').textContent() || '').includes('MISIÓN COMPLETADA'), 'L7: FINALIZAR MISIÓN did not enter terminal state');
+  assert(await page.locator('#continue-btn').isDisabled(), 'L7: terminal mission button should be disabled after finalization');
   await shot('completed-without-repeat');
 
-  // I. Fresh session: complete with REPETIR used voluntarily for the return route.
+  // I. Fresh page: complete with REPETIR used voluntarily for the return route.
   await openLevel();
   const prefix = ['forward','forward','forward','forward','right','forward','forward','forward','forward','analyzeSample','right','right'];
   await addCommands(prefix);
@@ -170,7 +203,7 @@ async function shot(name) {
   assert(errors.length === 0, `runtime errors detected:\n${errors.join('\n')}`);
   await writeFile(resolve(OUT, 'state.json'), JSON.stringify(s, null, 2), 'utf8');
   await browser.close();
-  console.log('[e2e] LEVEL 7 CONTRACT OK · selector on ANALIZAR · irrelevant data → strategy change · final checkpoint · no-repeat + optional-repeat completions');
+  console.log('[e2e] LEVEL 7 CONTRACT OK · click/drag/Enter/Space · irrelevant data → strategy change · final checkpoint · terminal mission · optional REPETIR');
 })().catch(async (error) => {
   console.error(error);
   await mkdir(OUT, { recursive: true });
