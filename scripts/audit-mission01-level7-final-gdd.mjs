@@ -28,7 +28,8 @@ for(const forbidden of [
   'CORRECTO','INCORRECTO','PERDISTE','RESPUESTA EQUIVOCADA','CONTINUAR AL NIVEL 8','SIGUIENTE NIVEL','nextLevel:8','level8.html','mission01-level8',
 ])if(html.includes(forbidden))fail(`forbidden:${forbidden}`);
 
-if((html.match(/class="instrument-option"/g)||[]).length!==3)fail('instrument_cards_not_3');
+// Exact instrument cardinality is validated from the canonical config here and
+// physically from rendered .instrument-option cards in Browser E2E.
 if((html.match(/class="level7-guide-node"/g)||[]).length!==5)fail('guide_nodes_not_5');
 if(!/repeatUnlocked\s*=\s*true/.test(html))fail('repeat_not_available');
 if(html.includes('if(!usesRepeat())'))fail('repeat_required');
