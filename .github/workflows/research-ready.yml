@@ -8,8 +8,11 @@ on:
       - 'src/systems/**'
       - 'supabase/**'
       - 'scripts/research/**'
+      - 'scripts/patch-mission01-research-telemetry.mjs'
       - 'docs/research/**'
       - 'tests/research/**'
+      - 'tests/e2e/mission01-research-pipeline.cjs'
+      - 'package.json'
       - '.env.example'
       - '.gitignore'
       - '.github/workflows/research-ready.yml'
@@ -20,6 +23,7 @@ permissions:
 jobs:
   research-contract:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -31,9 +35,34 @@ jobs:
         run: node --test tests/research/research-contract.test.mjs
       - name: TypeScript and production build
         run: npm run build
+      - name: Verify generated data-only telemetry markers
+        run: |
+          for level in 1 2 3 4; do
+            grep -Fq "apulab-research-telemetry-l${level}" "public/missions/mission01/level${level}.html"
+          done
+          grep -Fq 'apulab-telemetry' public/missions/mission01/level1.html
+          grep -Fq 'apulab-telemetry' public/missions/mission01/level4.html
       - name: Secret/config guard
         run: |
           test "$(grep -c '^SUPABASE_SERVICE_ROLE_KEY=$' .env.example)" -eq 1
           test "$(grep -c '^APULAB_AUTH_PEPPER=$' .env.example)" -eq 1
           test "$(grep -c '^APULAB_SESSION_PROOF_SECRET=$' .env.example)" -eq 1
           ! grep -RInE '(SUPABASE_SERVICE_ROLE_KEY|APULAB_AUTH_PEPPER|APULAB_SESSION_PROOF_SECRET)=[^[:space:]]+' --exclude='.env.example' --exclude='research-ready.yml' .
+      - name: Install Playwright Chromium
+        run: |
+          npm install --global playwright@1.55.0 --no-fund --no-audit
+          playwright install --with-deps chromium
+          echo "NODE_PATH=$(npm root -g)" >> "$GITHUB_ENV"
+      - name: Start production preview
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/apulab-research-preview.log 2>&1 &
+          for i in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/apulab-research-preview.log
+          exit 1
+      - name: Research pipeline browser E2E
+        env:
+          APULAB_BASE_URL: http://127.0.0.1:4173
+        run: node tests/e2e/mission01-research-pipeline.cjs
