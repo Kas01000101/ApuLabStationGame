@@ -19,15 +19,16 @@ if (!html.includes('APULAB_LEVEL5_FINAL_LOOPS_V1')) fail('missing_final_loops_ru
 if (html.includes('APULAB_LEVEL5_GOAL_G4_V1')) fail('already_applied');
 
 const oldStage = "{name:'RUTA LARGA',start:{c:0,r:6,dir:1},goal:{c:6,r:0},obstacles:[[4,6],[3,3],[7,4],[1,4],[2,2],[4,1],[5,3],[2,5],[6,2]]},";
-const newStage = "{name:'RUTA LARGA',start:{c:0,r:6,dir:1},goal:{c:6,r:3},obstacles:[[4,6],[3,5],[7,4],[1,4],[2,2],[4,1],[5,5],[2,5],[6,2]]},/* APULAB_LEVEL5_GOAL_G4_V1 */";
+const newStage = "{name:'RUTA LARGA',start:{c:0,r:6,dir:1},goal:{c:6,r:3},obstacles:[[0,2],[3,3],[7,4],[1,4],[2,2],[4,1],[5,3],[2,5],[6,2]]},/* APULAB_LEVEL5_GOAL_G4_V1 */";
 
 const count = html.split(oldStage).length - 1;
 if (count !== 1) fail(`stage_match_count_${count}`);
 html = html.replace(oldStage, newStage);
 
-// La bandera y su loseta usan `goal`, por lo que ambas quedan en G4.
-// Reubicamos únicamente los dos obstáculos que ocupaban la nueva ruta L limpia:
-// A7 → A4 → G4. Se conserva el mismo número total de obstáculos.
+// Requisito visual/pedagógico: la bandera baja exactamente tres losetas,
+// de G1 (6,0) a G4 (6,3), manteniendo la misma columna.
+// Solo se mueve el obstáculo de E7 que bloqueaba la ruta pedagógica limpia:
+// A7 → G7 → G4 (6 AVANZAR, GIRAR IZQ., 3 AVANZAR).
 if (!html.includes("goal:{c:6,r:3}")) fail('goal_not_g4');
 if (html.includes("goal:{c:6,r:0}")) fail('old_goal_remaining');
 if (!html.includes('APULAB_LEVEL5_GOAL_G4_V1')) fail('marker_missing');
@@ -46,4 +47,4 @@ entry.bytes = Buffer.byteLength(html, 'utf8');
 entry.sha256 = hash(html);
 await writeFile(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
 
-console.info('[mission01] N5 GOAL POSITION OK · bandera + loseta en G4 · tres filas debajo · ruta L despejada · N1–N4/N6–N7 intactos');
+console.info('[mission01] N5 GOAL POSITION OK · G1 → G4 · exactamente tres losetas abajo · ruta 6F-L-3F despejada · N1–N4/N6–N7 intactos');
