@@ -45,7 +45,7 @@ async function shot(name){await mkdir(OUT,{recursive:true});await page.screensho
   await context.addInitScript(()=>{try{localStorage.setItem('apulab.settings.sfx','off')}catch(_){}});
 
   await open(6); const n6=await metrics(); await shot('n6-reference');
-  await open(7); const n7=await metrics(); await shot('n7-initial-sensor-selection');
+  await open(7); const n7=await metrics(); await shot('n7-initial');
 
   for(const name of ['header','main','simulator','editor','editorFooter','canvas','palette','workspace','program']) compareRect(name,n6[name],n7[name],2);
   assert(n7.stage&&Math.abs(n7.stage.width-1672)<=2&&Math.abs(n7.stage.height-941)<=2,`L7: stage is not 1672×941 (${n7.stage?.width}×${n7.stage?.height})`);
@@ -57,23 +57,18 @@ async function shot(name){await mkdir(OUT,{recursive:true});await page.screensho
   assert(await page.locator('.command-block[data-command="analyzeSample"]').isVisible(),'L7: ANALIZAR MUESTRA missing');
   assertInside('science.analyzeSample',n7.science.analyzeSample,n7.palette,2);
   assert(n7.palette.bottom<=n7.editorFooter.y+2,`L7: palette overlaps footer (${n7.palette.bottom} > ${n7.editorFooter.y})`);
-  assert(n7.science.analyzeSample.bottom<=n7.editorFooter.y+2,`L7: ANALIZAR MUESTRA overlaps footer (${n7.science.analyzeSample.bottom} > ${n7.editorFooter.y})`);
   assert(await page.locator('.panel.simulator,.panel.editor,.board-wrap').count()===0,'L7: parallel legacy shell returned');
   assert(await page.locator('#apulab-repeat-arrow,.apulab-repeat-focus').count()===0,'L7: N5 REPETIR tutorial leaked into N7');
 
   const board = page.locator('#board-canvas');
   assert((await board.getAttribute('role')) === 'img', 'L7: board must expose image semantics');
-  const boardLabel = await board.getAttribute('aria-label') || '';
-  assert(boardLabel.toLowerCase().includes('muestra'), 'L7: accessible unknown-sample label missing');
-  assert(!boardLabel.includes('SENSOR 1') && !boardLabel.includes('SENSOR 2'), 'L7: stale two-board-sensor accessibility contract returned');
+  assert(((await board.getAttribute('aria-label'))||'').toLowerCase().includes('muestra'), 'L7: accessible unknown-sample label missing');
 
-  await page.locator('#sensor-overlay.visible').waitFor({timeout:5000});
-  assert(await page.locator('.sensor-option').count()===3,'L7: sensor selector must expose exactly three options');
-  for(const id of ['temperature','proximity','mineral']) assert(await page.locator(`.sensor-option[data-sensor="${id}"]`).count()===1,`L7: missing sensor option ${id}`);
-  assert((await page.locator('#sensor-slot-label').textContent()||'').includes('VACÍA'),'L7: sensor slot should start empty');
-  await page.locator('.sensor-option[data-sensor="mineral"]').click();
-  await page.locator('#equip-sensor-btn').click();
-  await page.locator('#sensor-overlay').waitFor({state:'hidden',timeout:5000});
+  assert(await page.locator('#sensor-overlay').isHidden(),'L7: instrument selector must not open before ANALIZAR MUESTRA');
+  assert(await page.locator('.instrument-option').count()===3,'L7: selector DOM must expose exactly three instruments');
+  for(const id of ['temperature','proximity','materials']) assert(await page.locator(`.instrument-option[data-instrument="${id}"]`).count()===1,`L7: missing instrument option ${id}`);
+  assert(await page.locator('#equip-sensor-btn,#sensor-slot-label').count()===0,'L7: old equip/slot UI returned');
+  assert(await page.getByText('PUNTO DE MISIÓN',{exact:true}).count()===0,'L7: Three.js point label must remain canvas-only, not duplicate DOM UI');
 
   await page.locator('#guide-btn').click(); await page.locator('#info-panel.visible').waitFor({timeout:5000});
   await page.locator('#journal-btn').click(); await page.locator('#journal-overlay.visible').waitFor({timeout:5000});
@@ -83,5 +78,5 @@ async function shot(name){await mkdir(OUT,{recursive:true});await page.screensho
   assert(errors.length===0,`runtime errors detected:\n${errors.join('\n')}`);
   await writeFile(resolve(OUT,'metrics.json'),JSON.stringify({n6,n7},null,2),'utf8');
   await browser.close();
-  console.log('[e2e] N6→N7 PARITY OK · 1672×941 · same shell/footer · 950×664 board · 30 rows · unknown sample + 3-sensor selector + ANALIZAR MUESTRA');
+  console.log('[e2e] N6→N7 PARITY OK · 1672×941 · same shell/footer · 950×664 board · selector hidden until ANALIZAR · REPETIR optional');
 })().catch(async(error)=>{console.error(error);await mkdir(OUT,{recursive:true});await writeFile(resolve(OUT,'runtime.log'),`${String(error?.stack||error)}\n\n${errors.join('\n')}\n`,'utf8');try{if(page)await page.screenshot({path:resolve(OUT,'failure.png'),fullPage:true})}catch(_){}try{await browser?.close()}catch(_){}process.exitCode=1;});
