@@ -1,0 +1,39 @@
+name: Research-ready contract
+
+on:
+  pull_request:
+    paths:
+      - 'src/config/researchConfig.ts'
+      - 'src/research/**'
+      - 'src/systems/**'
+      - 'supabase/**'
+      - 'scripts/research/**'
+      - 'docs/research/**'
+      - 'tests/research/**'
+      - '.env.example'
+      - '.gitignore'
+      - '.github/workflows/research-ready.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  research-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22.16.0
+          cache: npm
+      - run: npm ci --no-fund --no-audit
+      - name: Research contract tests
+        run: node --test tests/research/research-contract.test.mjs
+      - name: TypeScript and production build
+        run: npm run build
+      - name: Secret/config guard
+        run: |
+          test "$(grep -c '^SUPABASE_SERVICE_ROLE_KEY=$' .env.example)" -eq 1
+          test "$(grep -c '^APULAB_AUTH_PEPPER=$' .env.example)" -eq 1
+          test "$(grep -c '^APULAB_SESSION_PROOF_SECRET=$' .env.example)" -eq 1
+          ! grep -RInE '(SUPABASE_SERVICE_ROLE_KEY|APULAB_AUTH_PEPPER|APULAB_SESSION_PROOF_SECRET)=[^[:space:]]+' --exclude='.env.example' --exclude='research-ready.yml' .
