@@ -99,7 +99,7 @@ jobs:
 
   gameplay:
     runs-on: ubuntu-latest
-    timeout-minutes: 38
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -132,6 +132,11 @@ jobs:
           done
           cat /tmp/apulab-gameplay-preview.log
           exit 1
+
+      - name: Level 5 final loops contract
+        env:
+          APULAB_BASE_URL: http://127.0.0.1:4173
+        run: node tests/e2e/mission01-level5-final-loops.cjs
 
       - name: Level 6 physical parity with Level 5
         env:
@@ -173,23 +178,19 @@ jobs:
           APULAB_BASE_URL: http://127.0.0.1:4173
         run: node tests/e2e/mission01-gameplay-n3-n6.cjs
 
-      - name: Upload Level 6-7 visual evidence
+      - name: Upload Level 5-7 visual evidence
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: mission01-level67-visual-evidence
+          name: mission01-level5-7-visual-evidence
           path: |
+            test-results/level5-final-loops
             test-results/level6-n5-parity
             test-results/level6-contract
             test-results/level7-n6-parity
             test-results/level7-contract
           if-no-files-found: ignore
           retention-days: 5
-
-      - name: Level 5 repeat attention after long route
-        env:
-          APULAB_BASE_URL: http://127.0.0.1:4173
-        run: node tests/e2e/mission01-repeat-attention.cjs
 
       - name: Print gameplay preview log on failure
         if: failure()
