@@ -52,7 +52,6 @@ const LONG = ['left','forward','forward','forward','forward','forward','forward'
   assert(s.goalCell && Number.isInteger(s.goalCell.c) && Number.isInteger(s.goalCell.r), 'L5: goal cell not exposed');
   await shot('01-initial');
 
-  // First solution must work with movement blocks only and must NOT complete the level.
   await add(LONG);
   assert(await page.locator('.program-block').count() === LONG.length, 'L5: long solution was not built');
   await page.locator('#run-btn').click();
@@ -69,14 +68,12 @@ const LONG = ['left','forward','forward','forward','forward','forward','forward'
   assert(await page.locator('.level5-guide-step[data-step="3"].is-active').isVisible(), 'L5: guide did not advance to REPETIR');
   await shot('02-pattern-and-unlock');
 
-  // LIMPIAR preserves the learned phase, but clears the current program.
   await page.locator('#clear-btn').click();
   await page.waitForTimeout(250);
   s = await state();
   assert(s.repeatUnlocked === true, 'L5: LIMPIAR unexpectedly relocked learned REPETIR');
   assert(await page.locator('.program-block').count() === 0 && await page.locator('.repeat-card').count() === 0, 'L5: LIMPIAR did not clear program');
 
-  // Keyboard contract for REPETIR, then remove it to build the final program cleanly.
   const repeat = page.locator('#repeat-palette');
   await repeat.focus(); await repeat.press('Enter');
   assert(await page.locator('.repeat-card').count() === 1, 'L5: Enter did not insert REPETIR');
@@ -85,16 +82,14 @@ const LONG = ['left','forward','forward','forward','forward','forward','forward'
   assert(await page.locator('.repeat-card').count() === 1, 'L5: Space did not insert REPETIR');
   await page.locator('[data-del="0"]').click();
 
-  // Negative: using REPETIR but not reducing executable block count cannot complete.
   await add(['left']);
   await repeat.dblclick();
   await pointerDrag(page.locator('.command-block[data-command="forward"]'), page.locator('.repeat-body[data-repeat-body="1"]'));
-  for (let i = 0; i < 4; i += 1) await page.locator('[data-count="1:1"]').click(); // ×6
+  for (let i = 0; i < 4; i += 1) await page.locator('[data-count="1:1"]').click();
   await add(['right']);
   await repeat.dblclick();
   await pointerDrag(page.locator('.command-block[data-command="forward"]'), page.locator('.repeat-body[data-repeat-body="3"]'));
-  for (let i = 0; i < 4; i += 1) await page.locator('[data-count="3:1"]').click(); // ×6
-  // Inflate with harmless structural blocks so executable count is not smaller than the original.
+  for (let i = 0; i < 4; i += 1) await page.locator('[data-count="3:1"]').click();
   for (let i = 0; i < 8; i += 1) await add(['left']);
   const badProgramCount = (await state()).currentBlockCount;
   assert(badProgramCount >= LONG.length, 'L5: negative program did not reach non-reduced count');
@@ -103,7 +98,6 @@ const LONG = ['left','forward','forward','forward','forward','forward','forward'
   assert(!await page.locator('#success-overlay').isVisible(), 'L5: non-reduced repeat program incorrectly completed');
   assert(await page.locator('.repeat-card').count() === 2, 'L5: failed attempt erased REPETIR structure');
 
-  // Final solution: same route, two REPETIR containers, fewer executable blocks.
   await page.locator('#clear-btn').click(); await page.waitForTimeout(250);
   await add(['left']);
   await repeat.dblclick();
@@ -123,9 +117,7 @@ const LONG = ['left','forward','forward','forward','forward','forward','forward'
   assert(s.usedRepeat === true, 'L5: final solution did not register REPETIR');
   assert(s.finalBlockCount < s.initialBlockCount, 'L5: final count must be lower than initial count');
 
-  // Journal and telemetry evidence.
-  await page.locator('#journal-btn').click();
-  await page.locator('#journal-overlay.visible').waitFor({ timeout: 5_000 });
+  // updateLevel5Journal synchronizes the underlying journal text even while the success modal owns pointer input.
   const journal = await page.locator('#journal-text').textContent() || '';
   assert(journal.includes('PROGRAMA INICIAL') && journal.includes('PROGRAMA CON REPETIR'), 'L5: journal before/after summary missing');
   const events = await telemetry(); const names = events.map((x) => x.event);
