@@ -143,12 +143,13 @@ async function persistEvidence(error) {
     assert(runtime.poppinsLink, `level ${level}: Google Fonts Poppins stylesheet missing`);
 
     if (level === 7) {
-      const sensorOverlay = frame.locator('#sensor-overlay.visible');
-      await sensorOverlay.waitFor({ state: 'visible', timeout: 5_000 });
-      assert(await frame.locator('.sensor-option').count() === 3, 'level 7: expected exactly three sensor choices');
-      await frame.locator('.sensor-option[data-sensor="mineral"]').click();
-      await frame.locator('#equip-sensor-btn').click();
-      await frame.locator('#sensor-overlay').waitFor({ state: 'hidden', timeout: 5_000 });
+      // N7 is analyze-first: entering the level must never force an instrument
+      // decision. The three choices exist in the DOM but stay hidden until the
+      // player reaches the sample and executes ANALIZAR MUESTRA.
+      assert(await frame.locator('#sensor-overlay').isHidden(), 'level 7: instrument selector must stay hidden before ANALIZAR MUESTRA');
+      assert(await frame.locator('.instrument-option').count() === 3, 'level 7: expected exactly three instrument choices');
+      assert(await frame.locator('.command-block[data-command="analyzeSample"]').isVisible(), 'level 7: ANALIZAR MUESTRA block missing');
+      assert(await frame.locator('#repeat-palette').isVisible(), 'level 7: REPETIR should remain available and optional');
     }
 
     await finishExploreLifecycle(frame, level);
@@ -191,7 +192,7 @@ async function persistEvidence(error) {
 
   await context.tracing.stop();
   await browser.close();
-  console.log('[e2e] Mission 01 browser smoke OK · real hit-target clicks · menu → demo → intro skip → N1→N7 · WebGL/Poppins/help/runtime clean · N7 sensor selection handled');
+  console.log('[e2e] Mission 01 browser smoke OK · menu → demo → intro skip → N1→N7 · WebGL/Poppins/help/runtime clean · N7 analyze-first selector contract');
 })().catch(async (error) => {
   console.error(error);
   await persistEvidence(error);

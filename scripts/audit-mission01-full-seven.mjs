@@ -46,19 +46,22 @@ if ((l6.match(/(?:\{title:|\{"title":)/g) || []).length < 4) fail('l6_explore_st
 
 const l7 = levels.get(7);
 for (const token of [
-  'APULAB_LEVEL7_FROM_LEVEL5_V1','data-apulab-shell-source="level5"','LA MUESTRA DESCONOCIDA','MUESTRA DE INTERÉS','REPETIR','ANALIZAR MUESTRA','data-command="analyzeSample"','SENSOR DE TEMPERATURA','SENSOR DE PROXIMIDAD','ANALIZADOR DE MINERALES','RANURA DE SENSOR','CAMBIAR SENSOR','-58 °C','DISTANCIA: 0.4 m','Hierro ............. DETECTADO','Silicatos .......... DETECTADOS','Firma mineral ...... COMPATIBLE','MISIÓN 01 COMPLETADA','FINALIZAR MISIÓN','id="board-shell" class="board-shell"','id="board-canvas" width="950" height="664"','class="board-labels-top"','class="board-labels-left"','id="program-list" class="program-list"','id="program-scroll"','AYNI_FRONT_ORIENTATION',
+  'APULAB_LEVEL7_FROM_LEVEL5_V1','APULAB_LEVEL7_INSTRUMENT_UI_V2','data-apulab-shell-source="level5"','LA MUESTRA DESCONOCIDA','MUESTRA DESCONOCIDA','PUNTO DE MISIÓN','REPETIR','ANALIZAR MUESTRA','data-command="analyzeSample"','data-testid="block-analyze-sample"','TEMPERATURA','PROXIMIDAD','ANALIZADOR DE MATERIALES','CAMBIAR INSTRUMENTO','−58 °C','0.4 m','HIERRO','SILICATOS','FINALIZAR MISIÓN','id="board-shell" class="board-shell"','id="board-canvas" width="950" height="664"','class="board-labels-top"','class="board-labels-left"','id="program-list" class="program-list"','id="program-scroll"','AYNI_FRONT_ORIENTATION',
 ]) if (!l7.includes(token)) fail(`l7_${token}`);
 if (/nextLevel\s*:\s*8|CONTINUAR AL NIVEL 8/.test(l7)) fail('l7_fake_level8');
 if (l7.includes('class="panel simulator"') || l7.includes('class="panel editor"') || l7.includes('class="board-wrap"')) fail('l7_parallel_shell');
 if (l7.includes('apulab-repeat-focus')) fail('l7_n5_repeat_tutorial_leak');
 if (!/repeatUnlocked\s*=\s*true/.test(l7)) fail('l7_repeat_available');
 if (l7.includes('if(!usesRepeat())')) fail('l7_repeat_must_be_optional');
-for (const legacy of ['data-command="read"','data-command="record"','data-command="send"']) if (l7.includes(legacy)) fail(`l7_legacy_${legacy}`);
-if (!l7.includes("localStorage.setItem('apulab.level7.sensor',equippedSensorId)")) fail('l7_sensor_persistence');
-if (!l7.includes("feedback.textContent='Programa conservado. Cambia únicamente el sensor.'")) fail('l7_program_preservation');
+for (const legacy of ['data-command="read"','data-command="record"','data-command="send"','EQUIPA UN SENSOR','EQUIPAR SENSOR','RANURA DE SENSOR','CAMBIAR SENSOR','ANALIZADOR DE MINERALES','ESPECTRÓMETRO']) if (l7.includes(legacy)) fail(`l7_legacy_${legacy}`);
+for (const event of ['level_started','program_started','program_modified','sample_checkpoint_reached','sample_analyze_requested','instrument_modal_opened','instrument_selected','sample_analyzed','instrument_changed','relevant_instrument_selected','help_requested','final_checkpoint_reached','mission_completed']) if (!l7.includes(event)) fail(`l7_telemetry_${event}`);
+if (!l7.includes("if(!relevantInstrumentUsed||!atFinalCheckpoint())return")) fail('l7_completion_gate');
+if (!l7.includes('pendingAnalysisResolve=resolve;openInstrumentSelector()')) fail('l7_pause_for_choice');
+if (!l7.includes("document.getElementById('clear-btn')?.addEventListener('click',()=>{resetLevel7ScienceState()")) fail('l7_reset_contract');
 if (!l7.includes("type:'apulab-level-ready', level:7")) fail('l7_ready_identity');
 if (!l7.includes("type:'apulab-runtime-error',level:7")) fail('l7_error_identity');
-if ((l7.match(/(?:\{title:|\{"title":)/g) || []).length < 4) fail('l7_explore_steps');
+const l7Explore = l7.match(/const exploreSteps=([^;]+);/)?.[1] || '';
+if ((l7Explore.match(/"title"/g)||[]).length !== 2) fail('l7_explore_exactly_2');
 
 for (const [level, html] of [[6,l6],[7,l7]]) {
   if (!html.includes('new THREE.WebGLRenderer')) fail(`three_${level}`);
@@ -94,6 +97,6 @@ if (/DISPOSE_HANDOFF_MS|handoffTimer/.test(source)) fail('legacy_handoff');
 
 console.info('[mission01] FULL 1–7 AUDIT OK');
 console.info('[mission01] N1–N5 legacy/remapped contracts preserved');
-console.info('[mission01] N6: canonical N5 shell + OBTENER → INTERPRETAR → COMUNICAR + two checkpoints + final communication position + optional REPETIR');
-console.info('[mission01] N7: canonical shell + unknown sample + 1 slot + 3 functional sensors + terminal mission success');
+console.info('[mission01] N6: canonical N5 shell + OBTENER → INTERPRETAR → COMUNICAR + two checkpoints + optional REPETIR');
+console.info('[mission01] N7: PREGUNTA → DATO NECESARIO → INSTRUMENTO → RESULTADO + mission endpoint + optional REPETIR');
 console.info('[mission01] Navigation verified: 1→2→3→4→5→6→7 · one iframe · no fake level 8');

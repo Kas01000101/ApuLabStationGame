@@ -33,10 +33,11 @@ for (const token of ['APULAB_LEVEL6_FROM_LEVEL5_V1','APULAB_LEVEL6_TWO_CHECKPOIN
 if (l6.includes('if(!usesRepeat())')) fail('l6_repeat_must_be_optional');
 for (const forbidden of ['SENSOR DE TEMPERATURA','SENSOR DE PROXIMIDAD','ANALIZADOR DE MINERALES','ANALIZAR MUESTRA']) if (l6.includes(forbidden)) fail(`l6_level7_leak:${forbidden}`);
 
-for (const token of ['APULAB_LEVEL7_FROM_LEVEL5_V1','LA MUESTRA DESCONOCIDA','MUESTRA DE INTERÉS','data-command="analyzeSample"','ANALIZAR MUESTRA','SENSOR DE TEMPERATURA','SENSOR DE PROXIMIDAD','ANALIZADOR DE MINERALES','RANURA DE SENSOR','CAMBIAR SENSOR','FINALIZAR MISIÓN','MISIÓN 01 COMPLETADA']) {
+for (const token of ['APULAB_LEVEL7_FROM_LEVEL5_V1','APULAB_LEVEL7_INSTRUMENT_UI_V2','LA MUESTRA DESCONOCIDA','MUESTRA DESCONOCIDA','PUNTO DE MISIÓN','data-command="analyzeSample"','data-testid="block-analyze-sample"','ANALIZAR MUESTRA','TEMPERATURA','PROXIMIDAD','ANALIZADOR DE MATERIALES','CAMBIAR INSTRUMENTO','FINALIZAR MISIÓN']) {
   if (!l7.includes(token)) fail(`l7_sample:${token}`);
 }
-for (const legacy of ['data-command="read"','data-command="record"','data-command="send"']) if (l7.includes(legacy)) fail(`l7_legacy:${legacy}`);
+for (const legacy of ['data-command="read"','data-command="record"','data-command="send"','EQUIPA UN SENSOR','EQUIPAR SENSOR','RANURA DE SENSOR','CAMBIAR SENSOR','ANALIZADOR DE MINERALES']) if (l7.includes(legacy)) fail(`l7_legacy:${legacy}`);
 if (/nextLevel\s*:\s*8|CONTINUAR AL NIVEL 8/.test(l7)) fail('l7_fake_level8');
+if (l7.includes('if(!usesRepeat())')) fail('l7_repeat_must_be_optional');
 
-console.info('[mission01] LEVEL 6–7 CANONICAL SHELL OK · N6 two-checkpoint science + optional REPETIR · N7 unknown sample/3 sensors');
+console.info('[mission01] LEVEL 6–7 CANONICAL SHELL OK · N6 data science · N7 question→instrument→result + final checkpoint · REPETIR optional');

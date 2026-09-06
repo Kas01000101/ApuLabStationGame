@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
       - main
+      - refactor/mission01-level6-study-flow
 
 permissions:
   contents: read
@@ -98,7 +99,7 @@ jobs:
 
   gameplay:
     runs-on: ubuntu-latest
-    timeout-minutes: 36
+    timeout-minutes: 38
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -157,15 +158,20 @@ jobs:
           APULAB_BASE_URL: http://127.0.0.1:4173
         run: node tests/e2e/mission01-level7-n6-parity.cjs
 
+      - name: Level 7 instrument-choice contract
+        env:
+          APULAB_BASE_URL: http://127.0.0.1:4173
+        run: node tests/e2e/mission01-level7-contract.cjs
+
       - name: Real electronics N1 to N2
         env:
           APULAB_BASE_URL: http://127.0.0.1:4173
         run: node tests/e2e/mission01-electronics.cjs
 
-      - name: Real gameplay N3 to N7
+      - name: Real gameplay N3 to N6
         env:
           APULAB_BASE_URL: http://127.0.0.1:4173
-        run: node tests/e2e/mission01-gameplay.cjs
+        run: node tests/e2e/mission01-gameplay-n3-n6.cjs
 
       - name: Upload Level 6-7 visual evidence
         if: always()
@@ -176,6 +182,7 @@ jobs:
             test-results/level6-n5-parity
             test-results/level6-contract
             test-results/level7-n6-parity
+            test-results/level7-contract
           if-no-files-found: ignore
           retention-days: 5
 
