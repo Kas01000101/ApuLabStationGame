@@ -9,6 +9,7 @@ on:
       - 'supabase/**'
       - 'scripts/research/**'
       - 'scripts/patch-mission01-research-telemetry.mjs'
+      - 'scripts/patch-mission01-level7-research-semantics.mjs'
       - 'docs/research/**'
       - 'tests/research/**'
       - 'tests/e2e/mission01-research-*.cjs'
@@ -47,6 +48,7 @@ jobs:
           grep -Fq "battery_measured" public/missions/mission01/level2.html
           grep -Fq "command_moved" public/missions/mission01/level3.html
           grep -Fq "collision_detected" public/missions/mission01/level4.html
+          grep -Fq "APULAB_LEVEL7_EXACT_SAMPLE_RESEARCH_V1" public/missions/mission01/level7.html
           ! grep -Fq "const P={battery:" public/missions/mission01/level1.html
       - name: Edge function browser invocation configuration
         run: |
@@ -105,11 +107,9 @@ jobs:
       - uses: actions/checkout@v5
       - name: Prepare disposable databases
         run: |
+          psql -d postgres -v ON_ERROR_STOP=1 -c "CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN;"
           psql -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE apulab_zero;"
           psql -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE apulab_legacy;"
-          for db in apulab_zero apulab_legacy; do
-            psql -d "$db" -v ON_ERROR_STOP=1 -c "CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN;"
-          done
       - name: Migration from zero
         run: |
           for migration in $(find supabase/migrations -maxdepth 1 -name '*.sql' | sort); do
