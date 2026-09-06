@@ -12,11 +12,16 @@ export const STUDY_IDS = {
 export const RESEARCH_CONFIG = {
   telemetrySchemaVersion: 'apulab-telemetry-v2',
   protocolVersion: 'apulab-protocol-2026-v1',
-  // This remains a release candidate until QT-001 → QT-010 pass and the study build is frozen.
-  studyBuildId: 'APULAB-STUDY-RC-2026-09-06',
+  // Increment for every research hardening candidate. Freeze assigns 1.0.0.
+  studyBuildId: 'APULAB-STUDY-RC.1',
   maxPayloadBytes: 8192,
   maxBatchEvents: 20,
 } as const;
+
+export function getGitCommitSha(): string {
+  const value = String(import.meta.env.VITE_GIT_COMMIT_SHA ?? '').trim();
+  return value || 'UNSET';
+}
 
 export function getDataMode(): DataMode {
   return import.meta.env.VITE_DATA_MODE === 'supabase' ? 'supabase' : 'mock';
