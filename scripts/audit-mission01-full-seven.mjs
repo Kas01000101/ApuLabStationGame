@@ -14,7 +14,7 @@ for (let level = 1; level <= 7; level++) {
   if (!html.includes(`${level} / 7`) && !html.includes(`${level}/7`)) fail(`progress_${level}`);
   if (/\b[1-8]\s*\/\s*8\b/.test(html)) fail(`legacy_total8_${level}`);
   if (!/AYNI/i.test(html)) fail(`ayni_${level}`);
-  if (!/GUÍA/.test(html)) fail(`guide_button_${level}`);
+  if (!/GUÍA/.test(html)) fail(`guide_${level}`);
   if (!/EXPLORAR/.test(html)) fail(`explore_button_${level}`);
   if (!/BITÁCORA/.test(html)) fail(`journal_${level}`);
 }
@@ -30,7 +30,7 @@ if (/RASTREAR|TP1|TP2|TP3|SOURCE HARNESS/.test(levels.get(3))) fail('deleted_ras
 
 const l6 = levels.get(6);
 for (const token of [
-  'APULAB_LEVEL6_FROM_LEVEL5_V1','APULAB_LEVEL6_TWO_CHECKPOINTS_V1','data-apulab-shell-source="level5"','INVESTIGAR','DATOS CIENTÍFICOS','REPETIR','ESCANEAR','ANALIZAR','ENVIAR DATOS','ZONA DE INTERÉS','PUNTO DE COMUNICACIÓN','OBTENER → INTERPRETAR → COMUNICAR','id="board-shell" class="board-shell"','id="board-canvas" width="950" height="664"','class="board-labels-top"','class="board-labels-left"','id="program-list" class="program-list"','id="program-scroll"','AYNI_FRONT_ORIENTATION',
+  'APULAB_LEVEL6_FROM_LEVEL5_V1','APULAB_LEVEL6_TWO_CHECKPOINTS_V1','APULAB_LEVEL6_FINAL_UX_V1','data-apulab-shell-source="level5"','INVESTIGAR','DATOS CIENTÍFICOS','REPETIR','ESCANEAR','ANALIZAR','ENVIAR DATOS','ZONA DE INTERÉS','PUNTO DE COMUNICACIÓN','OBTENER → INTERPRETAR → COMUNICAR','id="board-shell" class="board-shell"','id="board-canvas" width="950" height="664"','class="board-labels-top"','class="board-labels-left"','id="program-list" class="program-list"','id="program-scroll"','data-testid="level6-guide"','data-testid="level6-guide-step-1"','data-testid="level6-guide-step-5"','AYNI_FRONT_ORIENTATION',
 ]) if (!l6.includes(token)) fail(`l6_${token}`);
 if (!l6.includes("parent.postMessage({type:'apulab-level-complete',level:6,nextLevel:7}")) fail('l6_navigation_7');
 if (l6.includes('class="panel simulator"') || l6.includes('class="panel editor"')) fail('l6_parallel_shell');
@@ -40,9 +40,11 @@ if (!/repeatUnlocked\s*=\s*true/.test(l6)) fail('l6_repeat_available');
 if (l6.includes('if(!usesRepeat())')) fail('l6_repeat_must_be_optional');
 if (!l6.includes('if(!scienceScanned||!scienceAnalyzed||!scienceSent||!atCommunicationPoint())')) fail('l6_science_and_final_communication_required');
 if (!l6.includes('atCommunicationPoint')) fail('l6_communication_gate');
-for (const event of ['level_started','level_completed','help_requested','program_started','program_modified','science_action','data_sent','premature_action','scan_started','scan_completed','analyze_started','analyze_completed']) if (!l6.includes(event)) fail(`l6_telemetry_${event}`);
+for (const event of ['level_started','level_completed','help_requested','program_started','program_modified','science_action','science_zone_reached','communication_point_reached','explore_opened','bitacora_opened','data_sent','premature_action','scan_started','scan_completed','analyze_started','analyze_completed']) if (!l6.includes(event)) fail(`l6_telemetry_${event}`);
 for (const forbidden of ['SENSOR DE TEMPERATURA','SENSOR DE PROXIMIDAD','ANALIZADOR DE MINERALES','RANURA DE SENSOR','ANALIZAR MUESTRA']) if (l6.includes(forbidden)) fail(`l6_sensor_leak_${forbidden}`);
-if ((l6.match(/(?:\{title:|\{"title":)/g) || []).length < 4) fail('l6_explore_steps');
+const l6Explore = l6.match(/const exploreSteps=([^;]+);/)?.[1] || '';
+if ((l6Explore.match(/"title"/g)||[]).length !== 2) fail('l6_explore_exactly_2');
+if (l6.includes('id="guide-btn"')) fail('l6_top_guide_returned');
 
 const l7 = levels.get(7);
 for (const token of [
@@ -97,6 +99,6 @@ if (/DISPOSE_HANDOFF_MS|handoffTimer/.test(source)) fail('legacy_handoff');
 
 console.info('[mission01] FULL 1–7 AUDIT OK');
 console.info('[mission01] N1–N5 legacy/remapped contracts preserved');
-console.info('[mission01] N6: canonical N5 shell + OBTENER → INTERPRETAR → COMUNICAR + two checkpoints + optional REPETIR');
+console.info('[mission01] N6: fixed 1→5 guide + OBTENER → INTERPRETAR → COMUNICAR + two checkpoints + optional REPETIR');
 console.info('[mission01] N7: PREGUNTA → DATO NECESARIO → INSTRUMENTO → RESULTADO + mission endpoint + optional REPETIR');
 console.info('[mission01] Navigation verified: 1→2→3→4→5→6→7 · one iframe · no fake level 8');
