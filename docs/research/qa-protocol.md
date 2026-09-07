@@ -2,6 +2,20 @@
 
 QA uses `QT-001` → `QT-010`, always separated from the official paper dataset by `study_id=APULAB-QA-2026`. Credentials are generated locally into `.private/` and are never documented or committed.
 
+## QA phases
+
+- `QA-01` authorizes **QT-001 only** as the first controlled happy-path Supabase validation.
+- `QA-02` covers **QT-002 → QT-010** only after QA-01 passes and explicit authorization is given.
+- During QA-01, do not generate or insert QT-002→QT-010 and do not create any AP-001→AP-050 participants.
+
+Generate only QT-001 with:
+
+```bash
+tsx scripts/research/create-qa-testers.ts --from 1 --to 1
+```
+
+Do **not** run `--from 1 --to 10` during QA-01.
+
 | Tester | Case | Acceptance |
 |---|---|---|
 | QT-001 | Happy path online | Complete N1→N7; reconstruct full event sequence. |
