@@ -13,6 +13,13 @@ test('SyncService declares serialized reentrant drain semantics', () => {
   assert.match(syncSource, /static async flush\(\)/);
 });
 
+test('SyncService retains per-session sync capability until completion', () => {
+  // An intermediate empty drain is not a lifecycle boundary. If the context is
+  // removed there, later events in the same active session cannot be persisted.
+  assert.doesNotMatch(syncSource, /LocalQueueService\.removeSessionContextIfSettled\(sessionId\)/);
+  assert.match(syncSource, /LocalQueueService\.markCompletionSynced\(sessionId\)/);
+});
+
 test('20-event burst drains completely with continuous event_seq and unique UUIDs', async () => {
   const queue = [];
   const persisted = [];
