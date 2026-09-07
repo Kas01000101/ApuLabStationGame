@@ -50,6 +50,8 @@ jobs:
         run: node --test tests/research/csv-linkage.test.mjs
       - name: Export pagination over API limit
         run: node --test tests/research/export-pagination.test.mjs
+      - name: QA participant generator isolation
+        run: node --test tests/research/qa-generator.test.mjs
       - name: TypeScript and production build
         env:
           VITE_GIT_COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
