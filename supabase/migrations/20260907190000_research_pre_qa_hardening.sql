@@ -85,7 +85,8 @@ metrics AS (
   FROM ordered
   GROUP BY participant_id
 )
-SELECT first_instrument,
+SELECT participant_id,
+  first_instrument,
   final_instrument,
   first_choice_relevant,
   instrument_selection_count,
@@ -97,7 +98,6 @@ SELECT first_instrument,
   communication_time_ms,
   data_sent,
   completion_time_ms,
-  participant_id,
   CASE
     WHEN communication_point_reached_seq IS NULL
       OR data_sent_seq IS NULL
