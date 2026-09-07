@@ -1,0 +1,166 @@
+name: Research-ready contract
+
+on:
+  pull_request:
+    paths:
+      - 'src/config/researchConfig.ts'
+      - 'src/research/**'
+      - 'src/systems/**'
+      - 'src/ui/Mission01Screen.ts'
+      - 'supabase/**'
+      - 'scripts/research/**'
+      - 'scripts/config/mission01-level7.mjs'
+      - 'scripts/patch-mission01-research-telemetry.mjs'
+      - 'scripts/patch-mission01-level7-research-semantics.mjs'
+      - 'scripts/patch-mission01-level7-final-hardening.mjs'
+      - 'scripts/audit-mission01-level7-*.mjs'
+      - 'scripts/audit-mission01-level67-shell.mjs'
+      - 'scripts/audit-mission01-ux-contract-v2.mjs'
+      - 'scripts/audit-mission01-full-seven.mjs'
+      - 'docs/research/**'
+      - 'tests/research/**'
+      - 'tests/e2e/mission01-research-*.cjs'
+      - 'tests/e2e/mission01-electronics.cjs'
+      - 'tests/e2e/mission01-gameplay-n3-n6.cjs'
+      - 'tests/e2e/mission01-level7-contract.cjs'
+      - 'package.json'
+      - '.env.example'
+      - '.gitignore'
+      - '.github/workflows/research-ready.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  research-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22.16.0
+          cache: npm
+      - run: npm ci --no-fund --no-audit
+      - name: Research contract tests
+        run: node --test tests/research/research-contract.test.mjs
+      - name: Reentrant sync burst test
+        run: node --test tests/research/sync-burst.test.mjs
+      - name: CSV privacy parser tests
+        run: node --test tests/research/csv-linkage.test.mjs
+      - name: Export pagination over API limit
+        run: node --test tests/research/export-pagination.test.mjs
+      - name: TypeScript and production build
+        env:
+          VITE_GIT_COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+        run: npm run build
+      - name: Verify generated real-handler telemetry markers
+        run: |
+          for level in 1 2 3 4; do
+            grep -Fq "apulab-research-telemetry-l${level}" "public/missions/mission01/level${level}.html"
+          done
+          grep -Fq "battery_power_changed" public/missions/mission01/level1.html
+          grep -Fq "measurement_attempt" public/missions/mission01/level1.html
+          grep -Fq "battery_measured" public/missions/mission01/level2.html
+          grep -Fq "command_moved" public/missions/mission01/level3.html
+          grep -Fq "collision_detected" public/missions/mission01/level4.html
+          grep -Fq "APULAB_LEVEL7_EXACT_SAMPLE_RESEARCH_V1" public/missions/mission01/level7.html
+          grep -Fq "APULAB_LEVEL7_FINAL_HARDENING_V1" public/missions/mission01/level7.html
+          grep -Fq 'data-command="send"' public/missions/mission01/level7.html
+          grep -Fq "recordLevel7Event('communication_point_reached'" public/missions/mission01/level7.html
+          grep -Fq "recordLevel7Event('data_sent'" public/missions/mission01/level7.html
+          ! grep -Fq "final_point_reached" public/missions/mission01/level7.html
+          ! grep -Fq "isAdjacentToSample" public/missions/mission01/level7.html
+          ! grep -Fq "const P={battery:" public/missions/mission01/level1.html
+      - name: Edge function browser invocation configuration
+        run: |
+          grep -Fq '[functions.ingest-telemetry]' supabase/config.toml
+          grep -Fq 'verify_jwt = false' supabase/config.toml
+          grep -Fq 'session_sync_token_invalid' supabase/functions/ingest-telemetry/index.ts
+          grep -Fq 'event_level_mismatch' supabase/functions/ingest-telemetry/index.ts
+      - name: Secret/config guard
+        run: |
+          test "$(grep -c '^SUPABASE_SERVICE_ROLE_KEY=$' .env.example)" -eq 1
+          test "$(grep -c '^APULAB_AUTH_PEPPER=$' .env.example)" -eq 1
+          test "$(grep -c '^APULAB_SESSION_PROOF_SECRET=$' .env.example)" -eq 1
+          ! grep -RInE '(SUPABASE_SERVICE_ROLE_KEY|APULAB_AUTH_PEPPER|APULAB_SESSION_PROOF_SECRET)=[^[:space:]]+' --exclude='.env.example' --exclude='research-ready.yml' .
+      - name: Install Playwright Chromium
+        run: |
+          npm install --global playwright@1.55.0 --no-fund --no-audit
+          playwright install --with-deps chromium
+          echo "NODE_PATH=$(npm root -g)" >> "$GITHUB_ENV"
+      - name: Start production preview
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/apulab-research-preview.log 2>&1 &
+          for i in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/apulab-research-preview.log
+          exit 1
+      - name: Parent authority / protocol E2E
+        env:
+          APULAB_BASE_URL: http://127.0.0.1:4173
+        run: node tests/e2e/mission01-research-pipeline.cjs
+      - name: Offline completion and shared-device isolation E2E
+        env:
+          APULAB_BASE_URL: http://127.0.0.1:4173
+        run: node tests/e2e/mission01-research-resilience.cjs
+      - name: Physical Mission 01 N1-N7 research E2E
+        env:
+          APULAB_BASE_URL: http://127.0.0.1:4173
+        run: node tests/e2e/mission01-research-physical.cjs
+      - name: Print preview log on failure
+        if: failure()
+        run: cat /tmp/apulab-research-preview.log || true
+
+  research-db:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGPASSWORD: postgres
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+    steps:
+      - uses: actions/checkout@v5
+      - name: Prepare disposable databases
+        run: |
+          psql -d postgres -v ON_ERROR_STOP=1 -c "CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN;"
+          psql -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE apulab_zero;"
+          psql -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE apulab_legacy;"
+      - name: Migration from zero
+        run: |
+          for migration in $(find supabase/migrations -maxdepth 1 -name '*.sql' | sort); do
+            echo "[zero] applying $migration"
+            psql -d apulab_zero -v ON_ERROR_STOP=1 -f "$migration"
+          done
+          psql -d apulab_zero -v ON_ERROR_STOP=1 -f supabase/tests/research_schema_v2.sql
+          psql -d apulab_zero -v ON_ERROR_STOP=1 -f supabase/tests/research_hardening.sql
+      - name: Legacy baseline then forward hardening
+        run: |
+          psql -d apulab_legacy -v ON_ERROR_STOP=1 -f supabase/migrations/20260830090000_research_security_baseline.sql
+          psql -d apulab_legacy -v ON_ERROR_STOP=1 -f supabase/migrations/20260830091000_legacy_raw_code_nullable.sql
+          psql -d apulab_legacy -v ON_ERROR_STOP=1 <<'SQL'
+          INSERT INTO apulab_sessions(session_id,participant_id,participant_code,session_mode,build_version,schema_version,started_at,status,screen_width,screen_height,user_agent)
+          VALUES ('legacy-session',NULL,NULL,'demo','legacy-build','legacy-schema',now(),'in_progress',1280,720,'web');
+          INSERT INTO apulab_events(event_id,session_id,participant_id,participant_code,session_mode,build_version,schema_version,scene_id,event_type,payload,timestamp,sync_status)
+          VALUES ('legacy-event-1','legacy-session',NULL,NULL,'demo','legacy-build','legacy-schema','mission01','checkpoint_reached','{}',now(),'synced');
+          SQL
+          psql -d apulab_legacy -v ON_ERROR_STOP=1 -f supabase/migrations/20260906170000_research_schema_v2.sql
+          psql -d apulab_legacy -v ON_ERROR_STOP=1 -f supabase/migrations/20260906183000_research_hardening.sql
+          test "$(psql -d apulab_legacy -Atc "SELECT count(*) FROM apulab_events WHERE event_id::text='legacy-event-1'")" = "1"
+          psql -d apulab_legacy -v ON_ERROR_STOP=1 -f supabase/tests/research_schema_v2.sql
+          psql -d apulab_legacy -v ON_ERROR_STOP=1 -f supabase/tests/research_hardening.sql

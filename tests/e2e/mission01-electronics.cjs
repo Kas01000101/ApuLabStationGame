@@ -59,8 +59,6 @@ async function dragLogical(canvas, from, to) {
   await page.mouse.up();
 }
 
-// Coordenadas lógicas proyectadas desde la cámara cenital real del runtime.
-// Evitan agarrar un cable que cruza por debajo de otra punta.
 const POINTS = {
   batteryPower: { x: 1302, y: 482 },
   meterPower: { x: 544, y: 406 },
@@ -77,6 +75,10 @@ async function openLevel(level) {
   const canvas = page.locator('#kawsay-canvas, canvas').first();
   await canvas.waitFor({ state: 'visible', timeout: 15_000 });
   return canvas;
+}
+
+async function capturedEvents() {
+  return page.evaluate(() => (window.__apulabCapturedTelemetry || []).map((entry) => entry.event));
 }
 
 async function closeLevel() {
@@ -104,15 +106,18 @@ async function level1() {
   await page.waitForTimeout(180);
   await clickLogical(canvas, POINTS.meterPower.x, POINTS.meterPower.y);
   await page.waitForTimeout(180);
-
   await connectConventional(canvas);
   await page.locator('#kawsay-success-overlay.is-visible').waitFor({ timeout: 15_000 });
 
   const successText = await page.locator('#kawsay-success-overlay').innerText();
   assert(successText.includes('15.0 V'), `L1: expected 15.0 V success, got: ${successText}`);
-
   const live = await page.locator('#kawsay-live-status').innerText().catch(() => '');
   assert(!live.includes('28.0 V'), 'L1: live status still exposes stale 28.0 V practice value');
+
+  const events = await capturedEvents();
+  for (const event of ['battery_power_changed','multimeter_power_changed','probe_drag_start','probe_snap','measurement_attempt','valid_measurement','level_completed']) {
+    assert(events.includes(event), `L1: genuine physical telemetry missing ${event}`);
+  }
   await closeLevel();
 }
 
@@ -139,7 +144,6 @@ async function nextBattery() {
 
 async function level2() {
   const canvas = await openLevel(2);
-
   await measureCurrentBattery(canvas, '#measure-pink', '24.0 V');
   await nextBattery();
   await measureCurrentBattery(canvas, '#measure-green', '28.0 V');
@@ -153,6 +157,12 @@ async function level2() {
 
   const successText = await page.locator('#kawsay-success-overlay').innerText();
   assert(/28\.0 V|verde|correct/i.test(successText), 'L2: correct 28.0 V battery was not accepted');
+  const events = await capturedEvents();
+  for (const event of ['battery_viewed','battery_measured','all_batteries_measured','battery_selected','level_completed']) {
+    assert(events.includes(event), `L2: genuine physical telemetry missing ${event}`);
+  }
+  const measured = await page.evaluate(() => (window.__apulabCapturedTelemetry || []).filter((entry) => entry.event === 'battery_measured').map((entry) => entry.payload?.battery_id));
+  assert(new Set(measured).size === 3, `L2: expected 3 canonical measured battery ids, got ${JSON.stringify(measured)}`);
   await closeLevel();
 }
 
@@ -161,6 +171,13 @@ async function level2() {
   context = await browser.newContext({ viewport: { width: LOGICAL_WIDTH, height: LOGICAL_HEIGHT } });
   await context.addInitScript(() => {
     try { localStorage.setItem('apulab.settings.sfx', 'off'); } catch (_) {}
+    window.__apulabCapturedTelemetry = [];
+    window.addEventListener('message', (event) => {
+      const data = event.data;
+      if (data && data.type === 'apulab-telemetry' && typeof data.event === 'string') {
+        window.__apulabCapturedTelemetry.push({ event: data.event, payload: data.payload || {} });
+      }
+    });
   });
   await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
 
@@ -170,7 +187,7 @@ async function level2() {
   assert(runtimeErrors.length === 0, `runtime errors detected:\n${runtimeErrors.join('\n')}`);
   await context.tracing.stop();
   await browser.close();
-  console.log('[e2e] Mission 01 electronics OK · N1 real 15.0 V · N2 real 24/28/32 V + correct selection');
+  console.log('[e2e] Mission 01 electronics + physical research telemetry OK · N1 real interaction · N2 3 canonical batteries');
 })().catch(async (error) => {
   console.error(error);
   await persistEvidence(error);
