@@ -93,13 +93,16 @@ export class SyncService {
           this.scheduleRetry(sessionId);
           return;
         }
+        // Completion is the lifecycle boundary at which the per-session sync
+        // capability may be released. Never remove it after an intermediate
+        // empty drain: more events from the same in-progress session can arrive
+        // milliseconds later and still require the same token.
         LocalQueueService.markCompletionSynced(sessionId);
         const state = GameState.getInstance();
         if (state.sessionId === sessionId && state.status === 'completed_pending_sync') state.status = 'completed';
       }
 
       this.clearRetry(sessionId);
-      LocalQueueService.removeSessionContextIfSettled(sessionId);
     } catch (error) {
       this.scheduleRetry(sessionId);
       console.warn('[ApuLab] Telemetry sync failed for one session.', sessionId, error);
