@@ -11,16 +11,13 @@ function parseRange(argv: string[]) {
     if (index < 0) return undefined;
     const raw = argv[index + 1];
     if (!raw) throw new Error(`${flag}_value_required`);
-    const value = Number.parseInt(raw, 10);
-    if (!Number.isInteger(value)) throw new Error(`${flag}_must_be_integer`);
-    return value;
+    if (!/^(?:[1-9]|10)$/.test(raw)) throw new Error(`${flag}_must_be_integer_between_1_and_10`);
+    return Number(raw);
   };
 
   const from = readInt('--from') ?? 1;
   const to = readInt('--to') ?? 10;
 
-  if (from < 1 || from > 10) throw new Error('--from_must_be_between_1_and_10');
-  if (to < 1 || to > 10) throw new Error('--to_must_be_between_1_and_10');
   if (from > to) throw new Error('--from_must_be_less_than_or_equal_to_--to');
 
   return { from, to };
