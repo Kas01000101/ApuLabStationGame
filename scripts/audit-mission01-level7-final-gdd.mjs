@@ -12,28 +12,28 @@ if(CFG.sensorOptions.length!==3)fail(`instruments:${CFG.sensorOptions.length}`);
 if(CFG.sensorOptions.map(x=>x.id).join(',')!=='temperature,proximity,materials')fail('instrument_ids');
 if(CFG.explore.length!==2)fail(`explore:${CFG.explore.length}`);
 if(CFG.guide.length!==5)fail(`guide:${CFG.guide.length}`);
+if(CFG.goal.label!=='PUNTO DE COMUNICACIÓN')fail('communication_goal_config');
 
 for(const token of [
   'NIVEL 7','7 / 7','LA MUESTRA DESCONOCIDA','ELIGE EL INSTRUMENTO SEGÚN EL DATO QUE NECESITAS.',
-  'PASO 1 · LLEVA AYNI A LA MUESTRA','PASO 2 · ANALIZA LA MUESTRA','PASO 3 · ELIGE UN INSTRUMENTO','PASO 4 · ENCUENTRA EL DATO QUE RESPONDE LA PREGUNTA','PASO 5 · LLEVA AYNI AL PUNTO FINAL','MISIÓN COMPLETADA',
+  'PASO 1 · LLEVA AYNI A LA MUESTRA','PASO 2 · ANALIZA LA MUESTRA','PASO 3 · ELIGE UN INSTRUMENTO','PASO 4 · ENCUENTRA EL DATO QUE RESPONDE LA PREGUNTA','PASO 5 · LLEVA AYNI AL PUNTO DE COMUNICACIÓN','PASO 5 · ENVÍA LOS DATOS','MISIÓN COMPLETADA',
   'data-testid="level7-guide"','data-testid="level7-sample-checkpoint"','data-testid="level7-final-checkpoint"',
-  'MUESTRA DESCONOCIDA','VE AQUÍ PRIMERO','PUNTO FINAL','data-command="analyzeSample"','ANALIZAR MUESTRA',
+  'MUESTRA DESCONOCIDA','VE AQUÍ PRIMERO','PUNTO DE COMUNICACIÓN','data-command="analyzeSample"','ANALIZAR MUESTRA','data-command="send"','ENVIAR DATOS',
   'TEMPERATURA','PROXIMIDAD','ANALIZADOR DE MATERIALES','−58 °C','0.4 m','HIERRO','SILICATOS','CAMBIAR INSTRUMENTO','FINALIZAR MISIÓN',
-  'sample_reached','sample_analyze_requested','instrument_modal_opened','instrument_selected','sample_analyzed','instrument_changed','relevant_instrument_selected','final_point_reached','program_modified','explore_opened','bitacora_opened','level_completed',
-  'changed_after_irrelevant_feedback','time_to_first_choice','time_to_relevant_choice','help_before_relevant_choice','used_repeat_n7','completion_time','completed_level',
+  'sample_reached','sample_analyze_requested','instrument_modal_opened','instrument_selected','sample_analyzed','instrument_changed','relevant_instrument_selected','communication_point_reached','data_sent','program_modified','explore_opened','bitacora_opened','level_completed',
+  'changed_after_irrelevant_feedback','time_to_first_choice','time_to_relevant_choice','help_before_relevant_choice','used_repeat_n7','completion_time','completed_level','communicationPointReached','dataSent',
 ])if(!html.includes(token))fail(`missing:${token}`);
 
 for(const forbidden of [
-  'id="guide-btn"','data-command="read"','data-command="record"','data-command="send"','EQUIPA UN SENSOR','INSTALAR SENSOR','CAMBIAR SENSOR','SENSOR DE TEMPERATURA','SENSOR DE PROXIMIDAD','ANALIZADOR DE MINERALES',
-  'CORRECTO','INCORRECTO','PERDISTE','RESPUESTA EQUIVOCADA','CONTINUAR AL NIVEL 8','SIGUIENTE NIVEL','nextLevel:8','level8.html','mission01-level8',
+  'id="guide-btn"','data-command="read"','data-command="record"','EQUIPA UN SENSOR','INSTALAR SENSOR','CAMBIAR SENSOR','SENSOR DE TEMPERATURA','SENSOR DE PROXIMIDAD','ANALIZADOR DE MINERALES',
+  'CORRECTO','INCORRECTO','PERDISTE','RESPUESTA EQUIVOCADA','CONTINUAR AL NIVEL 8','SIGUIENTE NIVEL','nextLevel:8','level8.html','mission01-level8','PUNTO FINAL','final_point_reached','isAdjacentToSample','junto a la muestra',
 ])if(html.includes(forbidden))fail(`forbidden:${forbidden}`);
 
-// Exact instrument cardinality is validated from the canonical config here and
-// physically from rendered .instrument-option cards in Browser E2E.
 if((html.match(/class="level7-guide-node"/g)||[]).length!==5)fail('guide_nodes_not_5');
 if(!/repeatUnlocked\s*=\s*true/.test(html))fail('repeat_not_available');
 if(html.includes('if(!usesRepeat())'))fail('repeat_required');
-if(!html.includes("if(!relevantInstrumentUsed||!atFinalCheckpoint())return"))fail('victory_gate');
+if(!html.includes("if(!relevantInstrumentUsed||!communicationPointReached||!dataSent||!atFinalCheckpoint())return"))fail('victory_gate');
 if(!html.includes("button.textContent='MISIÓN COMPLETADA'"))fail('terminal_button');
+if((html.match(/recordLevel7Event\('sample_reached'/g)||[]).length!==1)fail('sample_reached_single_emitter');
 
-console.info(`[mission01] N7 FINAL GDD ACCEPTANCE OK · ${CFG.obstacles.length} rocks · 3 instruments · guide 1→5 · canonical telemetry · no N8`);
+console.info(`[mission01] N7 FINAL GDD ACCEPTANCE OK · exact sample · explicit communication/send · ${CFG.obstacles.length} rocks · 3 instruments · no N8`);
