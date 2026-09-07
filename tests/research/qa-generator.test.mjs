@@ -10,7 +10,7 @@ const generator = join(repoRoot, 'scripts/research/create-qa-testers.ts');
 const pepper = 'qa-generator-test-pepper-not-for-production';
 
 function runGenerator(args, cwd) {
-  return spawnSync(process.execPath, [generator, ...args], {
+  return spawnSync(process.execPath, ['--experimental-strip-types', generator, ...args], {
     cwd,
     env: { ...process.env, APULAB_AUTH_PEPPER: pepper },
     encoding: 'utf8',
