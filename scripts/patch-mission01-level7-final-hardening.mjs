@@ -53,7 +53,6 @@ html = html
   .replaceAll('junto a la muestra', 'sobre la muestra')
   .replaceAll('Junto a la muestra', 'Sobre la muestra')
   .replaceAll('AYNI necesita estar sobre la muestra para analizarla.', 'Lleva AYNI hasta la muestra para analizarla.');
-
 if (!html.includes('const isAtSample=()=>roverState.c===sampleCell.c&&roverState.r===sampleCell.r;')) fail('exact_sample_runtime_missing');
 if (html.includes('isAdjacentToSample')) fail('adjacency_runtime_remaining');
 
@@ -85,12 +84,7 @@ html = replaceFunction(html, 'function bindPalette()', `function bindPalette(){
       document.addEventListener('pointermove',move,{passive:true});document.addEventListener('pointerup',up,{once:true});
       startDrag(e,{source:'palette',item:{type:'cmd',cmd:el.dataset.command}},el);
     };
-    el.onclick=(e)=>{
-      if(executing)return;
-      if(suppressClick){suppressClick=false;e.preventDefault();return}
-      clearTimeout(singleClickTimer);
-      singleClickTimer=setTimeout(()=>appendItem({type:'cmd',cmd:el.dataset.command}),160);
-    };
+    el.onclick=(e)=>{if(executing)return;if(suppressClick){suppressClick=false;e.preventDefault();return}clearTimeout(singleClickTimer);singleClickTimer=setTimeout(()=>appendItem({type:'cmd',cmd:el.dataset.command}),160)};
     el.ondblclick=(e)=>{e.preventDefault();clearTimeout(singleClickTimer);appendItem({type:'cmd',cmd:el.dataset.command})};
     el.onkeydown=(e)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();appendItem({type:'cmd',cmd:el.dataset.command})}};
   };
@@ -120,7 +114,6 @@ html = replaceFunction(html, 'async function executeCommand(', `async function e
     feedback.textContent='DATOS ENVIADOS A APULAB STATION';showStatus(feedback.textContent,1400);syncLevel7FinalUX();await sleep(180);return;
   }
   await executeMovementCommand(cmd);
-  if(isAtSample()&&!sampleCheckpointReached){sampleCheckpointReached=true;recordLevel7Event('sample_reached',{rover_x:roverState.c,rover_y:roverState.r,sample_x:sampleCell.c,sample_y:sampleCell.r,exact_cell:true})}
   if(relevantInstrumentUsed&&atFinalCheckpoint()&&!communicationPointReached){communicationPointReached=true;finalCheckpointReached=true;recordLevel7Event('communication_point_reached',{rover_x:roverState.c,rover_y:roverState.r})}
   syncLevel7FinalUX();
 }`);
@@ -144,19 +137,15 @@ html = replaceFunction(html, 'async function runProgram(', `async function runPr
     if(!communicationPointReached||!atFinalCheckpoint()){feedback.textContent='Ya tenemos el dato. Lleva AYNI al punto de comunicación.';showStatus(feedback.textContent,2300);return}
     if(!dataSent){feedback.textContent='AYNI está en el punto de comunicación. Ejecuta ENVIAR DATOS.';showStatus(feedback.textContent,2300);return}
     completeLevel();
-  }catch(err){
-    lastFailure={top:err.top,body:err.body,iter:err.iter,count:err.count};renderProgram({top:err.top,body:err.body,iter:err.iter||0},Math.max(0,err.top));
-    if(err.code==='BLOCKED')feedback.textContent='CAMINO BLOQUEADO · Hay una roca delante de AYNI.';else feedback.textContent='AYNI llegó al borde del simulador. Revisa el bloque resaltado.';
-    needsAdjustment=true;setEditing(false);document.getElementById('run-btn').textContent='🔧 AJUSTAR PROGRAMA';showStatus(feedback.textContent,2900)
-  }finally{executing=false;document.getElementById('run-btn').disabled=false;if(!needsAdjustment)setEditing(true)}
+  }catch(err){lastFailure={top:err.top,body:err.body,iter:err.iter,count:err.count};renderProgram({top:err.top,body:err.body,iter:err.iter||0},Math.max(0,err.top));if(err.code==='BLOCKED')feedback.textContent='CAMINO BLOQUEADO · Hay una roca delante de AYNI.';else feedback.textContent='AYNI llegó al borde del simulador. Revisa el bloque resaltado.';needsAdjustment=true;setEditing(false);document.getElementById('run-btn').textContent='🔧 AJUSTAR PROGRAMA';showStatus(feedback.textContent,2900)}
+  finally{executing=false;document.getElementById('run-btn').disabled=false;if(!needsAdjustment)setEditing(true)}
 }`);
 
 html = replaceFunction(html, 'function completeLevel(', `function completeLevel(){
   document.getElementById('sensor-overlay')?.classList.remove('visible');document.getElementById('analysis-overlay')?.classList.remove('visible');document.getElementById('info-panel')?.classList.remove('visible');document.getElementById('journal-overlay')?.classList.remove('visible');
   if(!relevantInstrumentUsed||!communicationPointReached||!dataSent||!atFinalCheckpoint())return;
   phase='complete';finalCheckpointReached=true;finalProgram=clone(program);successMusic();launchConfetti(220);
-  const metrics={first_instrument:firstInstrument,final_instrument:finalInstrument,first_choice_relevant:firstInstrument==='materials',instrument_selection_count:instrumentSelectionCount,instrument_change_count:instrumentChangeCount,changed_after_irrelevant_feedback:changedAfterIrrelevantFeedback,time_to_first_choice:firstChoiceElapsedMs,time_to_relevant_choice:relevantChoiceElapsedMs,help_before_relevant_choice:helpBeforeRelevantChoice,program_edit_count:programEditCount,completion_time:elapsed7(),completed_level:true,...repeatMetrics()};
-  recordLevel7Event('level_completed',metrics);
+  const metrics={first_instrument:firstInstrument,final_instrument:finalInstrument,first_choice_relevant:firstInstrument==='materials',instrument_selection_count:instrumentSelectionCount,instrument_change_count:instrumentChangeCount,changed_after_irrelevant_feedback:changedAfterIrrelevantFeedback,time_to_first_choice:firstChoiceElapsedMs,time_to_relevant_choice:relevantChoiceElapsedMs,help_before_relevant_choice:helpBeforeRelevantChoice,program_edit_count:programEditCount,completion_time:elapsed7(),completed_level:true,...repeatMetrics()};recordLevel7Event('level_completed',metrics);
   try{localStorage.setItem('apulab.level7.finalProgram',JSON.stringify(serialize(finalProgram)));localStorage.setItem('apulab.level7.instrumentMetrics',JSON.stringify(metrics));localStorage.setItem('apulab.mission01.completed','1')}catch{}
   document.getElementById('success-program-summary').textContent='Programa final: '+topCount(program)+' bloques.';const data=document.getElementById('success-data');if(data)data.textContent='MATERIALES · Hierro · Silicatos';const title=document.querySelector('#success-overlay h2');if(title)title.textContent='MISIÓN COMPLETADA';const body=document.querySelector('#success-overlay p');if(body)body.textContent='AYNI investigó la muestra y envió la información a ApuLab Station.';const button=document.getElementById('continue-btn');if(button)button.textContent='FINALIZAR MISIÓN';document.getElementById('success-overlay').classList.add('visible');syncLevel7FinalUX();
 }`);
@@ -175,11 +164,7 @@ html = html.replace('selectedInstrument=null;sampleAnalyzed=false;relevantInstru
 html = html.replace('atSample:isAtSample(),atFinal:atFinalCheckpoint(),...repeatMetrics()', 'atSample:isAtSample(),atCommunication:atFinalCheckpoint(),communicationPointReached,dataSent,...repeatMetrics()');
 html = html.replace('</head>', `<style id="apulab-level7-final-hardening-style">/* APULAB_LEVEL7_FINAL_HARDENING_V1 */.command-block[data-command="analyzeSample"].is-research-ready{box-shadow:0 0 0 3px rgba(73,201,215,.30),0 0 20px rgba(73,201,215,.72)!important}.block-send{background:linear-gradient(180deg,#FFD18E,#F4C75E)!important;color:#17133A!important}</style>\n</head>`);
 
-const required = [
-  'APULAB_LEVEL7_FINAL_HARDENING_V1','data-command="send"','ENVIAR DATOS','const isAtSample=()=>roverState.c===sampleCell.c&&roverState.r===sampleCell.r',
-  "recordLevel7Event('communication_point_reached'", "recordLevel7Event('data_sent'", 'communicationPointReached=false','dataSent=false',
-  'PASO 5 · LLEVA AYNI AL PUNTO DE COMUNICACIÓN','PASO 5 · ENVÍA LOS DATOS','Lleva AYNI hasta la muestra para analizarla.'
-];
+const required = ['APULAB_LEVEL7_FINAL_HARDENING_V1','data-command="send"','ENVIAR DATOS','const isAtSample=()=>roverState.c===sampleCell.c&&roverState.r===sampleCell.r',"recordLevel7Event('communication_point_reached'","recordLevel7Event('data_sent'",'communicationPointReached=false','dataSent=false','PASO 5 · LLEVA AYNI AL PUNTO DE COMUNICACIÓN','PASO 5 · ENVÍA LOS DATOS','Lleva AYNI hasta la muestra para analizarla.'];
 for (const token of required) if (!html.includes(token)) fail(`missing:${token}`);
 for (const forbidden of ['PUNTO FINAL','final_point_reached','isAdjacentToSample','junto a la muestra']) if (html.includes(forbidden)) fail(`forbidden:${forbidden}`);
 
