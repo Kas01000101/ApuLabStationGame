@@ -11,21 +11,55 @@ type RetryState = { failures: number; nextAttemptAt: number };
 
 export class SyncService {
   private static activePromise: Promise<void> | null = null;
+  private static rerunRequested = false;
   private static readonly retryBySession = new Map<string, RetryState>();
   private static listenersBound = false;
 
+  /**
+   * Drain semantics:
+   * - only one sync operation may own the queue at a time;
+   * - events recorded while a sync is already active request another drain;
+   * - callers awaiting the active promise also wait for that follow-up drain.
+   *
+   * This prevents the classic race where event 1 starts sync, events 2..N are
+   * appended after the pending-session snapshot was taken, and no later
+   * lifecycle trigger arrives to flush them.
+   */
   static processQueue(): Promise<void> {
     this.bindRetryListeners();
-    if (this.activePromise) return this.activePromise;
-    if (typeof navigator !== 'undefined' && navigator.onLine === false) return Promise.resolve();
 
-    const operation = this.runAllPendingSessions();
-    this.activePromise = operation.finally(() => { this.activePromise = null; });
-    return this.activePromise;
+    if (this.activePromise) {
+      this.rerunRequested = true;
+      return this.activePromise;
+    }
+    if (!this.isOnline()) return Promise.resolve();
+
+    this.rerunRequested = false;
+    const operation = this.drainUntilStable();
+    const wrapped = operation.finally(async () => {
+      // A recordEvent() can race with the last loop check. Release ownership,
+      // then honor that late request before resolving the promise seen by the
+      // original caller.
+      const rerun = this.rerunRequested;
+      this.activePromise = null;
+      if (rerun && this.isOnline()) {
+        this.rerunRequested = false;
+        await this.processQueue();
+      }
+    });
+    this.activePromise = wrapped;
+    return wrapped;
+  }
+
+  /** Test/lifecycle-safe explicit flush. It exposes no credentials and simply
+   * waits for the same serialized drain used in production. */
+  static async flush(): Promise<void> {
+    await this.processQueue();
+    while (this.activePromise) await this.activePromise;
   }
 
   static async syncSession(sessionId: string): Promise<void> {
-    if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+    if (!this.isOnline()) return;
     const retry = this.retryBySession.get(sessionId);
     if (retry && Date.now() < retry.nextAttemptAt) return;
 
@@ -72,6 +106,16 @@ export class SyncService {
     }
   }
 
+  private static async drainUntilStable(): Promise<void> {
+    do {
+      this.rerunRequested = false;
+      await this.runAllPendingSessions();
+      // Let recordEvent() microtasks queued by completion/bridge callbacks run
+      // before deciding that the drain is stable.
+      await Promise.resolve();
+    } while (this.rerunRequested && this.isOnline());
+  }
+
   private static async runAllPendingSessions(): Promise<void> {
     for (const sessionId of LocalQueueService.getPendingSessions()) {
       await this.syncSession(sessionId);
@@ -87,6 +131,10 @@ export class SyncService {
 
   private static clearRetry(sessionId: string): void {
     this.retryBySession.delete(sessionId);
+  }
+
+  private static isOnline(): boolean {
+    return typeof navigator === 'undefined' || navigator.onLine !== false;
   }
 
   private static bindRetryListeners(): void {
