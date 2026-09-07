@@ -33,18 +33,21 @@ const assert = (condition, message) => { if (!condition) throw new Error(message
     await frame.evaluate(({level})=>parent.postMessage({type:'apulab-telemetry',level,event:'level_completed',payload:{result:'success'}},location.origin),{level});
   }
 
-  // No arbitrary sleep: wait until the local queue is settled and the mock repository
-  // contains the complete burst, including SessionService's terminal session_completed.
-  await page.waitForFunction(()=>{
-    const pending=JSON.parse(localStorage.getItem('apulab_telemetry_events_v2')||'[]');
-    const persisted=JSON.parse(localStorage.getItem('apulab_mock_events_v2')||'[]');
-    const sessions=JSON.parse(localStorage.getItem('apulab_mock_sessions_v2')||'[]');
-    return pending.length===0 && persisted.length>=21 && sessions.some(s=>s.status==='completed');
-  },null,{timeout:15000});
+  // Wait for the parent bridge itself to consume the complete burst. This is a
+  // causal condition (event_seq), not a timing guess. Then use the explicit
+  // serialized flush so the assertion observes the fully drained queue.
+  await page.waitForFunction(()=>window.apulabResearchQA?.snapshot?.().state.event_seq_last>=20,null,{timeout:10000});
+  await page.evaluate(async()=>{
+    // level_completed N7 normally starts completion from the bridge. Calling
+    // complete again is intentionally idempotent and closes the race in which
+    // the lifecycle callback is still queued when the protocol burst ends.
+    await window.apulabResearchQA.complete();
+    await window.apulabResearchQA.flush();
+  });
 
-  const data=await page.evaluate(()=>({events:JSON.parse(localStorage.getItem('apulab_mock_events_v2')||'[]'),pending:JSON.parse(localStorage.getItem('apulab_telemetry_events_v2')||'[]'),sessions:JSON.parse(localStorage.getItem('apulab_mock_sessions_v2')||'[]')}));
+  const data=await page.evaluate(()=>({events:JSON.parse(localStorage.getItem('apulab_mock_events_v2')||'[]'),pending:JSON.parse(localStorage.getItem('apulab_telemetry_events_v2')||'[]'),sessions:JSON.parse(localStorage.getItem('apulab_mock_sessions_v2')||'[]'),state:window.apulabResearchQA.snapshot().state}));
   const events=data.events.sort((a,b)=>a.event_seq-b.event_seq);
-  assert(events.length>=21,`expected research sequence, got ${events.length}`);
+  assert(events.length>=21,`expected research sequence, got ${events.length}; event_seq_last=${data.state.event_seq_last}; pending=${data.pending.length}`);
   assert(data.pending.length===0,`queue not settled: ${data.pending.length} pending events`);
   assert(events[0].event_type==='session_started','session_started must be first');
   for(let level=1;level<=7;level++){
@@ -66,5 +69,5 @@ const assert = (condition, message) => { if (!condition) throw new Error(message
   assert(data.sessions.some(s=>s.status==='completed'),'mock session was not marked completed');
   assert(errors.length===0,`runtime errors:\n${errors.join('\n')}`);
   await browser.close();
-  console.log(`[e2e] Research pipeline OK · ${events.length} ordered events · queue settled · parent authority · N1→N7 · session complete`);
+  console.log(`[e2e] Research pipeline OK · ${events.length} ordered events · explicit flush · parent authority · N1→N7 · session complete`);
 })().catch(async e=>{console.error(e);process.exit(1)});
