@@ -38,7 +38,6 @@ if (!html.includes('APULAB_LEVEL7_FINAL_GDD_V1')) fail('final_gdd_missing');
 if (!html.includes('APULAB_LEVEL7_EXACT_SAMPLE_RESEARCH_V1')) fail('exact_sample_patch_missing');
 if (html.includes('APULAB_LEVEL7_FINAL_HARDENING_V1')) fail('already_applied');
 
-// Canonical GDD terminology: there is one physical communication checkpoint.
 html = html
   .replaceAll('PUNTO FINAL', 'PUNTO DE COMUNICACIÓN')
   .replaceAll('punto final', 'punto de comunicación')
@@ -47,7 +46,6 @@ html = html
   .replaceAll('final_point_reached', 'communication_point_reached')
   .replaceAll('final_checkpoint_reached', 'communication_point_reached');
 
-// ANALIZAR MUESTRA requires exact occupancy, never adjacency/proximity.
 html = html
   .replace(/const isAdjacentToSample=\(\)=>Math\.abs\(roverState\.c-sampleCell\.c\)\+Math\.abs\(roverState\.r-sampleCell\.r\)===1;/g,
     'const isAtSample=()=>roverState.c===sampleCell.c&&roverState.r===sampleCell.r;')
@@ -59,7 +57,6 @@ html = html
 if (!html.includes('const isAtSample=()=>roverState.c===sampleCell.c&&roverState.r===sampleCell.r;')) fail('exact_sample_runtime_missing');
 if (html.includes('isAdjacentToSample')) fail('adjacency_runtime_remaining');
 
-// Reuse the known N6 action ENVIAR DATOS in N7. It is available without a new tutorial/glow.
 if (!html.includes('data-command="send"')) {
   const analyzePalette = /(<div class="palette-group apulab-sample-palette">[\s\S]*?<div class="command-block block-analyze-sample"[^>]*data-command="analyzeSample"[\s\S]*?<\/div>)(<\/div>)/;
   if (!analyzePalette.test(html)) fail('science_palette_missing');
@@ -70,13 +67,11 @@ if (html.includes(commandAnchor)) {
   html = html.replace(commandAnchor, "analyzeSample:{label:'ANALIZAR MUESTRA',icon:'🔬',cls:'block-analyze-sample',tone:'',freq:783.99,sensor:true},send:{label:'ENVIAR DATOS',icon:'⇧',cls:'block-send',tone:'TX',freq:880,sensor:true}};const instrumentOptions=");
 } else if (!html.includes("send:{label:'ENVIAR DATOS'")) fail('commands_send_anchor_missing');
 
-// Add canonical state while preserving finalCheckpointReached as an internal compatibility alias only.
 if (html.includes('sampleCheckpointReached=false,finalCheckpointReached=false')) {
   html = html.replace('sampleCheckpointReached=false,finalCheckpointReached=false', 'sampleCheckpointReached=false,communicationPointReached=false,dataSent=false,finalCheckpointReached=false');
 }
 if (!html.includes('communicationPointReached=false') || !html.includes('dataSent=false')) fail('communication_state_missing');
 
-// Deterministic input binder: click / Enter / Space / drag each append exactly once.
 html = replaceFunction(html, 'function bindPalette()', `function bindPalette(){
   const bindCmd=(el)=>{
     el.tabIndex=0;el.setAttribute('role','button');
@@ -108,7 +103,6 @@ html = replaceFunction(html, 'function bindPalette()', `function bindPalette(){
   rp.onkeydown=(e)=>{if((e.key==='Enter'||e.key===' ')&&repeatUnlocked){e.preventDefault();appendItem({type:'repeat',count:2,body:[]})}};
 }`);
 
-// Canonical science execution. Arrival at communication is distinct from sending.
 html = replaceFunction(html, 'async function executeCommand(', `async function executeCommand(cmd){
   if(cmd==='analyzeSample'){
     await playCmd(cmd);recordLevel7Event('sample_analyze_requested',{at_sample:isAtSample()});
@@ -167,7 +161,6 @@ html = replaceFunction(html, 'function completeLevel(', `function completeLevel(
   document.getElementById('success-program-summary').textContent='Programa final: '+topCount(program)+' bloques.';const data=document.getElementById('success-data');if(data)data.textContent='MATERIALES · Hierro · Silicatos';const title=document.querySelector('#success-overlay h2');if(title)title.textContent='MISIÓN COMPLETADA';const body=document.querySelector('#success-overlay p');if(body)body.textContent='AYNI investigó la muestra y envió la información a ApuLab Station.';const button=document.getElementById('continue-btn');if(button)button.textContent='FINALIZAR MISIÓN';document.getElementById('success-overlay').classList.add('visible');syncLevel7FinalUX();
 }`);
 
-// State-derived guide and objective. Arrival activates SEND but never auto-sends.
 html = replaceFunction(html, 'function syncLevel7FinalUX()', `function syncLevel7FinalUX(){
   const guide=document.getElementById('level7-guide');if(!guide)return;const objective=document.getElementById('objective-tag');const sample=document.getElementById('level7-sample-checkpoint');const final=document.getElementById('level7-final-checkpoint');
   let phaseStep=1;if(sampleCheckpointReached)phaseStep=2;if(level7AnalyzeRequested)phaseStep=3;if(selectedInstrument)phaseStep=4;if(relevantInstrumentUsed)phaseStep=5;if(dataSent)phaseStep=6;
@@ -178,17 +171,9 @@ html = replaceFunction(html, 'function syncLevel7FinalUX()', `function syncLevel
   document.querySelector('.command-block[data-command="analyzeSample"]')?.classList.toggle('is-research-ready',sampleCheckpointReached&&!level7AnalyzeRequested);
 }`);
 
-// Clear resets the current attempt's scientific state but never creates synthetic events.
 html = html.replace('selectedInstrument=null;sampleAnalyzed=false;relevantInstrumentUsed=false;sampleCheckpointReached=false;finalCheckpointReached=false;', 'selectedInstrument=null;sampleAnalyzed=false;relevantInstrumentUsed=false;sampleCheckpointReached=false;communicationPointReached=false;dataSent=false;finalCheckpointReached=false;');
-
-// QA state exposes canonical semantics for physical tests.
 html = html.replace('atSample:isAtSample(),atFinal:atFinalCheckpoint(),...repeatMetrics()', 'atSample:isAtSample(),atCommunication:atFinalCheckpoint(),communicationPointReached,dataSent,...repeatMetrics()');
-
-// Visual attention is driven only by sampleReached.
 html = html.replace('</head>', `<style id="apulab-level7-final-hardening-style">/* APULAB_LEVEL7_FINAL_HARDENING_V1 */.command-block[data-command="analyzeSample"].is-research-ready{box-shadow:0 0 0 3px rgba(73,201,215,.30),0 0 20px rgba(73,201,215,.72)!important}.block-send{background:linear-gradient(180deg,#FFD18E,#F4C75E)!important;color:#17133A!important}</style>\n</head>`);
-
-// Remove the older auto-send research patch if it survived earlier transforms.
-html = html.replace(/;recordLevel7Event\('data_sent',\{communication_x:roverState\.c,communication_y:roverState\.r,\.\.\.repeatMetrics\(\)\}\)/g, '');
 
 const required = [
   'APULAB_LEVEL7_FINAL_HARDENING_V1','data-command="send"','ENVIAR DATOS','const isAtSample=()=>roverState.c===sampleCell.c&&roverState.r===sampleCell.r',
