@@ -151,6 +151,7 @@ jobs:
           done
           psql -d apulab_zero -v ON_ERROR_STOP=1 -f supabase/tests/research_schema_v2.sql
           psql -d apulab_zero -v ON_ERROR_STOP=1 -f supabase/tests/research_hardening.sql
+          psql -d apulab_zero -v ON_ERROR_STOP=1 -f supabase/tests/research_pre_qa_hardening.sql
       - name: Legacy baseline then forward hardening
         run: |
           psql -d apulab_legacy -v ON_ERROR_STOP=1 -f supabase/migrations/20260830090000_research_security_baseline.sql
@@ -163,6 +164,9 @@ jobs:
           SQL
           psql -d apulab_legacy -v ON_ERROR_STOP=1 -f supabase/migrations/20260906170000_research_schema_v2.sql
           psql -d apulab_legacy -v ON_ERROR_STOP=1 -f supabase/migrations/20260906183000_research_hardening.sql
+          psql -d apulab_legacy -v ON_ERROR_STOP=1 -f supabase/migrations/20260907190000_research_pre_qa_hardening.sql
           test "$(psql -d apulab_legacy -Atc "SELECT count(*) FROM apulab_events WHERE event_id::text='legacy-event-1'")" = "1"
+          test "$(psql -d apulab_legacy -Atc "SELECT count(*) FROM apulab_sessions WHERE session_id='legacy-session'")" = "1"
           psql -d apulab_legacy -v ON_ERROR_STOP=1 -f supabase/tests/research_schema_v2.sql
           psql -d apulab_legacy -v ON_ERROR_STOP=1 -f supabase/tests/research_hardening.sql
+          psql -d apulab_legacy -v ON_ERROR_STOP=1 -f supabase/tests/research_pre_qa_hardening.sql
