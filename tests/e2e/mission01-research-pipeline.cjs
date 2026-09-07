@@ -15,9 +15,18 @@ const assert = (condition, message) => { if (!condition) throw new Error(message
   await page.getByRole('button',{name:'MODO DEMO'}).click();
   await page.getByRole('button',{name:'OMITIR INTRO'}).waitFor({state:'visible',timeout:20000});
   await page.getByRole('button',{name:'OMITIR INTRO'}).click();
-  await page.locator('.mission01-frame').waitFor({state:'visible',timeout:15000});
-  const frame=page.frames().find(f=>f.url().includes('/missions/mission01/level1.html'));
-  assert(frame,'Mission iframe missing');
+
+  // Causal iframe readiness: element visibility alone does not guarantee that
+  // its browsing context has finished navigating from about:blank to Nivel 1.
+  const frameLocator=page.locator('.mission01-frame');
+  await frameLocator.waitFor({state:'visible',timeout:15000});
+  const frameElement=await frameLocator.elementHandle();
+  assert(frameElement,'Mission iframe element missing');
+  const frame=await frameElement.contentFrame();
+  assert(frame,'Mission iframe browsing context missing');
+  await frame.waitForURL(url=>url.pathname==='/missions/mission01/level1.html',{timeout:15000});
+  await frame.waitForLoadState('domcontentloaded');
+  assert(new URL(frame.url()).pathname==='/missions/mission01/level1.html',`Mission iframe wrong URL: ${frame.url()}`);
 
   // Protocol-only test: burst synthetic messages through the real parent bridge.
   // Physical gameplay telemetry is tested separately by mission01-research-physical.cjs.
