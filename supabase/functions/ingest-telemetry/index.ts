@@ -34,7 +34,7 @@ class PublicError extends Error {
   constructor(readonly code: string, readonly status = 400) { super(code); }
 }
 
-type StudyCondition = 'game' | 'static_control';
+type StudyCondition = 'game';
 type Proof = { participant_id: string; study_id: string; study_condition: StudyCondition; exp: number };
 type StudyRow = {
   study_id: string;
@@ -170,7 +170,7 @@ async function readProof(token: unknown): Promise<Proof> {
   if (await hmac(raw, secret) !== sig) throw new PublicError('session_proof_invalid', 403);
   let proof: Proof;
   try { proof = JSON.parse(dec.decode(unb64url(raw))); } catch { throw new PublicError('session_proof_invalid', 403); }
-  if (!proof || proof.exp < Date.now() || !UUID_PATTERN.test(proof.participant_id) || !proof.study_id || !['game','static_control'].includes(proof.study_condition)) {
+  if (!proof || proof.exp < Date.now() || !UUID_PATTERN.test(proof.participant_id) || !proof.study_id || proof.study_condition !== 'game') {
     throw new PublicError('session_proof_invalid', 403);
   }
   return proof;
@@ -259,13 +259,14 @@ serve(async (req) => {
         await recordAuthAttempt(client, hash, false, attempts.count);
         throw new PublicError('assignment_not_found', 403);
       }
+      if (assignment.study_condition !== 'game') throw new PublicError('station_condition_mismatch', 403);
       const study = await fetchStudy(client, assignment.study_id);
       if ((code.startsWith('QT-') && study.study_kind !== 'qa') || (code.startsWith('AP-') && study.study_kind !== 'official')) throw new PublicError('study_code_kind_mismatch', 403);
       if (!studyStatusAllowed(study)) throw new PublicError('study_not_active', 403);
 
       await recordAuthAttempt(client, hash, true);
-      const proof = await issueProof({ participant_id:participant.participant_id, study_id:assignment.study_id, study_condition:assignment.study_condition });
-      return json({ success:true, data:{ participant_id:participant.participant_id, study_id:assignment.study_id, study_condition:assignment.study_condition, session_proof:proof } }, 200, origin);
+      const proof = await issueProof({ participant_id:participant.participant_id, study_id:assignment.study_id, study_condition:'game' });
+      return json({ success:true, data:{ participant_id:participant.participant_id, study_id:assignment.study_id, study_condition:'game', session_proof:proof } }, 200, origin);
     }
 
     if (url.pathname.endsWith('/session/complete')) {
@@ -318,6 +319,7 @@ serve(async (req) => {
       if (!['development','preview','study'].includes(environment)) throw new PublicError('environment_invalid');
       if (mode === 'study') {
         const proof = await readProof(input.session_proof);
+        if (proof.study_condition !== 'game') throw new PublicError('station_condition_mismatch', 403);
         const study = await fetchStudy(client, proof.study_id);
         if (!studyStatusAllowed(study)) throw new PublicError('study_not_active', 403);
         if (study.expected_commit_sha === 'UNFROZEN') throw new PublicError('study_build_not_frozen', 409);
@@ -329,7 +331,7 @@ serve(async (req) => {
         if (protocolVersion !== study.protocol_version) throw new PublicError('study_protocol_mismatch', 409);
         participantId = proof.participant_id;
         studyId = proof.study_id;
-        studyCondition = proof.study_condition;
+        studyCondition = 'game';
         environment = expectedEnvironment;
         buildVersion = study.study_build_version;
         gitCommitSha = study.expected_commit_sha;
@@ -369,6 +371,7 @@ serve(async (req) => {
         .eq('session_id', sessionId).maybeSingle();
       if (sessionError) throw new Error('session_lookup_failed');
       if (!session) throw new PublicError('session_not_found', 404);
+      if (session.session_mode === 'study' && session.study_condition !== 'game') throw new PublicError('station_condition_mismatch', 403);
       await requireSyncToken(input, session);
 
       const receivedAt = new Date().toISOString();

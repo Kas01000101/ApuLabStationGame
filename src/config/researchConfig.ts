@@ -1,6 +1,6 @@
 export type DataMode = 'mock' | 'supabase';
 export type SessionMode = 'demo' | 'study';
-export type StudyCondition = 'game' | 'static_control';
+export type StudyCondition = 'game';
 export type StudyKind = 'qa' | 'official';
 export type ResearchEnvironment = 'development' | 'preview' | 'study';
 

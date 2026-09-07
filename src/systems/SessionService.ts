@@ -29,6 +29,9 @@ export class SessionService {
     if (!code || !credential) return { success: false, error: 'Completa código y contraseña.' };
     const auth = await repo.authenticateParticipant({ studyCode: code, credential });
     if (!auth.success || !auth.data) return { success: false, error: mapStudyAuthError(auth.error) };
+    if (String(auth.data.study_condition) !== 'game') {
+      return { success: false, error: 'Esta asignación no corresponde a ApuLab Station.' };
+    }
 
     const state = GameState.getInstance();
     const syncToken = createSessionSyncToken();
@@ -57,8 +60,6 @@ export class SessionService {
       LocalQueueService.markCompletionPending(state.sessionId);
     }
     await SyncService.processQueue();
-    // SyncService may complete the same singleton asynchronously. Re-read it instead
-    // of relying on TypeScript's control-flow narrowing of the local `state` reference.
     return GameState.getInstance().status === 'completed';
   }
 }
@@ -74,11 +75,13 @@ function createSessionSyncToken(): string {
 function mapStudyAuthError(error?: string): string {
   if (error === 'study_not_active') return 'El estudio todavía no está habilitado para iniciar sesiones.';
   if (error === 'authentication_cooldown') return 'Espera unos minutos antes de volver a intentar el acceso.';
+  if (error === 'station_condition_mismatch') return 'Esta asignación no corresponde a ApuLab Station.';
   return 'El código, credencial o asignación no son válidos.';
 }
 function mapStudySessionError(error?: string): string {
   if (error === 'study_build_mismatch' || error === 'study_commit_mismatch') return 'Esta versión del juego no corresponde al build autorizado para el estudio.';
   if (error === 'study_environment_mismatch') return 'Este entorno no está habilitado para la sesión de estudio.';
+  if (error === 'station_condition_mismatch') return 'Esta asignación no corresponde a ApuLab Station.';
   if (error === 'session_identity_conflict') return 'La sesión no pudo validarse de forma segura.';
   return 'No se pudo iniciar la sesión de estudio.';
 }

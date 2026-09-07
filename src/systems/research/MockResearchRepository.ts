@@ -34,6 +34,7 @@ export class MockResearchRepository implements ResearchRepository {
 
   async createSession(session: SessionData, _sessionProof: string | null, sessionSyncToken: string): Promise<RepositoryResult> {
     try {
+      if (session.session_mode === 'study' && session.study_condition !== 'game') return { success: false, error: 'station_condition_mismatch' };
       const rows = readArray<SessionData>(SESSION_KEY);
       const existing = rows.find((row) => row.session_id === session.session_id);
       if (existing && !sameImmutableSession(existing, session)) return { success: false, error: 'session_identity_conflict' };
@@ -95,8 +96,7 @@ function normalizeCode(raw: string): string | null {
 }
 function getMockCondition(code: string, kind: 'qa'|'official'): StudyCondition | null {
   if (kind === 'qa') return 'game';
-  const stored = localStorage.getItem(`apulab_mock_assignment:${code}`);
-  return stored === 'game' || stored === 'static_control' ? stored : null;
+  return localStorage.getItem(`apulab_mock_assignment:${code}`) === 'game' ? 'game' : null;
 }
 function readArray<T>(key: string): T[] { try { const v=JSON.parse(localStorage.getItem(key)??'[]'); return Array.isArray(v)?v as T[]:[]; } catch { return []; } }
 function readObject<T extends object>(key: string, fallback: T): T { try { const v=JSON.parse(localStorage.getItem(key)??'null'); return v&&typeof v==='object'&&!Array.isArray(v)?v as T:fallback; } catch { return fallback; } }

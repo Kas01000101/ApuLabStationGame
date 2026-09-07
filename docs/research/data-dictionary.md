@@ -1,10 +1,12 @@
 # Research data dictionary
 
+ApuLabStationGame and its research database are **Station-only**. The operational study condition stored by this application is `game` only. ApuLabControl is a separate system and is out of scope.
+
 | Variable | Source | Raw/derived | Definition | Interpretation / limitation |
 |---|---|---|---|---|
-| `participant_id` | server auth | raw UUID | Pseudonymous participant identifier | Never expose raw access code in telemetry. |
-| `study_id` | server assignment | raw | QA or official study identifier | Official analysis must filter `APULAB-STUDY-2026`. |
-| `study_condition` | server assignment | raw | `game` or `static_control` | Code itself does not reveal condition. |
+| `participant_id` | server auth | raw UUID | Pseudonymous Station participant identifier | Never expose raw access code in telemetry. |
+| `study_id` | server assignment | raw | QA or official Station study identifier | Official analysis must filter `APULAB-STUDY-2026`. |
+| `study_condition` | server assignment | raw | Always `game` in ApuLabStationGame | Any other value is rejected by frontend, Edge and Migration 6. |
 | `event_seq` | parent TelemetryService | raw | Monotonic sequence within session | Used to reconstruct order across offline/retry batches. |
 | `elapsed_ms` | gameplay/parent | raw | Milliseconds from level start | Not wall-clock duration across separate sessions. |
 | `attempt_number` | gameplay | raw | 1-based attempt counter when meaningful | Nullable for non-attempt events. |
