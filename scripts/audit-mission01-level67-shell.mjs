@@ -23,11 +23,13 @@ for (const token of ['APULAB_LEVEL6_FROM_LEVEL5_V1','APULAB_LEVEL6_TWO_CHECKPOIN
 if (l6.includes('if(!usesRepeat())')) fail('l6_repeat_must_be_optional');
 for (const forbidden of ['ANALIZAR MUESTRA','ANALIZADOR DE MATERIALES']) if (l6.includes(forbidden)) fail(`l6_level7_leak:${forbidden}`);
 
-for (const token of ['APULAB_LEVEL7_FROM_LEVEL5_V1','APULAB_LEVEL7_INSTRUMENT_UI_V2','APULAB_LEVEL7_FINAL_GDD_V1','LA MUESTRA DESCONOCIDA','MUESTRA DESCONOCIDA','PUNTO FINAL','data-command="analyzeSample"','data-testid="block-analyze-sample"','data-testid="level7-guide"','ANALIZAR MUESTRA','TEMPERATURA','PROXIMIDAD','ANALIZADOR DE MATERIALES','CAMBIAR INSTRUMENTO','FINALIZAR MISIÓN']) {
+for (const token of ['APULAB_LEVEL7_FROM_LEVEL5_V1','APULAB_LEVEL7_INSTRUMENT_UI_V2','APULAB_LEVEL7_FINAL_GDD_V1','APULAB_LEVEL7_FINAL_HARDENING_V1','LA MUESTRA DESCONOCIDA','MUESTRA DESCONOCIDA','PUNTO DE COMUNICACIÓN','data-command="analyzeSample"','data-command="send"','data-testid="block-analyze-sample"','data-testid="level7-guide"','ANALIZAR MUESTRA','ENVIAR DATOS','TEMPERATURA','PROXIMIDAD','ANALIZADOR DE MATERIALES','CAMBIAR INSTRUMENTO','FINALIZAR MISIÓN']) {
   if (!l7.includes(token)) fail(`l7_sample:${token}`);
 }
-for (const legacy of ['data-command="read"','data-command="record"','data-command="send"','EQUIPA UN SENSOR','EQUIPAR SENSOR','RANURA DE SENSOR','CAMBIAR SENSOR','ANALIZADOR DE MINERALES','id="guide-btn"']) if (l7.includes(legacy)) fail(`l7_legacy:${legacy}`);
+for (const legacy of ['data-command="read"','data-command="record"','EQUIPA UN SENSOR','EQUIPAR SENSOR','RANURA DE SENSOR','CAMBIAR SENSOR','ANALIZADOR DE MINERALES','id="guide-btn"','PUNTO FINAL','final_point_reached','isAdjacentToSample']) if (l7.includes(legacy)) fail(`l7_legacy:${legacy}`);
 if (/nextLevel\s*:\s*8|CONTINUAR AL NIVEL 8|level8\.html|mission01-level8/.test(l7)) fail('l7_fake_level8');
 if (l7.includes('if(!usesRepeat())')) fail('l7_repeat_must_be_optional');
+if (!l7.includes("recordLevel7Event('communication_point_reached'")) fail('l7_communication_event');
+if (!l7.includes("recordLevel7Event('data_sent'")) fail('l7_explicit_send_event');
 
-console.info('[mission01] LEVEL 6–7 CONTINUITY OK · N6 obtain→interpret→communicate · N7 question→instrument→result→final point · fixed guides · REPETIR optional');
+console.info('[mission01] LEVEL 6–7 CONTINUITY OK · N6 obtain→interpret→communicate · N7 exact sample→instrument→communication→explicit send · fixed guides · REPETIR optional');

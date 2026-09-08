@@ -1,20 +1,20 @@
-import { SessionData } from '../GameState';
+import type { SessionData } from '../GameState';
 import type { QueueEvent } from '../LocalQueueService';
+import type { StudyCondition } from '../../config/researchConfig';
 
-export type RepositoryResult<T = void> = {
-  success: boolean;
-  data?: T;
-  error?: string;
-};
+export type RepositoryResult<T = void> = { success: boolean; data?: T; error?: string };
 
 export type AuthenticatedParticipant = {
   participant_id: string;
-  session_mode: 'study';
+  study_id: string;
+  study_condition: StudyCondition;
+  session_proof: string;
 };
 
 export interface ResearchRepository {
   readonly mode: 'mock' | 'supabase';
-  authenticateParticipant(input: { participantCode: string; credential: string }): Promise<RepositoryResult<AuthenticatedParticipant>>;
-  createSession(session: SessionData): Promise<RepositoryResult>;
-  saveEvents(events: QueueEvent[]): Promise<RepositoryResult<{ accepted: number }>>;
+  authenticateParticipant(input: { studyCode: string; credential: string }): Promise<RepositoryResult<AuthenticatedParticipant>>;
+  createSession(session: SessionData, sessionProof: string | null, sessionSyncToken: string): Promise<RepositoryResult>;
+  saveEvents(events: QueueEvent[], sessionSyncToken: string): Promise<RepositoryResult<{ accepted: number }>>;
+  completeSession?(sessionId: string, sessionSyncToken: string): Promise<RepositoryResult>;
 }
