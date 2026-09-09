@@ -15,6 +15,14 @@ DO $$ BEGIN
     CHECK (sync_token_hash IS NULL OR length(sync_token_hash) >= 43) NOT VALID;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+-- M3 source views were created before git_commit_sha existed. Refresh them so
+-- the newly appended column is visible to all derived views in this migration.
+CREATE OR REPLACE VIEW v_official_study_events WITH (security_invoker=true) AS
+SELECT * FROM apulab_events
+WHERE study_id='APULAB-STUDY-2026' AND environment='study';
+CREATE OR REPLACE VIEW v_qa_events WITH (security_invoker=true) AS
+SELECT * FROM apulab_events WHERE study_id='APULAB-QA-2026';
+
 DROP VIEW IF EXISTS v_level_outcomes;
 DROP VIEW IF EXISTS v_level5_loop_metrics;
 DROP VIEW IF EXISTS v_level6_science_metrics;
