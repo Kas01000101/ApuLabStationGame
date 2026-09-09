@@ -6,9 +6,9 @@ const edgePath = new URL('../../supabase/functions/ingest-telemetry/index.ts', i
 const edge = await readFile(edgePath, 'utf8');
 
 function extractLimits(source) {
-  const qt = source.match(/match\[1\] === 'QT'[\s\S]{0,80}n > (\d+)/)?.[1];
-  const ap = source.match(/match\[1\] === 'AP'[\s\S]{0,80}n > (\d+)/)?.[1];
-  return { qt: Number(qt), ap: Number(ap) };
+  const m = source.match(/match\[1\] === 'QT'[\s\S]*?n > (\d+)\)\) \|\| \(match\[1\] === 'AP'[\s\S]*?n > (\d+)\)\)/);
+  if (!m) return { qt: NaN, ap: NaN };
+  return { qt: Number(m[1]), ap: Number(m[2]) };
 }
 
 function normalizeWithSourceContract(value, limits) {
