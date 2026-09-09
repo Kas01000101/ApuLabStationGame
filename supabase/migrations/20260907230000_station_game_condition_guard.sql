@@ -2,20 +2,20 @@
 -- This database stores only the game condition. ApuLabControl is out of scope.
 DO $$ BEGIN
   ALTER TABLE apulab_study_assignments
-    ADD CONSTRAINT apulab_station_assignments_game_only CHECK (study_condition='game') NOT VALID;
+    ADD CONSTRAINT apulab_station_assignments_game_only CHECK (study_condition IS NOT DISTINCT FROM 'game') NOT VALID;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
   ALTER TABLE apulab_sessions
     ADD CONSTRAINT apulab_station_sessions_game_only CHECK (
       (session_mode::text='demo' AND study_condition IS NULL)
-      OR (session_mode::text='study' AND study_condition='game')
+      OR (session_mode::text='study' AND study_condition IS NOT DISTINCT FROM 'game')
     ) NOT VALID;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
   ALTER TABLE apulab_events
     ADD CONSTRAINT apulab_station_events_game_only CHECK (
       (session_mode::text='demo' AND study_condition IS NULL)
-      OR (session_mode::text='study' AND study_condition='game')
+      OR (session_mode::text='study' AND study_condition IS NOT DISTINCT FROM 'game')
     ) NOT VALID;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 ALTER TABLE apulab_study_assignments VALIDATE CONSTRAINT apulab_station_assignments_game_only;
