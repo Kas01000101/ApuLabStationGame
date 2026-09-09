@@ -16,6 +16,14 @@ test('frontend authentication payload matches frozen Edge contract', async () =>
   assert.equal(client.includes('{ participant_code: code, credential }'), false);
 });
 
+test('frontend unwraps successful Edge data envelope before SessionService consumes it', async () => {
+  const client = await read('src/systems/SupabaseClient.ts');
+  const session = await read('src/systems/SessionService.ts');
+  assert.match(client, /Object\.prototype\.hasOwnProperty\.call\(data, 'data'\) \? data\.data : data/);
+  assert.match(client, /return \{ success: true, data: responseData as T \}/);
+  assert.match(session, /auth\.data\.study_condition/);
+});
+
 test('canonical event registry separates N6 communication from N7 final point', async () => {
   const events = await read('src/research/telemetry/events.ts');
   const n6 = events.match(/6:\s*\[([\s\S]*?)\],\s*7:/)?.[1] ?? '';
