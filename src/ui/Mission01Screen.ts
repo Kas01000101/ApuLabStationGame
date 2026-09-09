@@ -1,3 +1,8 @@
+import { GameState } from '../systems/GameState';
+import { TelemetryService } from '../systems/TelemetryService';
+import { SessionService } from '../systems/SessionService';
+import { attachMission01BehaviorTelemetry } from '../systems/Mission01BehaviorTelemetry';
+
 type Mission01Callbacks = {
   onUnavailableLevel?: (level: number) => void;
 };
@@ -54,6 +59,10 @@ export class Mission01Screen {
   private prefetchLink?: HTMLLinkElement;
   private previousLegacyComplete?: Mission01LegacyBridgeWindow['apulabCompleteLevel'];
   private previousLegacyReady?: Mission01LegacyBridgeWindow['apulabLevelReady'];
+  private lifecycleSessionId = '';
+  private readonly startedLevels = new Set<number>();
+  private readonly completedLevels = new Set<number>();
+  private behaviorCleanup?: () => void;
 
   constructor(
     private readonly root: HTMLElement,
@@ -86,6 +95,7 @@ export class Mission01Screen {
 
   start(level = 1): void {
     this.setVisible(true);
+    this.ensureLifecycleSession();
 
     if (!this.isAvailable(level)) {
       this.showUnavailableLevel(level);
@@ -107,6 +117,7 @@ export class Mission01Screen {
         'load',
         () => {
           if (this.activeFrameIndex === 0 && this.activeLevel === level) {
+            this.activateLevelRuntime(activeFrame, level);
             this.prefetchLevel(level + 1);
           }
         },
@@ -114,6 +125,7 @@ export class Mission01Screen {
       );
       activeFrame.src = path;
     } else {
+      this.activateLevelRuntime(activeFrame, level);
       this.prefetchLevel(level + 1);
     }
   }
@@ -129,6 +141,8 @@ export class Mission01Screen {
     this.cancelPendingTransition();
     this.clearTimers();
     this.removePrefetch();
+    this.behaviorCleanup?.();
+    this.behaviorCleanup = undefined;
     for (const frame of this.frames) this.disposeFrame(frame);
     this.element.remove();
   }
@@ -150,6 +164,40 @@ export class Mission01Screen {
 
   private levelPath(level: number): string {
     return `/missions/mission01/level${level}.html`;
+  }
+
+  private ensureLifecycleSession(): void {
+    const sessionId = GameState.getInstance().sessionId;
+    if (this.lifecycleSessionId === sessionId) return;
+    this.lifecycleSessionId = sessionId;
+    this.startedLevels.clear();
+    this.completedLevels.clear();
+    this.behaviorCleanup?.();
+    this.behaviorCleanup = undefined;
+  }
+
+  private activateLevelRuntime(frame: HTMLIFrameElement, level: number): void {
+    this.ensureLifecycleSession();
+    this.behaviorCleanup?.();
+    this.behaviorCleanup = attachMission01BehaviorTelemetry(frame, level);
+
+    if (this.startedLevels.has(level)) return;
+    this.startedLevels.add(level);
+    const telemetry = TelemetryService.getInstance();
+    telemetry.markLevelStarted(level);
+    telemetry.recordEvent('level_started', { lifecycle_owner: 'parent' }, { levelNumber: level, elapsedMs: 0 });
+  }
+
+  private completeLevelLifecycle(level: number): void {
+    this.ensureLifecycleSession();
+    if (this.completedLevels.has(level)) return;
+    this.completedLevels.add(level);
+    TelemetryService.getInstance().recordEvent(
+      'level_completed',
+      { lifecycle_owner: 'parent' },
+      { levelNumber: level, result: 'success' },
+    );
+    if (level === TOTAL_LEVELS) void new SessionService().complete();
   }
 
   private requestLevel(level: number): void {
@@ -224,6 +272,7 @@ export class Mission01Screen {
     this.activeFrameIndex = pending.frameIndex;
     this.activeLevel = pending.level;
     this.pending = undefined;
+    this.activateLevelRuntime(frame, this.activeLevel);
 
     this.prefetchLevel(this.activeLevel + 1);
 
@@ -257,9 +306,10 @@ export class Mission01Screen {
     const completedLevel = Number(completedValue);
     const requestedNext = Number(nextValue);
     if (!Number.isInteger(completedLevel) || completedLevel !== this.activeLevel) return;
-    if (completedLevel >= TOTAL_LEVELS) return;
-    if (Number.isInteger(requestedNext) && requestedNext !== this.activeLevel + 1) return;
+    if (Number.isInteger(requestedNext) && completedLevel < TOTAL_LEVELS && requestedNext !== this.activeLevel + 1) return;
 
+    this.completeLevelLifecycle(completedLevel);
+    if (completedLevel >= TOTAL_LEVELS) return;
     this.requestLevel(this.activeLevel + 1);
   };
 
@@ -288,7 +338,6 @@ export class Mission01Screen {
       if (this.previousLegacyComplete) bridgeWindow.apulabCompleteLevel = this.previousLegacyComplete;
       else delete bridgeWindow.apulabCompleteLevel;
     }
-
     if (bridgeWindow.apulabLevelReady === this.handleLegacyLevelReady) {
       if (this.previousLegacyReady) bridgeWindow.apulabLevelReady = this.previousLegacyReady;
       else delete bridgeWindow.apulabLevelReady;
@@ -296,21 +345,14 @@ export class Mission01Screen {
   }
 
   private signalFrameDispose(frame: HTMLIFrameElement): void {
-    try {
-      frame.contentWindow?.postMessage({ type: 'apulab-dispose' }, window.location.origin);
-    } catch (_) {
-      // pagehide/beforeunload del nivel actúa como respaldo.
-    }
+    try { frame.contentWindow?.postMessage({ type: 'apulab-dispose' }, window.location.origin); } catch (_) { /* best effort */ }
   }
 
   private clearFrame(frame: HTMLIFrameElement): void {
     try {
       const src = frame.getAttribute('src');
       if (src && src !== 'about:blank') frame.src = 'about:blank';
-    } catch (_) {
-      // El iframe puede estar navegando; about:blank se aplicará en el próximo ciclo.
-    }
-
+    } catch (_) { /* best effort */ }
     frame.classList.remove('is-loading', 'is-entering', 'is-active', 'is-leaving');
     frame.setAttribute('aria-hidden', 'true');
   }
@@ -378,6 +420,7 @@ export class Mission01Screen {
 
     const completedLevel = Number(payload.level);
     if (!Number.isInteger(completedLevel) || completedLevel !== this.activeLevel) return;
+    this.completeLevelLifecycle(completedLevel);
     if (completedLevel >= TOTAL_LEVELS) return;
 
     this.requestLevel(this.activeLevel + 1);
