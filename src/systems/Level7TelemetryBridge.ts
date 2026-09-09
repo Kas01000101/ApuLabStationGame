@@ -15,7 +15,9 @@ const LEVEL7_EVENT_TYPES = new Set([
   'final_point_reached',
   'explore_opened',
   'bitacora_opened',
-  'level_completed',
+  // Canonical level completion is parent-owned by Mission01Screen. N7 may keep
+  // a local diagnostic level_completed message, but forwarding it here would
+  // create a duplicate beside the parent lifecycle event.
   // Compatibility with pre-final N7 previews only.
   'sample_checkpoint_reached',
   'final_checkpoint_reached',
