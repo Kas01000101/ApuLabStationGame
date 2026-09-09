@@ -39,7 +39,7 @@ jobs:
           supabase functions --help >/tmp/supabase-functions-help.txt
       - name: Start local Supabase
         run: supabase start
-      - name: Rebuild fresh database from migrations
+      - name: Rebuild fresh database from migrations M1-M10
         run: supabase db reset
       - name: Resolve local database URL
         run: |
@@ -144,17 +144,20 @@ jobs:
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20260830091000_legacy_raw_code_nullable.sql
       - name: Seed synthetic legacy rows
         run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/research_legacy_fixture.sql
-      - name: Apply clean forward migrations M3-M7
+      - name: Apply clean forward migrations M3-M10
         run: |
           for migration in \
             supabase/migrations/20260906170000_research_schema_v2.sql \
             supabase/migrations/20260906183000_research_hardening.sql \
             supabase/migrations/20260907190000_research_pre_qa_hardening.sql \
             supabase/migrations/20260907230000_station_game_condition_guard.sql \
-            supabase/migrations/20260908030000_edge_service_role_permissions.sql; do
+            supabase/migrations/20260908030000_edge_service_role_permissions.sql \
+            supabase/migrations/20260909061000_station_research_reconcile_constraints.sql \
+            supabase/migrations/20260909062000_station_research_reconcile_analytics_views.sql \
+            supabase/migrations/20260909063000_station_research_reconcile_service_role.sql; do
             psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$migration"
           done
-      - name: Verify legacy preservation and no study promotion
+      - name: Verify legacy preservation and M8-M10 hardening
         run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/research_legacy_assertions.sql
 
   runtime-recovery:
