@@ -3,6 +3,10 @@ const { chromium } = require('playwright');
 const BASE_URL = process.env.APULAB_BASE_URL || 'http://127.0.0.1:4174';
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
 
+const EVENT_KEY = 'apulab_telemetry_events_v2';
+const CONTEXT_KEY = 'apulab_telemetry_session_context_v2';
+const COMPLETION_KEY = 'apulab_telemetry_completion_v2';
+
 (async () => {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
@@ -65,31 +69,39 @@ const assert = (condition, message) => { if (!condition) throw new Error(message
       assert(offline.queued[i].event_seq === offline.queued[i - 1].event_seq + 1, 'offline event_seq must remain contiguous');
     }
 
-    // Close the document while still offline. On the restarted document, block
-    // only the app bootstrap module so its automatic SyncService online listener
-    // cannot drain the queue before we assert durable localStorage recovery.
+    // Close the document while still offline, then inspect the browser context's
+    // persisted localStorage directly. No application document is allowed to
+    // bootstrap between persistence capture and these assertions.
     await page.close();
+    const storageState = await context.storageState();
+    const origin = new URL(BASE_URL).origin;
+    const originState = storageState.origins.find((entry) => entry.origin === origin);
+    assert(originState, `storageState missing origin ${origin}`);
+    const local = new Map(originState.localStorage.map((entry) => [entry.name, entry.value]));
+    const storedEvents = JSON.parse(local.get(EVENT_KEY) || '[]');
+    const storedCompletions = JSON.parse(local.get(COMPLETION_KEY) || '{}');
+    const storedContexts = JSON.parse(local.get(CONTEXT_KEY) || '{}');
+    const persistedEvents = storedEvents
+      .filter((event) => event.session_id === offline.sessionId && event.sync_status !== 'synced')
+      .sort((a, b) => a.event_seq - b.event_seq)
+      .map((event) => ({ event_id: event.event_id, event_seq: event.event_seq }));
+    const persistedCompletion = storedCompletions[offline.sessionId] || null;
+    const persistedContext = storedContexts[offline.sessionId] || null;
+
+    assert(persistedEvents.length === offline.queued.length, 'document close must preserve every pending offline event');
+    assert(persistedCompletion && persistedCompletion.status === 'pending', 'document close must preserve pending completion');
+    assert(persistedContext && persistedContext.session_id === offline.sessionId, 'document close must preserve session sync context');
+    for (let i = 0; i < offline.queued.length; i += 1) {
+      assert(persistedEvents[i].event_id === offline.queued[i].event_id, 'event_id changed in persisted storage');
+      assert(persistedEvents[i].event_seq === offline.queued[i].event_seq, 'event_seq changed in persisted storage');
+    }
+
+    // Only after persistence has been proven do we restore connectivity and
+    // reopen the runtime. The normal online listener may start recovery before
+    // this explicit flush; SyncService.flush() must remain reentrant/idempotent.
     await context.setOffline(false);
     page = await context.newPage();
-    await page.route('**/src/main.ts*', (route) => route.abort());
     await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
-
-    const persistedBeforeRecovery = await page.evaluate(async (sessionId) => {
-      const { LocalQueueService } = await import('/src/systems/LocalQueueService.ts');
-      return {
-        queued: LocalQueueService.getEventsBySession(sessionId).map((event) => ({ event_id: event.event_id, event_seq: event.event_seq })),
-        completion: LocalQueueService.getPendingCompletion(sessionId),
-        context: LocalQueueService.getSessionContext(sessionId),
-      };
-    }, offline.sessionId);
-
-    assert(persistedBeforeRecovery.queued.length === offline.queued.length, 'document restart must preserve every pending offline event');
-    assert(persistedBeforeRecovery.completion, 'document restart must preserve pending completion');
-    assert(persistedBeforeRecovery.context, 'document restart must preserve session sync context');
-    for (let i = 0; i < offline.queued.length; i += 1) {
-      assert(persistedBeforeRecovery.queued[i].event_id === offline.queued[i].event_id, 'event_id changed across document restart');
-      assert(persistedBeforeRecovery.queued[i].event_seq === offline.queued[i].event_seq, 'event_seq changed across document restart');
-    }
 
     const recovered = await page.evaluate(async ({ sessionId, expected }) => {
       const { SyncService } = await import('/src/systems/SyncService.ts');
