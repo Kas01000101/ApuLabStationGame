@@ -80,6 +80,35 @@ export class GameState {
     this.researchStorageDegraded = false;
   }
 
+  resumeStudySession(input: {
+    sessionId: string;
+    participantId: string;
+    studyId: string;
+    studyCondition: StudyCondition;
+    sessionProof: string;
+    sessionSyncToken: string;
+    environment: ResearchEnvironment;
+    eventSeqLast: number;
+  }): void {
+    if (!input.sessionId || !input.participantId || !input.studyId || !input.studyCondition || !input.sessionProof || !input.sessionSyncToken) {
+      throw new Error('study_resume_identity_required');
+    }
+    this.sessionId = input.sessionId;
+    this.sessionMode = 'study';
+    this.environment = input.environment;
+    this.participantId = input.participantId;
+    this.studyId = input.studyId;
+    this.studyCondition = input.studyCondition;
+    this.sessionProof = input.sessionProof;
+    this.sessionSyncToken = input.sessionSyncToken;
+    this.currentScene = 'main-menu';
+    this.status = 'in_progress';
+    this.eventSeqLast = Math.max(0, Math.trunc(input.eventSeqLast));
+    this.lastLevel = null;
+    this.lastCheckpoint = null;
+    this.researchStorageDegraded = false;
+  }
+
   nextEventSeq(): number { this.eventSeqLast += 1; return this.eventSeqLast; }
   setScene(scene: SceneId): void { this.currentScene = scene; }
 
