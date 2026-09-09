@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - fix/n3-n4-programming-telemetry
   pull_request:
     branches:
       - main
