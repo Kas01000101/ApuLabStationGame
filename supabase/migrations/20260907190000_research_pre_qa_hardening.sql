@@ -11,11 +11,8 @@ CREATE INDEX IF NOT EXISTS idx_apulab_study_assignments_participant_id
 DO $$ BEGIN
   ALTER TABLE apulab_events ADD CONSTRAINT apulab_events_level_semantics
     CHECK (
-      level_number IS NULL
-      OR (
-        (event_type NOT IN ('communication_point_reached','data_sent') OR level_number=6)
-        AND (event_type <> 'final_point_reached' OR level_number=7)
-      )
+      (event_type NOT IN ('communication_point_reached','data_sent') OR level_number IS NOT DISTINCT FROM 6)
+      AND (event_type <> 'final_point_reached' OR level_number IS NOT DISTINCT FROM 7)
     ) NOT VALID;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
