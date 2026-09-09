@@ -24,6 +24,8 @@ export type SessionSyncContext = {
   session_id: string;
   sync_token: string;
   study_id: string | null;
+  participant_id?: string | null;
+  event_seq_last?: number;
   saved_at: string;
 };
 
@@ -91,7 +93,10 @@ export class LocalQueueService {
 
   static registerSessionContext(context: SessionSyncContext): void {
     const contexts = this.getSessionContexts();
-    contexts[context.session_id] = context;
+    contexts[context.session_id] = {
+      ...context,
+      event_seq_last: Number.isInteger(context.event_seq_last) && Number(context.event_seq_last) >= 0 ? Number(context.event_seq_last) : 0,
+    };
     this.writeJson(CONTEXT_KEY, contexts);
   }
 
@@ -99,12 +104,32 @@ export class LocalQueueService {
     return this.getSessionContexts()[sessionId] ?? null;
   }
 
-  static removeSessionContextIfSettled(sessionId: string): void {
-    if (this.getEventsBySession(sessionId).length || this.getPendingCompletion(sessionId)) return;
+  static findRecoverableStudyContext(participantId: string, studyId: string): SessionSyncContext | null {
+    const candidates = Object.values(this.getSessionContexts())
+      .filter((context) => context.participant_id === participantId && context.study_id === studyId && !!context.sync_token)
+      .sort((a,b) => Date.parse(b.saved_at) - Date.parse(a.saved_at));
+    return candidates[0] ?? null;
+  }
+
+  static updateSessionEventSeq(sessionId: string, eventSeqLast: number): void {
+    if (!Number.isInteger(eventSeqLast) || eventSeqLast < 0) return;
+    const contexts = this.getSessionContexts();
+    const context = contexts[sessionId];
+    if (!context) return;
+    contexts[sessionId] = { ...context, event_seq_last: eventSeqLast, saved_at: new Date().toISOString() };
+    this.writeJson(CONTEXT_KEY, contexts);
+  }
+
+  static removeSessionContext(sessionId: string): void {
     const contexts = this.getSessionContexts();
     if (!(sessionId in contexts)) return;
     delete contexts[sessionId];
     this.writeJson(CONTEXT_KEY, contexts);
+  }
+
+  static removeSessionContextIfSettled(sessionId: string): void {
+    if (this.getEventsBySession(sessionId).length || this.getPendingCompletion(sessionId)) return;
+    this.removeSessionContext(sessionId);
   }
 
   static markCompletionPending(sessionId: string): void {
