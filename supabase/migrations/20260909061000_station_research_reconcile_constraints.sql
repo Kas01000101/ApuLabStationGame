@@ -1,43 +1,8 @@
--- ApuLab Station GE · Live reconciliation M8
--- Forward-only correction. Preserves historical demo rows and removes stale static_control compatibility.
-DO $$
-DECLARE
-  participants_count bigint;
-  assignments_count bigint;
-  sessions_count bigint;
-  events_count bigint;
-  official_status text;
-  official_commit text;
-BEGIN
-  SELECT count(*) INTO participants_count FROM public.apulab_participants;
-  SELECT count(*) INTO assignments_count FROM public.apulab_study_assignments;
-  SELECT count(*) INTO sessions_count FROM public.apulab_sessions;
-  SELECT count(*) INTO events_count FROM public.apulab_events;
-  SELECT status, expected_commit_sha INTO official_status, official_commit
-    FROM public.apulab_studies WHERE study_id='APULAB-STUDY-2026';
-
-  IF participants_count <> 0 OR assignments_count <> 0 THEN
-    RAISE EXCEPTION 'prewrite_participant_state_changed';
-  END IF;
-  IF sessions_count <> 4 OR events_count <> 176 THEN
-    RAISE EXCEPTION 'prewrite_historical_counts_changed';
-  END IF;
-  IF official_status IS DISTINCT FROM 'draft' OR official_commit IS DISTINCT FROM 'UNFROZEN' THEN
-    RAISE EXCEPTION 'official_study_state_changed';
-  END IF;
-  IF EXISTS (
-    SELECT 1 FROM public.apulab_sessions
-    WHERE session_mode::text <> 'demo' OR study_id IS NOT NULL OR study_condition IS NOT NULL
-  ) THEN
-    RAISE EXCEPTION 'unexpected_non_demo_session_present';
-  END IF;
-  IF EXISTS (
-    SELECT 1 FROM public.apulab_events
-    WHERE session_mode::text <> 'demo' OR study_id IS NOT NULL OR study_condition IS NOT NULL
-  ) THEN
-    RAISE EXCEPTION 'unexpected_non_demo_event_present';
-  END IF;
-END $$;
+-- ApuLab Station GE · Research reconciliation M8
+-- Forward-only contract correction.
+-- Live snapshot/count preflight is an operational deployment gate and is recorded
+-- separately in docs/SUPABASE_PREWRITE_CHECKPOINT.md. The migration itself must
+-- remain reproducible on fresh, legacy, QA, and future databases.
 
 ALTER TABLE public.apulab_study_assignments
   DROP CONSTRAINT IF EXISTS apulab_assignment_condition_check,
