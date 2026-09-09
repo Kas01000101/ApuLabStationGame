@@ -1,0 +1,156 @@
+name: Research Analytics Validation
+
+on:
+  push:
+    branches:
+      - fix/research-participant-level-metrics
+    paths:
+      - 'supabase/**'
+      - 'tests/research/**'
+      - 'scripts/research/**'
+      - '.github/workflows/research-analytics-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  app-security-immutability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22.16.0'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-fund --no-audit
+
+      - name: Build
+        run: npm run build
+
+      - name: Research runtime contracts
+        run: node --test tests/research/*.test.mjs
+
+      - name: Security audit
+        shell: bash
+        run: |
+          set -u
+          npm install --package-lock-only --ignore-scripts --no-fund --no-audit
+          for attempt in 1 2 3; do
+            set +e
+            output="$(npm audit --audit-level=high 2>&1)"
+            status=$?
+            set -e
+            printf '%s\n' "$output"
+            if [ "$status" -eq 0 ]; then exit 0; fi
+            if printf '%s' "$output" | grep -Eqi '503 Service Unavailable|audit endpoint returned an error|ECONNRESET|ETIMEDOUT|EAI_AGAIN'; then
+              if [ "$attempt" -lt 3 ]; then
+                sleep $((attempt * 10))
+                continue
+              fi
+            fi
+            exit "$status"
+          done
+
+      - name: GE gameplay immutability against frozen RC4
+        run: |
+          git worktree add /tmp/apulab-rc4 9ec692384d192fa05bda65c01904ccf369b18fae
+          node scripts/research/verify-ge-gameplay-immutability.mjs /tmp/apulab-rc4 . 9ec692384d192fa05bda65c01904ccf369b18fae
+
+  db-fresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Rebuild fresh database from migrations
+        run: supabase db reset
+
+      - name: Resolve local database URL
+        run: |
+          supabase status -o env > /tmp/supabase.env
+          DB_URL_VALUE=$(sed -n 's/^DB_URL="\{0,1\}\([^"[:space:]]*\)"\{0,1\}$/\1/p' /tmp/supabase.env)
+          test -n "$DB_URL_VALUE"
+          echo "DB_URL=$DB_URL_VALUE" >> "$GITHUB_ENV"
+
+      - name: Fresh Research contract
+        run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/research_fresh_contract.sql
+
+      - name: Existing QA analytics contract
+        run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/research_qa_analytics_and_single_session.sql
+
+      - name: Participant-level analytics contract
+        run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/research_participant_level_metrics.sql
+
+      - name: Idempotency and sequence integrity
+        run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/research_idempotency.sql
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup || true
+
+  db-legacy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      PGPASSWORD: postgres
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:55432/postgres
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Prepare Supabase-compatible roles
+        run: |
+          psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$ BEGIN CREATE ROLE anon NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE ROLE authenticated NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE ROLE service_role NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          SQL
+
+      - name: Apply historical baseline M1-M2
+        run: |
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20260830090000_research_security_baseline.sql
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20260830091000_legacy_raw_code_nullable.sql
+
+      - name: Seed synthetic legacy rows
+        run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/research_legacy_fixture.sql
+
+      - name: Apply all forward migrations after M2
+        shell: bash
+        run: |
+          mapfile -t migrations < <(find supabase/migrations -maxdepth 1 -type f -name '*.sql' | sort)
+          for migration in "${migrations[@]:2}"; do
+            echo "Applying $migration"
+            psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$migration"
+          done
+
+      - name: Verify legacy preservation
+        run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/research_legacy_assertions.sql
+
+      - name: Verify participant-level analytics after legacy upgrade
+        run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/research_participant_level_metrics.sql
