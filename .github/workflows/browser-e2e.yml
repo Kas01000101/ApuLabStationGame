@@ -133,6 +133,11 @@ jobs:
           cat /tmp/apulab-gameplay-preview.log
           exit 1
 
+      - name: Integrated N2 selection telemetry contract
+        env:
+          APULAB_BASE_URL: http://127.0.0.1:4173
+        run: node tests/e2e/mission01-n2-selection-telemetry.cjs
+
       - name: Level 5 final loops contract
         env:
           APULAB_BASE_URL: http://127.0.0.1:4173
@@ -172,11 +177,6 @@ jobs:
         env:
           APULAB_BASE_URL: http://127.0.0.1:4173
         run: node tests/e2e/mission01-electronics.cjs
-
-      - name: Integrated N2 selection telemetry contract
-        env:
-          APULAB_BASE_URL: http://127.0.0.1:4173
-        run: node tests/e2e/mission01-n2-selection-telemetry.cjs
 
       - name: Real gameplay N3 to N6
         env:
