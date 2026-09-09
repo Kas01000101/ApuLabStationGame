@@ -166,17 +166,32 @@ const STUDY_ID = 'APULAB-QA-2026';
     });
     assert(lifecycleStart.result.success === true, `lifecycle session failed to start: ${JSON.stringify(lifecycleStart.result)}`);
 
+    const selector = '#research-lifecycle-root iframe.mission01-frame';
     for (let level = 1; level <= 7; level += 1) {
-      const selector = '#research-lifecycle-root iframe.mission01-frame';
-      await page.waitForFunction(({ selector, level }) => {
-        const frame = document.querySelector(selector);
-        if (!frame) return false;
-        try { return frame.contentWindow.location.pathname.endsWith(`/missions/mission01/level${level}.html`); }
-        catch { return false; }
-      }, { selector, level }, { timeout: 15000 });
+      const expectedPath = `/missions/mission01/level${level}.html`;
+      console.log(`[R5] waiting N${level}`);
 
-      const handle = await page.locator(selector).elementHandle();
+      const locator = page.locator(selector);
+      await locator.waitFor({ state: 'attached', timeout: 15000 });
+      await page.waitForFunction(({ selector: frameSelector, expectedPath: path }) => {
+        const node = document.querySelector(frameSelector);
+        if (!node) return false;
+        const src = node.getAttribute('src') || '';
+        try { return new URL(src, window.location.href).pathname.endsWith(path); }
+        catch { return false; }
+      }, { selector, expectedPath }, { timeout: 15000 });
+
+      const handle = await locator.elementHandle();
+      assert(handle, `[R5] iframe handle missing for N${level}`);
       const frame = await handle.contentFrame();
+      assert(frame, `[R5] contentFrame missing for N${level}`);
+      await frame.waitForLoadState('domcontentloaded', { timeout: 15000 });
+      await frame.waitForFunction(() => document.readyState === 'interactive' || document.readyState === 'complete', null, { timeout: 15000 });
+
+      const actualPath = new URL(frame.url()).pathname;
+      assert(actualPath.endsWith(expectedPath), `[R5] N${level} frame URL mismatch: ${frame.url()}`);
+      console.log(`[R5] N${level} ready`);
+
       await frame.evaluate((currentLevel) => {
         window.parent.postMessage({
           type: 'apulab-level-complete',
@@ -184,6 +199,18 @@ const STUDY_ID = 'APULAB-QA-2026';
           nextLevel: currentLevel < 7 ? currentLevel + 1 : undefined,
         }, window.location.origin);
       }, level);
+
+      if (level < 7) {
+        const nextPath = `/missions/mission01/level${level + 1}.html`;
+        await page.waitForFunction(({ selector: frameSelector, nextPath: path }) => {
+          const node = document.querySelector(frameSelector);
+          if (!node) return false;
+          const src = node.getAttribute('src') || '';
+          try { return new URL(src, window.location.href).pathname.endsWith(path); }
+          catch { return false; }
+        }, { selector, nextPath }, { timeout: 15000 });
+      }
+      console.log(`[R5] N${level} completed`);
     }
 
     await page.waitForFunction(() => {
