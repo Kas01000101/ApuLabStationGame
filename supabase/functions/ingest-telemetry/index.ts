@@ -7,6 +7,7 @@ const MAX_REQUEST_BYTES = 128 * 1024;
 const AUTH_WINDOW_MS = 15 * 60 * 1000;
 const AUTH_COOLDOWN_MS = 10 * 60 * 1000;
 const AUTH_FAILURE_LIMIT = 5;
+const ACTIVE_STUDY_STATUSES = ['in_progress','active','completed_pending_sync'] as const;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const EVENT_PATTERN = /^[a-z0-9_]{3,64}$/;
 
@@ -221,6 +222,19 @@ function sameImmutableSession(existing: any, row: any): boolean {
     && existing.protocol_version === row.protocol_version
     && existing.sync_token_hash === row.sync_token_hash;
 }
+async function findActiveStudySession(client: ReturnType<typeof admin>, participantId: string, studyId: string): Promise<any|null> {
+  const { data, error } = await client.from('apulab_sessions')
+    .select('session_id,participant_id,study_id,study_condition,session_mode,environment,build_version,git_commit_sha,schema_version,protocol_version,sync_token_hash,status,event_seq_last,started_at')
+    .eq('participant_id', participantId)
+    .eq('study_id', studyId)
+    .eq('session_mode', 'study')
+    .in('status', [...ACTIVE_STUDY_STATUSES])
+    .order('started_at', { ascending:false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error('active_session_lookup_failed');
+  return data ?? null;
+}
 
 serve(async (req) => {
   const origin = req.headers.get('origin');
@@ -295,6 +309,29 @@ serve(async (req) => {
       return json({ success:true }, 200, origin);
     }
 
+    if (url.pathname.endsWith('/session/resume')) {
+      const input = await readBody(req);
+      const sessionId = stringField(input.session_id, 'session_id', 128);
+      if (!UUID_PATTERN.test(sessionId)) throw new PublicError('session_id_invalid');
+      const { data:session, error } = await client.from('apulab_sessions')
+        .select('session_id,participant_id,study_id,study_condition,session_mode,sync_token_hash,status,event_seq_last')
+        .eq('session_id', sessionId).maybeSingle();
+      if (error) throw new Error('session_lookup_failed');
+      if (!session) throw new PublicError('session_not_found', 404);
+      if (session.session_mode !== 'study' || session.study_condition !== 'game' || !ACTIVE_STUDY_STATUSES.includes(session.status as any)) {
+        throw new PublicError('session_not_resumable', 409);
+      }
+      await requireSyncToken(input, session);
+      return json({ success:true, data:{
+        session_id:session.session_id,
+        participant_id:session.participant_id,
+        study_id:session.study_id,
+        study_condition:session.study_condition,
+        status:session.status,
+        event_seq_last:Number(session.event_seq_last) || 0,
+      } }, 200, origin);
+    }
+
     if (url.pathname.endsWith('/session')) {
       const input = await readBody(req);
       const raw = (input.session && typeof input.session === 'object' && !Array.isArray(input.session) ? input.session : input) as Record<string,unknown>;
@@ -345,14 +382,31 @@ serve(async (req) => {
         screen_width:integerField(raw.screen_width,'screen_width',200,10000), screen_height:integerField(raw.screen_height,'screen_height',200,10000),
         input_mode:null, user_agent:'web',
       };
+
+      if (mode === 'study' && participantId && studyId) {
+        const active = await findActiveStudySession(client, participantId, studyId);
+        if (active) {
+          if (active.session_id !== sessionId) throw new PublicError('active_session_exists', 409);
+          if (!sameImmutableSession(active, row)) throw new PublicError('session_identity_conflict', 409);
+          return json({ success:true }, 200, origin);
+        }
+      }
+
       const { error:insertError } = await client.from('apulab_sessions').insert(row);
       if (insertError) {
         if (insertError.code !== '23505') throw new Error('session_insert_failed');
         const { data:existing, error:existingError } = await client.from('apulab_sessions')
           .select('participant_id,study_id,study_condition,session_mode,environment,build_version,git_commit_sha,schema_version,protocol_version,sync_token_hash')
           .eq('session_id', sessionId).maybeSingle();
-        if (existingError || !existing) throw new Error('session_conflict_lookup_failed');
-        if (!sameImmutableSession(existing, row)) throw new PublicError('session_identity_conflict', 409);
+        if (!existingError && existing) {
+          if (!sameImmutableSession(existing, row)) throw new PublicError('session_identity_conflict', 409);
+          return json({ success:true }, 200, origin);
+        }
+        if (mode === 'study' && participantId && studyId) {
+          const active = await findActiveStudySession(client, participantId, studyId);
+          if (active && active.session_id !== sessionId) throw new PublicError('active_session_exists', 409);
+        }
+        throw new PublicError('session_identity_conflict', 409);
       }
       return json({ success:true }, 200, origin);
     }
