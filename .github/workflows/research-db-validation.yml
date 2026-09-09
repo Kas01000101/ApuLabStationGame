@@ -12,6 +12,7 @@ on:
       - 'supabase/**'
       - 'tests/research/**'
       - 'tests/e2e/research-offline-recovery.cjs'
+      - 'tests/e2e/research-session-guards.cjs'
       - '.github/workflows/research-db-validation.yml'
   pull_request:
     branches:
@@ -24,6 +25,7 @@ on:
       - 'supabase/**'
       - 'tests/research/**'
       - 'tests/e2e/research-offline-recovery.cjs'
+      - 'tests/e2e/research-session-guards.cjs'
       - '.github/workflows/research-db-validation.yml'
 
 permissions:
@@ -176,7 +178,7 @@ jobs:
 
   runtime-recovery:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 18
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -206,6 +208,33 @@ jobs:
         env:
           APULAB_BASE_URL: http://127.0.0.1:4174
         run: node tests/e2e/research-offline-recovery.cjs
-      - name: Print Vite log on failure
+      - name: Build Mission 01 outputs for lifecycle regression
+        run: npm run prepare:missions
+      - name: Start Supabase-mode Vite regression server
+        env:
+          VITE_DATA_MODE: supabase
+          VITE_SUPABASE_INGEST_URL: http://127.0.0.1:4175/fake-edge
+          VITE_RESEARCH_ENVIRONMENT: preview
+          VITE_GIT_COMMIT_SHA: ${{ github.sha }}
+        run: |
+          npx vite --host 127.0.0.1 --port 4175 > /tmp/apulab-guard-vite.log 2>&1 &
+          echo $! > /tmp/apulab-guard-vite.pid
+          for i in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4175/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/apulab-guard-vite.log
+          exit 1
+      - name: Concurrent browser, same-browser resume, and N1-N7 lifecycle regression
+        env:
+          APULAB_GUARD_BASE_URL: http://127.0.0.1:4175
+        run: node tests/e2e/research-session-guards.cjs
+      - name: Print Vite logs on failure
         if: failure()
-        run: cat /tmp/apulab-research-vite.log || true
+        run: |
+          cat /tmp/apulab-research-vite.log || true
+          cat /tmp/apulab-guard-vite.log || true
+      - name: Stop regression server
+        if: always()
+        run: |
+          if [ -f /tmp/apulab-guard-vite.pid ]; then kill "$(cat /tmp/apulab-guard-vite.pid)" 2>/dev/null || true; fi
