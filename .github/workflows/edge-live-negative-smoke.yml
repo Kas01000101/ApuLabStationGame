@@ -44,6 +44,34 @@ jobs:
           test "$code" = "400"
           grep -q 'study_code_invalid' "$out"
 
+      - name: Study resume accepts the seeded valid sync token
+        shell: bash
+        env:
+          STUDY_SESSION_ID: 33333333-3333-4333-8333-333333333333
+          STUDY_SYNC_TOKEN: apulab-edge-v6-resume-smoke-temporary-token-0123456789
+        run: |
+          set -euo pipefail
+          payload=$(jq -n --arg sid "$STUDY_SESSION_ID" --arg tok "$STUDY_SYNC_TOKEN" '{session_id:$sid,session_sync_token:$tok}')
+          out=$(mktemp)
+          code=$(curl -sS -o "$out" -w '%{http_code}' -X POST "$EDGE_BASE/session/resume" -H 'Content-Type: application/json' --data "$payload")
+          cat "$out"
+          test "$code" = "200"
+          grep -q '"success":true' "$out"
+          grep -q '33333333-3333-4333-8333-333333333333' "$out"
+          grep -q '"event_seq_last":0' "$out"
+
+      - name: Study resume rejects an invalid sync token
+        shell: bash
+        env:
+          STUDY_SESSION_ID: 33333333-3333-4333-8333-333333333333
+        run: |
+          set -euo pipefail
+          payload=$(jq -n --arg sid "$STUDY_SESSION_ID" --arg tok 'wrong-temporary-sync-token-abcdefghijklmnopqrstuvwxyz' '{session_id:$sid,session_sync_token:$tok}')
+          out=$(mktemp)
+          code=$(curl -sS -o "$out" -w '%{http_code}' -X POST "$EDGE_BASE/session/resume" -H 'Content-Type: application/json' --data "$payload")
+          test "$code" = "403"
+          grep -q 'session_sync_token_invalid' "$out"
+
       - name: Create isolated Edge v6 demo smoke session
         id: session
         shell: bash
@@ -72,7 +100,7 @@ jobs:
           echo "session_id=$SESSION_ID" >> "$GITHUB_OUTPUT"
           echo "sync_token=$TOKEN" >> "$GITHUB_OUTPUT"
 
-      - name: Resume endpoint exists and rejects demo sessions
+      - name: Resume endpoint rejects demo sessions
         shell: bash
         env:
           SESSION_ID: ${{ steps.session.outputs.session_id }}
