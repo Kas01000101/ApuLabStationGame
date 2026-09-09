@@ -7,6 +7,7 @@ on:
     paths:
       - 'supabase/**'
       - 'tests/research/**'
+      - 'tests/e2e/research-offline-recovery.cjs'
       - '.github/workflows/research-db-validation.yml'
   pull_request:
     branches:
@@ -14,6 +15,7 @@ on:
     paths:
       - 'supabase/**'
       - 'tests/research/**'
+      - 'tests/e2e/research-offline-recovery.cjs'
       - '.github/workflows/research-db-validation.yml'
 
 permissions:
@@ -99,7 +101,7 @@ jobs:
 
   runtime-recovery:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -111,3 +113,24 @@ jobs:
         run: npx tsc -b
       - name: Queue, retry, idempotency and canonical Research contracts
         run: node --test tests/research/*.test.mjs
+      - name: Install Playwright Chromium
+        run: |
+          npm install --global playwright@1.55.0 --no-fund --no-audit
+          playwright install --with-deps chromium
+          echo "NODE_PATH=$(npm root -g)" >> "$GITHUB_ENV"
+      - name: Start Vite source server
+        run: |
+          npx vite --host 127.0.0.1 --port 4174 > /tmp/apulab-research-vite.log 2>&1 &
+          for i in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4174/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/apulab-research-vite.log
+          exit 1
+      - name: Browser offline queue reload and recovery
+        env:
+          APULAB_BASE_URL: http://127.0.0.1:4174
+        run: node tests/e2e/research-offline-recovery.cjs
+      - name: Print Vite log on failure
+        if: failure()
+        run: cat /tmp/apulab-research-vite.log || true
