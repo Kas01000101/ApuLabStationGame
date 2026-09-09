@@ -10,6 +10,12 @@ test('Station Research is game-only', async () => {
   for (const forbidden of ["'control'", "'gc'", "'static_control'"]) assert.equal(config.includes(forbidden), false);
 });
 
+test('frontend authentication payload matches frozen Edge contract', async () => {
+  const client = await read('src/systems/SupabaseClient.ts');
+  assert.match(client, /post\('\/authenticate',\s*\{\s*study_code:\s*code,\s*credential\s*\}\)/);
+  assert.equal(client.includes('{ participant_code: code, credential }'), false);
+});
+
 test('canonical event registry separates N6 communication from N7 final point', async () => {
   const events = await read('src/research/telemetry/events.ts');
   const n6 = events.match(/6:\s*\[([\s\S]*?)\],\s*7:/)?.[1] ?? '';
