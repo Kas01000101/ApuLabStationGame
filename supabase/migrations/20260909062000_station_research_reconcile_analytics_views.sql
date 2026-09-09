@@ -1,20 +1,8 @@
--- ApuLab Station GE · Live reconciliation M9
--- Rebuild Research views with security_invoker, session-aware grain, and canonical N7 final-point semantics.
-DO $$
-DECLARE
-  participants_count bigint;
-  assignments_count bigint;
-  sessions_count bigint;
-  events_count bigint;
-BEGIN
-  SELECT count(*) INTO participants_count FROM public.apulab_participants;
-  SELECT count(*) INTO assignments_count FROM public.apulab_study_assignments;
-  SELECT count(*) INTO sessions_count FROM public.apulab_sessions;
-  SELECT count(*) INTO events_count FROM public.apulab_events;
-  IF participants_count <> 0 OR assignments_count <> 0 OR sessions_count <> 4 OR events_count <> 176 THEN
-    RAISE EXCEPTION 'prewrite_state_changed_before_m9';
-  END IF;
-END $$;
+-- ApuLab Station GE · Research reconciliation M9
+-- Rebuild Research views with security_invoker, session-aware grain,
+-- and canonical N7 final-point semantics.
+-- Live row-count preflight is enforced operationally before production apply;
+-- the migration body remains environment-independent and reproducible.
 
 DROP VIEW IF EXISTS public.v_level_outcomes;
 DROP VIEW IF EXISTS public.v_level5_loop_metrics;
