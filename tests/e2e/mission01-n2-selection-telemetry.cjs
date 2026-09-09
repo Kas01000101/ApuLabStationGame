@@ -55,6 +55,22 @@ async function readQueue() {
   }, QUEUE_KEY);
 }
 
+async function waitForQueuedEvent(type, level) {
+  await page.waitForFunction(
+    ({ key, eventType, levelNumber }) => {
+      try {
+        const events = JSON.parse(localStorage.getItem(key) || '[]');
+        return Array.isArray(events) && events.some((event) =>
+          event?.event_type === eventType && event?.level_number === levelNumber);
+      } catch (_) {
+        return false;
+      }
+    },
+    { key: QUEUE_KEY, eventType: type, levelNumber: level },
+    { timeout: 10_000 },
+  );
+}
+
 function ofType(events, type, level) {
   return events.filter((event) => event.event_type === type && event.level_number === level);
 }
@@ -104,8 +120,15 @@ async function dispatchCompareChoice(frame, batteryId) {
   const level2 = await waitForLevel(2);
   await level2.locator('[data-compare-id="pink"]').waitFor({ state: 'attached', timeout: 10_000 });
 
+  // `instrumentLevel2()` records battery_viewed synchronously when the parent
+  // attaches the behavior instrumentation. Waiting for it prevents the test
+  // from clicking the iframe DOM during the narrow load→activate race window.
+  await waitForQueuedEvent('battery_viewed', 2);
+
   // Entering/viewing N2 must not synthesize a selection.
   const beforeSelection = await readQueue();
+  assert(ofType(beforeSelection, 'battery_viewed', 2).length >= 1,
+    'N2 parent instrumentation did not attach before selection');
   assert(ofType(beforeSelection, 'battery_selected', 2).length === 0,
     'battery_selected must not exist before an explicit compare choice');
   assert(ofType(beforeSelection, 'battery_selection_changed', 2).length === 0,
