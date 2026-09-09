@@ -12,8 +12,8 @@ export const STUDY_IDS = {
 export const RESEARCH_CONFIG = {
   telemetrySchemaVersion: 'apulab-telemetry-v2',
   protocolVersion: 'apulab-protocol-2026-v1',
-  // Increment for every research hardening candidate. Freeze assigns 1.0.0.
-  studyBuildId: 'APULAB-STUDY-RC.1',
+  // Frozen Research build used by the QA study candidate.
+  studyBuildId: 'APULAB-STUDY-1.0.0',
   maxPayloadBytes: 8192,
   maxBatchEvents: 20,
 } as const;
