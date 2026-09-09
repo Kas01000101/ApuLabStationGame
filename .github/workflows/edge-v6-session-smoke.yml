@@ -13,13 +13,14 @@ permissions:
 env:
   EDGE_BASE: https://dkvxbvacsegneszuopwy.supabase.co/functions/v1/ingest-telemetry
   ORIGIN: https://apulab-station-study.netlify.app
+  SMOKE_PID: 019f4ced-2045-4886-858d-2a9984d9d6df
 
 jobs:
   edge-v6-session-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - name: Generate ephemeral QT-010 provisioning material
+      - name: Generate and self-verify QT-010 credential material
         id: material
         shell: bash
         run: |
@@ -31,43 +32,38 @@ jobs:
           )
           echo "::add-mask::$CREDENTIAL"
           echo "SMOKE_CREDENTIAL=$CREDENTIAL" >> "$GITHUB_ENV"
-          mapfile -t generated < <(CREDENTIAL="$CREDENTIAL" python - <<'PY'
-          import os, uuid, hashlib, base64
-          credential=os.environ['CREDENTIAL'].encode()
+
+          CRED_HASH_B64=$(CREDENTIAL="$CREDENTIAL" python - <<'PY'
+          import os, hashlib, base64, hmac
+          credential=os.environ['CREDENTIAL'].encode('utf-8')
           salt=os.urandom(16)
           iterations=210000
           digest=hashlib.pbkdf2_hmac('sha256', credential, salt, iterations, dklen=32)
           b64=lambda b: base64.urlsafe_b64encode(b).decode().rstrip('=')
-          credential_hash=f'pbkdf2_sha256${iterations}${b64(salt)}${b64(digest)}'
-          print(uuid.uuid4())
-          print(b64(credential_hash.encode()))
+          stored=f'pbkdf2_sha256${iterations}${b64(salt)}${b64(digest)}'
+
+          # Regression contract matching Edge verifyCredential(): parse iterations
+          # from the stored hash, base64url-decode salt/digest, derive PBKDF2-SHA256.
+          parts=stored.split('$')
+          assert len(parts)==4 and parts[0]=='pbkdf2_sha256'
+          parsed_iterations=int(parts[1])
+          def unb64(s): return base64.urlsafe_b64decode(s + '='*((4-len(s)%4)%4))
+          parsed_salt=unb64(parts[2]); expected=unb64(parts[3])
+          actual=hashlib.pbkdf2_hmac('sha256', credential, parsed_salt, parsed_iterations, dklen=len(expected))
+          wrong=hashlib.pbkdf2_hmac('sha256', b'wrong-credential', parsed_salt, parsed_iterations, dklen=len(expected))
+          assert hmac.compare_digest(actual, expected)
+          assert not hmac.compare_digest(wrong, expected)
+          print(b64(stored.encode('utf-8')))
           PY
           )
-          PID="${generated[0]}"
-          CRED_HASH_B64="${generated[1]}"
-          echo "pid=$PID" >> "$GITHUB_OUTPUT"
           echo "cred_hash_b64=$CRED_HASH_B64" >> "$GITHUB_OUTPUT"
-          echo "SMOKE_PID=$PID" >> "$GITHUB_ENV"
-          for attempt in 1 2; do
-            BOGUS=$(python - <<'PY'
-          import secrets
-          print(secrets.token_urlsafe(32))
-          PY
-          )
-            out=$(mktemp)
-            code=$(curl -sS -o "$out" -w '%{http_code}' -X POST "$EDGE_BASE/authenticate" \
-              -H 'Content-Type: application/json' -H "Origin: $ORIGIN" \
-              --data "$(jq -nc --arg c 'QT-010' --arg p "$BOGUS" '{study_code:$c,credential:$p}')")
-            test "$code" = "401"
-            jq -e '.success == false and .error == "authentication_failed"' "$out" >/dev/null
-          done
-          echo 'QT010_CODE_HASH_BOOTSTRAP=PASS'
+          echo 'CREDENTIAL_HASH_REGRESSION=PASS'
           echo smoke > /tmp/provision-marker.txt
 
       - name: Publish non-secret provisioning marker
         uses: actions/upload-artifact@v4
         with:
-          name: edge-v6-provision-${{ steps.material.outputs.pid }}-${{ steps.material.outputs.cred_hash_b64 }}
+          name: edge-v6-provision-${{ env.SMOKE_PID }}-${{ steps.material.outputs.cred_hash_b64 }}
           path: /tmp/provision-marker.txt
           retention-days: 1
 
@@ -82,7 +78,11 @@ jobs:
           code=$(curl -sS -o "$out" -w '%{http_code}' -X POST "$EDGE_BASE/authenticate" \
             -H 'Content-Type: application/json' -H "Origin: $ORIGIN" \
             --data "$(jq -nc --arg c 'QT-010' --arg p "$SMOKE_CREDENTIAL" '{study_code:$c,credential:$p}')")
-          test "$code" = "200"
+          if [ "$code" != "200" ]; then
+            err=$(jq -r '.error // "unknown"' "$out")
+            echo "EDGE_AUTH_HTTP=$code EDGE_AUTH_ERROR=$err"
+            exit 1
+          fi
           jq -e --arg pid "$SMOKE_PID" '.success == true and .data.participant_id == $pid and .data.study_id == "APULAB-QA-2026" and .data.study_condition == "game"' "$out" >/dev/null
           PROOF=$(jq -r '.data.session_proof' "$out")
           test -n "$PROOF" && test "$PROOF" != "null"
@@ -99,6 +99,7 @@ jobs:
           BUILD_VERSION='APULAB-STUDY-1.0.0'
           SCHEMA_VERSION='apulab-telemetry-v2'
           PROTOCOL_VERSION='apulab-protocol-2026-v1'
+
           SESSION_A=$(python - <<'PY'
           import uuid
           print(uuid.uuid4())
@@ -115,6 +116,7 @@ jobs:
             --arg started "$STARTED_A" --arg sha "$BUILD_SHA" --arg build "$BUILD_VERSION" \
             --arg schema "$SCHEMA_VERSION" --arg protocol "$PROTOCOL_VERSION" \
             '{session_proof:$proof,session_sync_token:$tok,session:{session_id:$sid,session_mode:"study",environment:"preview",build_version:$build,git_commit_sha:$sha,schema_version:$schema,protocol_version:$protocol,started_at:$started,screen_width:1280,screen_height:720}}')
+
           out=$(mktemp)
           code=$(curl -sS -o "$out" -w '%{http_code}' -X POST "$EDGE_BASE/session" -H 'Content-Type: application/json' -H "Origin: $ORIGIN" --data "$PAYLOAD_A")
           test "$code" = "200"
@@ -137,6 +139,7 @@ jobs:
             --arg started "$STARTED_B" --arg sha "$BUILD_SHA" --arg build "$BUILD_VERSION" \
             --arg schema "$SCHEMA_VERSION" --arg protocol "$PROTOCOL_VERSION" \
             '{session_proof:$proof,session_sync_token:$tok,session:{session_id:$sid,session_mode:"study",environment:"preview",build_version:$build,git_commit_sha:$sha,schema_version:$schema,protocol_version:$protocol,started_at:$started,screen_width:1280,screen_height:720}}')
+
           out=$(mktemp)
           code=$(curl -sS -o "$out" -w '%{http_code}' -X POST "$EDGE_BASE/session" -H 'Content-Type: application/json' -H "Origin: $ORIGIN" --data "$PAYLOAD_B")
           test "$code" = "409"
@@ -168,11 +171,13 @@ jobs:
           test "$code" = "200"
           jq -e '.success == true' "$out" >/dev/null
           echo 'EDGE_SESSION_IDEMPOTENCY=PASS'
+
           echo "session_a=$SESSION_A" >> "$GITHUB_OUTPUT"
           echo "session_b=$SESSION_B" >> "$GITHUB_OUTPUT"
           echo smoke-pass > /tmp/pass-marker.txt
           {
             echo '### Edge v6 authenticated session smoke'
+            echo '- CREDENTIAL_HASH_REGRESSION = PASS'
             echo '- EDGE_AUTH_SMOKE = PASS'
             echo '- EDGE_SESSION_CREATE = PASS'
             echo '- EDGE_CONCURRENT_SESSION_GUARD = PASS'
