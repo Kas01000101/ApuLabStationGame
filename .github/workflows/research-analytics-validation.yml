@@ -61,6 +61,11 @@ jobs:
       - name: GE gameplay immutability against frozen RC4
         run: |
           git worktree add /tmp/apulab-rc4 9ec692384d192fa05bda65c01904ccf369b18fae
+          (
+            cd /tmp/apulab-rc4
+            npm ci --no-fund --no-audit
+            npm run prepare:missions
+          )
           node scripts/research/verify-ge-gameplay-immutability.mjs /tmp/apulab-rc4 . 9ec692384d192fa05bda65c01904ccf369b18fae
 
   db-fresh:
