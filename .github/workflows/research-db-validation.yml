@@ -49,7 +49,7 @@ jobs:
           supabase functions --help >/tmp/supabase-functions-help.txt
       - name: Start local Supabase
         run: supabase start
-      - name: Rebuild fresh database from migrations M1-M12
+      - name: Rebuild fresh database from migrations M1-M13
         run: supabase db reset
       - name: Resolve local database URL
         run: |
@@ -61,6 +61,8 @@ jobs:
         run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/research_fresh_contract.sql
       - name: QA analytics isolation and one-active-session invariant
         run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/research_qa_analytics_and_single_session.sql
+      - name: Participant-level analytics contract
+        run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/research_participant_level_metrics.sql
       - name: Database idempotency and sequence integrity
         run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/research_idempotency.sql
       - name: Seed completion recovery fixture
@@ -156,7 +158,7 @@ jobs:
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20260830091000_legacy_raw_code_nullable.sql
       - name: Seed synthetic legacy rows
         run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/research_legacy_fixture.sql
-      - name: Apply clean forward migrations M3-M12
+      - name: Apply clean forward migrations M3-M13
         run: |
           for migration in \
             supabase/migrations/20260906170000_research_schema_v2.sql \
@@ -168,13 +170,16 @@ jobs:
             supabase/migrations/20260909062000_station_research_reconcile_analytics_views.sql \
             supabase/migrations/20260909063000_station_research_reconcile_service_role.sql \
             supabase/migrations/20260909100000_station_research_qa_analytics.sql \
-            supabase/migrations/20260909101000_station_single_active_study_session.sql; do
+            supabase/migrations/20260909101000_station_single_active_study_session.sql \
+            supabase/migrations/20260909203732_station_participant_level_metrics.sql; do
             psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$migration"
           done
-      - name: Verify legacy preservation and M8-M12 hardening
+      - name: Verify legacy preservation and M8-M13 hardening
         run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/research_legacy_assertions.sql
       - name: Verify QA analytics and active-session invariant after legacy upgrade
         run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/research_qa_analytics_and_single_session.sql
+      - name: Verify participant-level analytics after legacy upgrade
+        run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/research_participant_level_metrics.sql
 
   runtime-recovery:
     runs-on: ubuntu-latest
