@@ -1,0 +1,298 @@
+name: Edge v6 authenticated session smoke
+
+on:
+  push:
+    branches:
+      - research/edge-v6-live-smoke
+    paths:
+      - .github/workflows/edge-v6-session-smoke.yml
+
+permissions:
+  contents: read
+
+jobs:
+  edge-v6-session-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      EDGE_BASE: https://dkvxbvacsegneszuopwy.supabase.co/functions/v1/ingest-telemetry
+      ORIGIN: https://apulab-station-study.netlify.app
+      APULAB_SMOKE_DB_URL: ${{ secrets.APULAB_SMOKE_DB_URL }}
+    steps:
+      - name: Authenticated study session guard smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${APULAB_SMOKE_DB_URL:-}" || { echo 'APULAB_SMOKE_DB_URL secret missing'; exit 1; }
+
+          PARTICIPANT_ID=""
+          SESSION_A=""
+          CODE_HASH=""
+          CLEANED=0
+
+          cleanup() {
+            if [ "$CLEANED" = "1" ]; then return; fi
+            CLEANED=1
+            if [ -n "$PARTICIPANT_ID" ]; then
+              psql "$APULAB_SMOKE_DB_URL" -v ON_ERROR_STOP=1 \
+                -v pid="$PARTICIPANT_ID" -v sid="$SESSION_A" >/dev/null <<'SQL' || true
+          UPDATE public.apulab_sessions
+             SET status='abandoned'
+           WHERE participant_id=:'pid'::uuid
+             AND study_id='APULAB-QA-2026'
+             AND session_mode='study'
+             AND status IN ('in_progress','active','completed_pending_sync');
+          UPDATE public.apulab_study_assignments
+             SET is_active=false
+           WHERE participant_id=:'pid'::uuid
+             AND study_id='APULAB-QA-2026'
+             AND cohort_code='EDGE_V6_SMOKE';
+          UPDATE public.apulab_participants
+             SET is_active=false, updated_at=now()
+           WHERE participant_id=:'pid'::uuid;
+          SQL
+            fi
+          }
+          trap cleanup EXIT
+
+          # Bootstrap only the deterministic HMAC(code) without learning the pepper.
+          # Two controlled failures let us identify the repeated QT-010 code hash in
+          # apulab_auth_attempts. No existing participant is modified.
+          BOOTSTRAP_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          for attempt in 1 2; do
+            BOGUS=$(python - <<'PY'
+          import secrets
+          print(secrets.token_urlsafe(32))
+          PY
+          )
+            out=$(mktemp)
+            code=$(curl -sS -o "$out" -w '%{http_code}' \
+              -X POST "$EDGE_BASE/authenticate" \
+              -H 'Content-Type: application/json' \
+              -H "Origin: $ORIGIN" \
+              --data "$(jq -nc --arg c 'QT-010' --arg p "$BOGUS" '{study_code:$c,credential:$p}')")
+            test "$code" = "401"
+            jq -e '.success == false and .error == "authentication_failed"' "$out" >/dev/null
+          done
+
+          CODE_HASH=$(psql "$APULAB_SMOKE_DB_URL" -v ON_ERROR_STOP=1 -At \
+            -v started="$BOOTSTRAP_AT" <<'SQL'
+          SELECT participant_code_hash
+          FROM public.apulab_auth_attempts
+          WHERE attempted_at >= :'started'::timestamptz
+            AND success=false
+          GROUP BY participant_code_hash
+          HAVING count(*) >= 2
+          ORDER BY max(attempted_at) DESC
+          LIMIT 1;
+          SQL
+          )
+          test -n "$CODE_HASH" || { echo 'Could not resolve QT-010 code hash'; exit 1; }
+
+          occupied=$(psql "$APULAB_SMOKE_DB_URL" -v ON_ERROR_STOP=1 -At -v code_hash="$CODE_HASH" <<'SQL'
+          SELECT count(*) FROM public.apulab_participants WHERE participant_code_hash=:'code_hash';
+          SQL
+          )
+          test "$occupied" = "0" || { echo 'QT-010 is already provisioned; refusing to overwrite it'; exit 1; }
+
+          CREDENTIAL=$(python - <<'PY'
+          import secrets
+          print(secrets.token_urlsafe(32))
+          PY
+          )
+          echo "::add-mask::$CREDENTIAL"
+
+          mapfile -t generated < <(CREDENTIAL="$CREDENTIAL" python - <<'PY'
+          import os, uuid, hashlib, base64
+          credential=os.environ['CREDENTIAL'].encode()
+          salt=os.urandom(16)
+          iterations=210000
+          digest=hashlib.pbkdf2_hmac('sha256', credential, salt, iterations, dklen=32)
+          b64=lambda b: base64.urlsafe_b64encode(b).decode().rstrip('=')
+          print(uuid.uuid4())
+          print(f'pbkdf2_sha256${iterations}${b64(salt)}${b64(digest)}')
+          PY
+          )
+          PARTICIPANT_ID="${generated[0]}"
+          CREDENTIAL_HASH="${generated[1]}"
+
+          psql "$APULAB_SMOKE_DB_URL" -v ON_ERROR_STOP=1 \
+            -v pid="$PARTICIPANT_ID" -v code_hash="$CODE_HASH" -v credential_hash="$CREDENTIAL_HASH" >/dev/null <<'SQL'
+          INSERT INTO public.apulab_participants(participant_id,participant_code_hash,credential_hash,is_active)
+          VALUES (:'pid'::uuid, :'code_hash', :'credential_hash', true);
+          INSERT INTO public.apulab_study_assignments(study_id,participant_id,study_condition,assignment_method,cohort_code,is_active)
+          VALUES ('APULAB-QA-2026', :'pid'::uuid, 'game', 'qa', 'EDGE_V6_SMOKE', true);
+          SQL
+
+          IFS='|' read -r BUILD_SHA BUILD_VERSION SCHEMA_VERSION PROTOCOL_VERSION <<< "$(
+            psql "$APULAB_SMOKE_DB_URL" -v ON_ERROR_STOP=1 -At -F '|' <<'SQL'
+          SELECT expected_commit_sha,study_build_version,telemetry_schema_version,protocol_version
+          FROM public.apulab_studies WHERE study_id='APULAB-QA-2026';
+          SQL
+          )"
+          test -n "$BUILD_SHA" && test "$BUILD_SHA" != "UNFROZEN"
+
+          auth_out=$(mktemp)
+          auth_code=$(curl -sS -o "$auth_out" -w '%{http_code}' \
+            -X POST "$EDGE_BASE/authenticate" \
+            -H 'Content-Type: application/json' \
+            -H "Origin: $ORIGIN" \
+            --data "$(jq -nc --arg c 'QT-010' --arg p "$CREDENTIAL" '{study_code:$c,credential:$p}')")
+          test "$auth_code" = "200"
+          jq -e --arg pid "$PARTICIPANT_ID" '.success == true and .data.participant_id == $pid and .data.study_id == "APULAB-QA-2026" and .data.study_condition == "game"' "$auth_out" >/dev/null
+          SESSION_PROOF=$(jq -r '.data.session_proof' "$auth_out")
+          test -n "$SESSION_PROOF" && test "$SESSION_PROOF" != "null"
+          echo "::add-mask::$SESSION_PROOF"
+          echo 'EDGE_AUTH_SMOKE=PASS'
+
+          SESSION_A=$(python - <<'PY'
+          import uuid
+          print(uuid.uuid4())
+          PY
+          )
+          TOKEN_A=$(python - <<'PY'
+          import secrets
+          print(secrets.token_urlsafe(48))
+          PY
+          )
+          echo "::add-mask::$TOKEN_A"
+          STARTED_A=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          PAYLOAD_A=$(jq -nc \
+            --arg proof "$SESSION_PROOF" --arg tok "$TOKEN_A" --arg sid "$SESSION_A" \
+            --arg started "$STARTED_A" --arg sha "$BUILD_SHA" --arg build "$BUILD_VERSION" \
+            --arg schema "$SCHEMA_VERSION" --arg protocol "$PROTOCOL_VERSION" \
+            '{session_proof:$proof,session_sync_token:$tok,session:{session_id:$sid,session_mode:"study",environment:"preview",build_version:$build,git_commit_sha:$sha,schema_version:$schema,protocol_version:$protocol,started_at:$started,screen_width:1280,screen_height:720}}')
+
+          out=$(mktemp)
+          code=$(curl -sS -o "$out" -w '%{http_code}' -X POST "$EDGE_BASE/session" \
+            -H 'Content-Type: application/json' -H "Origin: $ORIGIN" --data "$PAYLOAD_A")
+          test "$code" = "200"
+          jq -e '.success == true' "$out" >/dev/null
+          active=$(psql "$APULAB_SMOKE_DB_URL" -v ON_ERROR_STOP=1 -At -v pid="$PARTICIPANT_ID" -v sid="$SESSION_A" <<'SQL'
+          SELECT count(*) FROM public.apulab_sessions
+          WHERE participant_id=:'pid'::uuid AND study_id='APULAB-QA-2026' AND session_id=:'sid'
+            AND session_mode='study' AND status IN ('in_progress','active','completed_pending_sync');
+          SQL
+          )
+          test "$active" = "1"
+          echo 'EDGE_SESSION_CREATE=PASS'
+
+          SESSION_B=$(python - <<'PY'
+          import uuid
+          print(uuid.uuid4())
+          PY
+          )
+          TOKEN_B=$(python - <<'PY'
+          import secrets
+          print(secrets.token_urlsafe(48))
+          PY
+          )
+          echo "::add-mask::$TOKEN_B"
+          STARTED_B=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          PAYLOAD_B=$(jq -nc \
+            --arg proof "$SESSION_PROOF" --arg tok "$TOKEN_B" --arg sid "$SESSION_B" \
+            --arg started "$STARTED_B" --arg sha "$BUILD_SHA" --arg build "$BUILD_VERSION" \
+            --arg schema "$SCHEMA_VERSION" --arg protocol "$PROTOCOL_VERSION" \
+            '{session_proof:$proof,session_sync_token:$tok,session:{session_id:$sid,session_mode:"study",environment:"preview",build_version:$build,git_commit_sha:$sha,schema_version:$schema,protocol_version:$protocol,started_at:$started,screen_width:1280,screen_height:720}}')
+          out=$(mktemp)
+          code=$(curl -sS -o "$out" -w '%{http_code}' -X POST "$EDGE_BASE/session" \
+            -H 'Content-Type: application/json' -H "Origin: $ORIGIN" --data "$PAYLOAD_B")
+          test "$code" = "409"
+          jq -e '.success == false and .error == "active_session_exists"' "$out" >/dev/null
+          b_count=$(psql "$APULAB_SMOKE_DB_URL" -v ON_ERROR_STOP=1 -At -v sid="$SESSION_B" <<'SQL'
+          SELECT count(*) FROM public.apulab_sessions WHERE session_id=:'sid';
+          SQL
+          )
+          active_count=$(psql "$APULAB_SMOKE_DB_URL" -v ON_ERROR_STOP=1 -At -v pid="$PARTICIPANT_ID" <<'SQL'
+          SELECT count(*) FROM public.apulab_sessions
+          WHERE participant_id=:'pid'::uuid AND study_id='APULAB-QA-2026' AND session_mode='study'
+            AND status IN ('in_progress','active','completed_pending_sync');
+          SQL
+          )
+          test "$b_count" = "0" && test "$active_count" = "1"
+          echo 'EDGE_CONCURRENT_SESSION_GUARD=PASS'
+
+          out=$(mktemp)
+          code=$(curl -sS -o "$out" -w '%{http_code}' -X POST "$EDGE_BASE/session/resume" \
+            -H 'Content-Type: application/json' -H "Origin: $ORIGIN" \
+            --data "$(jq -nc --arg sid "$SESSION_A" --arg tok "$TOKEN_A" '{session_id:$sid,session_sync_token:$tok}')")
+          test "$code" = "200"
+          jq -e --arg sid "$SESSION_A" '.success == true and .data.session_id == $sid and .data.status == "in_progress" and (.data.event_seq_last|tonumber) == 0' "$out" >/dev/null
+          echo 'EDGE_RESUME_VALID=PASS'
+
+          WRONG_TOKEN=$(python - <<'PY'
+          import secrets
+          print(secrets.token_urlsafe(48))
+          PY
+          )
+          echo "::add-mask::$WRONG_TOKEN"
+          out=$(mktemp)
+          code=$(curl -sS -o "$out" -w '%{http_code}' -X POST "$EDGE_BASE/session/resume" \
+            -H 'Content-Type: application/json' -H "Origin: $ORIGIN" \
+            --data "$(jq -nc --arg sid "$SESSION_A" --arg tok "$WRONG_TOKEN" '{session_id:$sid,session_sync_token:$tok}')")
+          test "$code" = "403"
+          jq -e '.success == false and .error == "session_sync_token_invalid"' "$out" >/dev/null
+          echo 'EDGE_RESUME_INVALID_TOKEN=PASS'
+
+          out=$(mktemp)
+          code=$(curl -sS -o "$out" -w '%{http_code}' -X POST "$EDGE_BASE/session" \
+            -H 'Content-Type: application/json' -H "Origin: $ORIGIN" --data "$PAYLOAD_A")
+          test "$code" = "200"
+          jq -e '.success == true' "$out" >/dev/null
+          same_count=$(psql "$APULAB_SMOKE_DB_URL" -v ON_ERROR_STOP=1 -At -v sid="$SESSION_A" <<'SQL'
+          SELECT count(*) FROM public.apulab_sessions WHERE session_id=:'sid';
+          SQL
+          )
+          test "$same_count" = "1"
+          echo 'EDGE_SESSION_IDEMPOTENCY=PASS'
+
+          cleanup
+          trap - EXIT
+
+          smoke_active=$(psql "$APULAB_SMOKE_DB_URL" -v ON_ERROR_STOP=1 -At -v pid="$PARTICIPANT_ID" <<'SQL'
+          SELECT count(*) FROM public.apulab_sessions
+          WHERE participant_id=:'pid'::uuid AND study_id='APULAB-QA-2026' AND session_mode='study'
+            AND status IN ('in_progress','active','completed_pending_sync');
+          SQL
+          )
+          other_qa_active=$(psql "$APULAB_SMOKE_DB_URL" -v ON_ERROR_STOP=1 -At -v pid="$PARTICIPANT_ID" <<'SQL'
+          SELECT count(*) FROM public.apulab_sessions
+          WHERE study_id='APULAB-QA-2026' AND session_mode='study'
+            AND participant_id IS DISTINCT FROM :'pid'::uuid
+            AND status IN ('in_progress','active','completed_pending_sync');
+          SQL
+          )
+          hist_sessions=$(psql "$APULAB_SMOKE_DB_URL" -v ON_ERROR_STOP=1 -At <<'SQL'
+          SELECT count(*) FROM public.apulab_sessions WHERE session_mode='demo' AND git_commit_sha='c5b3d89fa650af9faa31ace4f90d537b53371b57';
+          SQL
+          )
+          hist_events=$(psql "$APULAB_SMOKE_DB_URL" -v ON_ERROR_STOP=1 -At <<'SQL'
+          SELECT count(*) FROM public.apulab_events WHERE session_mode='demo' AND git_commit_sha='c5b3d89fa650af9faa31ace4f90d537b53371b57';
+          SQL
+          )
+          official=$(psql "$APULAB_SMOKE_DB_URL" -v ON_ERROR_STOP=1 -At -F '|' <<'SQL'
+          SELECT status,expected_commit_sha FROM public.apulab_studies WHERE study_id='APULAB-STUDY-2026';
+          SQL
+          )
+          test "$smoke_active" = "0"
+          test "$other_qa_active" = "0"
+          test "$hist_sessions" = "4"
+          test "$hist_events" = "176"
+          test "$official" = "draft|UNFROZEN"
+
+          {
+            echo '### Edge v6 authenticated study smoke'
+            echo ''
+            echo '- EDGE_AUTH_SMOKE = PASS'
+            echo '- EDGE_SESSION_CREATE = PASS'
+            echo '- EDGE_CONCURRENT_SESSION_GUARD = PASS'
+            echo '- EDGE_RESUME_VALID = PASS'
+            echo '- EDGE_RESUME_INVALID_TOKEN = PASS'
+            echo '- EDGE_SESSION_IDEMPOTENCY = PASS'
+            echo '- QT-010 active sessions after cleanup = 0'
+            echo '- Other QA active sessions after cleanup = 0'
+            echo '- Historical demo subset = 4 sessions / 176 events'
+            echo '- Official study = draft / UNFROZEN'
+            echo '- EDGE_LIVE_SMOKE = PASS'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo 'EDGE_LIVE_SMOKE=PASS'
