@@ -65,11 +65,13 @@ const assert = (condition, message) => { if (!condition) throw new Error(message
       assert(offline.queued[i].event_seq === offline.queued[i - 1].event_seq + 1, 'offline event_seq must remain contiguous');
     }
 
-    // Close the document while it is still offline so the existing SyncService
-    // online listener cannot drain the queue before the restart assertion.
+    // Close the document while still offline. On the restarted document, block
+    // only the app bootstrap module so its automatic SyncService online listener
+    // cannot drain the queue before we assert durable localStorage recovery.
     await page.close();
     await context.setOffline(false);
     page = await context.newPage();
+    await page.route('**/src/main.ts*', (route) => route.abort());
     await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
 
     const persistedBeforeRecovery = await page.evaluate(async (sessionId) => {
