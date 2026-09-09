@@ -176,7 +176,14 @@ function instrumentLevel2(
   inspectMeasurements();
 
   on(doc, 'click', (event) => {
-    const target = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-compare-id]') : null;
+    // Event targets originate in the iframe realm. Using the parent realm's
+    // Element constructor makes `instanceof Element` false for valid iframe
+    // elements, so selection clicks were silently discarded in integrated QA.
+    const eventTarget = event.target as EventTarget | null;
+    const element = eventTarget && typeof (eventTarget as Element).closest === 'function'
+      ? eventTarget as Element
+      : null;
+    const target = element?.closest<HTMLElement>('[data-compare-id]') ?? null;
     if (!target) return;
     selectionCount += 1;
     const batteryId = target.dataset.compareId ?? 'unknown';
