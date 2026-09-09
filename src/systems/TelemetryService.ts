@@ -48,10 +48,11 @@ export class TelemetryService {
       } = payload;
 
       const safePayload = sanitizeTelemetryPayload(behaviorPayload, RESEARCH_CONFIG.maxPayloadBytes);
+      const eventSeq = state.nextEventSeq();
       LocalQueueService.addEvent({
         event_id: crypto.randomUUID(),
         session_id: state.sessionId,
-        event_seq: state.nextEventSeq(),
+        event_seq: eventSeq,
         scene_id: state.currentScene,
         level_number: levelNumber,
         task_id: options.taskId ?? readString(safePayload.task_id),
@@ -65,6 +66,7 @@ export class TelemetryService {
         timestamp: new Date().toISOString(),
         sync_status: 'pending',
       });
+      LocalQueueService.updateSessionEventSeq(state.sessionId, eventSeq);
       void SyncService.processQueue();
     } catch (error) {
       console.warn('[ApuLab] Telemetry event was not recorded.', error);
