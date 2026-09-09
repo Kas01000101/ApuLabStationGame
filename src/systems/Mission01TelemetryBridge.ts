@@ -1,6 +1,6 @@
 import { TelemetryService } from './TelemetryService';
-import { SessionService } from './SessionService';
 import { canonicalizeEventType } from '../research/telemetry/eventRegistry';
+import { Mission01TelemetryDiagnostics } from './Mission01TelemetryDiagnostics';
 
 type MissionTelemetryMessage = {
   type?: unknown;
@@ -20,21 +20,32 @@ const ACCEPTED_MESSAGE_TYPES = new Set([
   'apulab-level7-telemetry',
 ]);
 
+const PARENT_OWNED_LIFECYCLE = new Set(['level_started', 'level_completed']);
 let installed = false;
-let completing = false;
 
 export function installMission01TelemetryBridge(): void {
   if (installed) return;
   installed = true;
 
   window.addEventListener('message', (message: MessageEvent<MissionTelemetryMessage>) => {
-    if (message.origin !== window.location.origin) return;
+    Mission01TelemetryDiagnostics.increment('received');
+
+    if (message.origin !== window.location.origin) {
+      Mission01TelemetryDiagnostics.increment('rejected_origin');
+      return;
+    }
 
     const frame = findMissionFrameForSource(message.source);
-    if (!frame) return;
+    if (!frame) {
+      Mission01TelemetryDiagnostics.increment('rejected_source');
+      return;
+    }
 
     const data = message.data;
-    if (!data || typeof data !== 'object' || !ACCEPTED_MESSAGE_TYPES.has(String(data.type ?? ''))) return;
+    if (!data || typeof data !== 'object' || !ACCEPTED_MESSAGE_TYPES.has(String(data.type ?? ''))) {
+      Mission01TelemetryDiagnostics.increment('rejected_message_type');
+      return;
+    }
 
     const rawPayload = data.payload && typeof data.payload === 'object' && !Array.isArray(data.payload)
       ? data.payload as Record<string, unknown>
@@ -45,10 +56,20 @@ export function installMission01TelemetryBridge(): void {
       ? data.event
       : typeof data.event_type === 'string' ? data.event_type : '';
     const canonical = canonicalizeEventType(rawEvent, levelNumber);
-    if (!canonical) return;
+    if (!canonical) {
+      if (levelNumber == null) Mission01TelemetryDiagnostics.increment('rejected_level');
+      else Mission01TelemetryDiagnostics.increment('rejected_event_type');
+      return;
+    }
 
-    // The parent owns research identity. Ignore any identity values coming from
-    // Mission01 so iframe code can never impersonate another session/build.
+    // Mission01Screen owns lifecycle events for every level. Inner documents may
+    // keep emitting legacy level_started/level_completed messages, but accepting
+    // them into Research would create duplicate lifecycle rows.
+    if (PARENT_OWNED_LIFECYCLE.has(canonical)) {
+      Mission01TelemetryDiagnostics.increment('accepted');
+      return;
+    }
+
     const {
       participant_id: _participant,
       participantId: _participantCamel,
@@ -64,10 +85,7 @@ export function installMission01TelemetryBridge(): void {
       ...behaviorPayload
     } = rawPayload;
 
-    const telemetry = TelemetryService.getInstance();
-    if (canonical === 'level_started' && levelNumber) telemetry.markLevelStarted(levelNumber);
-
-    telemetry.recordEvent(canonical, behaviorPayload, {
+    TelemetryService.getInstance().recordEvent(canonical, behaviorPayload, {
       levelNumber,
       elapsedMs: Number.isFinite(Number(data.elapsed_ms))
         ? Math.max(0, Math.round(Number(data.elapsed_ms)))
@@ -76,14 +94,7 @@ export function installMission01TelemetryBridge(): void {
         ? Number(data.attempt_number)
         : undefined,
     });
-
-    // Session completion is an outer research lifecycle effect only. It never
-    // changes Mission01 state and is requested exclusively after canonical N7
-    // level completion.
-    if (canonical === 'level_completed' && levelNumber === 7 && !completing) {
-      completing = true;
-      void new SessionService().complete().finally(() => { completing = false; });
-    }
+    Mission01TelemetryDiagnostics.increment('accepted');
   });
 }
 
