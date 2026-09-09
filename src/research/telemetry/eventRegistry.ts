@@ -13,7 +13,7 @@ export function canonicalizeEventType(event: string, levelNumber?: number | null
 
   if (!canonical) return null;
   if (COMMON_EVENT_TYPES.has(canonical)) return canonical;
-  if (levelNumber == null) return canonical;
+  if (levelNumber == null) return null;
 
   return LEVEL_EVENT_TYPES[levelNumber]?.has(canonical) ? canonical : null;
 }
