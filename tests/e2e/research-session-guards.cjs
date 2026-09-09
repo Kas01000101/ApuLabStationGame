@@ -190,6 +190,23 @@ const STUDY_ID = 'APULAB-QA-2026';
 
       const actualPath = new URL(frame.url()).pathname;
       assert(actualPath.endsWith(expectedPath), `[R5] N${level} frame URL mismatch: ${frame.url()}`);
+
+      // requestLevel() changes iframe.src before Mission01Screen commits the
+      // transition on the next animation frames. Do not emit completion until
+      // the parent has promoted this document to the active level.
+      await page.waitForFunction(({ selector: frameSelector, expectedPath: path }) => {
+        const node = document.querySelector(frameSelector);
+        if (!node) return false;
+        const src = node.getAttribute('src') || '';
+        let pathMatches = false;
+        try { pathMatches = new URL(src, window.location.href).pathname.endsWith(path); }
+        catch { return false; }
+        return pathMatches
+          && node.classList.contains('is-active')
+          && !node.classList.contains('is-loading')
+          && node.getAttribute('aria-hidden') === 'false';
+      }, { selector, expectedPath }, { timeout: 15000 });
+
       console.log(`[R5] N${level} ready`);
 
       await frame.evaluate((currentLevel) => {
