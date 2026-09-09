@@ -43,27 +43,30 @@ FROM (VALUES
   (5,'repeat_unlocked',4,'{}'::jsonb),
   (5,'repeat_added',5,'{"repeat_n":6,"repeat_instances":2}'::jsonb),
   (5,'program_refactored',6,'{"blocks_after":5,"reduction_pct":50}'::jsonb),
-  (5,'level_completed',7,'{}'::jsonb),
-  (6,'level_started',8,'{}'::jsonb),
-  (6,'scan_completed',9,'{}'::jsonb),
-  (6,'analyze_completed',10,'{}'::jsonb),
-  (6,'communication_point_reached',11,'{}'::jsonb),
-  (6,'data_sent',12,'{}'::jsonb),
-  (6,'level_completed',13,'{}'::jsonb),
-  (7,'level_started',14,'{}'::jsonb),
-  (7,'instrument_selected',15,'{"instrument_type":"material","relevant_to_question":true,"selection_order":1}'::jsonb),
-  (7,'relevant_instrument_selected',16,'{}'::jsonb),
-  (7,'final_point_reached',17,'{}'::jsonb),
-  (7,'level_completed',18,'{}'::jsonb),
-  (NULL,'session_completed',19,'{}'::jsonb)
+  (5,'program_started',7,'{"command_count":5}'::jsonb),
+  (5,'goal_reached',8,'{}'::jsonb),
+  (5,'level_completed',9,'{}'::jsonb),
+  (6,'level_started',10,'{}'::jsonb),
+  (6,'scan_completed',11,'{}'::jsonb),
+  (6,'analyze_completed',12,'{}'::jsonb),
+  (6,'communication_point_reached',13,'{}'::jsonb),
+  (6,'data_sent',14,'{}'::jsonb),
+  (6,'level_completed',15,'{}'::jsonb),
+  (7,'level_started',16,'{}'::jsonb),
+  (7,'instrument_selected',17,'{"instrument_type":"material","relevant_to_question":true,"selection_order":1}'::jsonb),
+  (7,'relevant_instrument_selected',18,'{}'::jsonb),
+  (7,'final_point_reached',19,'{}'::jsonb),
+  (7,'level_completed',20,'{}'::jsonb),
+  (NULL,'session_completed',21,'{}'::jsonb)
 ) AS x(level,event_type,seq,payload);
 
 DO $$ BEGIN
-  IF (SELECT count(*) FROM public.v_qa_events WHERE session_id='00000000-0000-4000-8000-000000001102') <> 19 THEN RAISE EXCEPTION 'QA event view count mismatch'; END IF;
+  IF (SELECT count(*) FROM public.v_qa_events WHERE session_id='00000000-0000-4000-8000-000000001102') <> 21 THEN RAISE EXCEPTION 'QA event view count mismatch'; END IF;
   IF (SELECT count(*) FROM public.v_official_study_events WHERE session_id='00000000-0000-4000-8000-000000001102') <> 0 THEN RAISE EXCEPTION 'QA leaked into official events'; END IF;
   IF (SELECT count(*) FROM public.v_qa_level_outcomes WHERE session_id='00000000-0000-4000-8000-000000001102') <> 3 THEN RAISE EXCEPTION 'QA level outcomes mismatch'; END IF;
   IF (SELECT count(*) FROM public.v_level_outcomes WHERE session_id='00000000-0000-4000-8000-000000001102') <> 0 THEN RAISE EXCEPTION 'QA leaked into official level outcomes'; END IF;
   IF NOT (SELECT loop_flow_correct FROM public.v_qa_level5_loop_metrics WHERE session_id='00000000-0000-4000-8000-000000001102') THEN RAISE EXCEPTION 'N5 loop flow not recognized'; END IF;
+  IF NOT (SELECT optimization_metrics_available FROM public.v_qa_level5_loop_metrics WHERE session_id='00000000-0000-4000-8000-000000001102') THEN RAISE EXCEPTION 'N5 optimization metrics should be available for complete synthetic payloads'; END IF;
   IF NOT (SELECT science_order_correct AND data_sent FROM public.v_qa_level6_science_metrics WHERE session_id='00000000-0000-4000-8000-000000001102') THEN RAISE EXCEPTION 'N6 science flow not recognized'; END IF;
   IF NOT (SELECT final_point_reached AND final_point_before_completion AND NOT unexpected_communication_point AND NOT unexpected_data_sent FROM public.v_qa_level7_instrument_metrics WHERE session_id='00000000-0000-4000-8000-000000001102') THEN RAISE EXCEPTION 'N7 QA metrics incorrect'; END IF;
   IF NOT (SELECT min_level=5 AND max_level=7 AND missing_level_started AND missing_level_completed AND incomplete_session FROM public.v_qa_session_quality WHERE session_id='00000000-0000-4000-8000-000000001102') THEN RAISE EXCEPTION 'QA session quality should expose missing N1-N4'; END IF;
