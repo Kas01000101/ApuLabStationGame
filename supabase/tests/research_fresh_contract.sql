@@ -46,9 +46,29 @@ DO $$ BEGIN
     RAISE EXCEPTION 'N7 communication_point_reached unexpectedly accepted';
   EXCEPTION WHEN check_violation THEN NULL; END;
   BEGIN
+    INSERT INTO apulab_events(event_id,session_id,participant_id,study_id,study_condition,session_mode,environment,build_version,schema_version,protocol_version,scene_id,level_number,event_type,event_seq,payload)
+    VALUES (gen_random_uuid(),'00000000-0000-4000-8000-000000000702','00000000-0000-4000-8000-000000000701','APULAB-STUDY-2026','game','study','study','APULAB-STUDY-RC.1','apulab-telemetry-v2','apulab-protocol-2026-v1','mission01',NULL,'data_sent',3,'{}');
+    RAISE EXCEPTION 'level-less data_sent unexpectedly accepted';
+  EXCEPTION WHEN check_violation THEN NULL; END;
+  BEGIN
+    INSERT INTO apulab_events(event_id,session_id,participant_id,study_id,study_condition,session_mode,environment,build_version,schema_version,protocol_version,scene_id,level_number,event_type,event_seq,payload)
+    VALUES (gen_random_uuid(),'00000000-0000-4000-8000-000000000702','00000000-0000-4000-8000-000000000701','APULAB-STUDY-2026','game','study','study','APULAB-STUDY-RC.1','apulab-telemetry-v2','apulab-protocol-2026-v1','mission01',NULL,'final_point_reached',3,'{}');
+    RAISE EXCEPTION 'level-less final_point_reached unexpectedly accepted';
+  EXCEPTION WHEN check_violation THEN NULL; END;
+  BEGIN
     INSERT INTO apulab_study_assignments(study_id,participant_id,study_condition,assignment_method)
     VALUES ('APULAB-QA-2026','00000000-0000-4000-8000-000000000701','static_control','qa');
     RAISE EXCEPTION 'static_control unexpectedly accepted';
+  EXCEPTION WHEN check_violation THEN NULL; END;
+  BEGIN
+    INSERT INTO apulab_sessions(session_id,participant_id,study_id,study_condition,session_mode,environment,build_version,schema_version,protocol_version,started_at,status,screen_width,screen_height,user_agent)
+    VALUES ('00000000-0000-4000-8000-000000000704','00000000-0000-4000-8000-000000000701','APULAB-STUDY-2026',NULL,'study','study','APULAB-STUDY-RC.1','apulab-telemetry-v2','apulab-protocol-2026-v1',now(),'in_progress',1280,720,'web');
+    RAISE EXCEPTION 'study session with NULL condition unexpectedly accepted';
+  EXCEPTION WHEN check_violation THEN NULL; END;
+  BEGIN
+    INSERT INTO apulab_events(event_id,session_id,participant_id,study_id,study_condition,session_mode,environment,build_version,schema_version,protocol_version,scene_id,level_number,event_type,event_seq,payload)
+    VALUES (gen_random_uuid(),'00000000-0000-4000-8000-000000000702','00000000-0000-4000-8000-000000000701','APULAB-STUDY-2026',NULL,'study','study','APULAB-STUDY-RC.1','apulab-telemetry-v2','apulab-protocol-2026-v1','mission01',7,'level_started',3,'{}');
+    RAISE EXCEPTION 'study event with NULL condition unexpectedly accepted';
   EXCEPTION WHEN check_violation THEN NULL; END;
   BEGIN
     UPDATE apulab_sessions SET participant_code='RAW-CODE' WHERE session_id='00000000-0000-4000-8000-000000000702';
