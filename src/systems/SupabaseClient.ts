@@ -21,7 +21,7 @@ export class SupabaseClient {
   }
 
   static authenticateParticipant(code: string, credential: string): Promise<RepositoryResult<AuthenticatedParticipant>> {
-    return this.post('/authenticate', { participant_code: code, credential });
+    return this.post('/authenticate', { study_code: code, credential });
   }
 
   static async post<T = void>(path: string, body: unknown): Promise<RepositoryResult<T>> {
