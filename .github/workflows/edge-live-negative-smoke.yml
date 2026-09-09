@@ -3,7 +3,7 @@ name: Edge live negative smoke
 on:
   push:
     branches:
-      - research/station-research-clean-v3
+      - research/edge-v6-smoke-temp
     paths:
       - .github/workflows/edge-live-negative-smoke.yml
 
@@ -44,7 +44,7 @@ jobs:
           test "$code" = "400"
           grep -q 'study_code_invalid' "$out"
 
-      - name: Create isolated demo smoke session
+      - name: Create isolated Edge v6 demo smoke session
         id: session
         shell: bash
         run: |
@@ -64,13 +64,26 @@ jobs:
             --arg sid "$SESSION_ID" \
             --arg tok "$TOKEN" \
             --arg started "$STARTED_AT" \
-            '{session_sync_token:$tok,session:{session_id:$sid,session_mode:"demo",environment:"preview",build_version:"APULAB-EDGE-V5-SMOKE",git_commit_sha:"edge-v5-smoke",schema_version:"apulab-telemetry-v2",protocol_version:"apulab-protocol-2026-v1",started_at:$started,screen_width:1280,screen_height:720}}')
+            '{session_sync_token:$tok,session:{session_id:$sid,session_mode:"demo",environment:"preview",build_version:"APULAB-EDGE-V6-SMOKE-TEMP",git_commit_sha:"edge-v6-smoke-temp",schema_version:"apulab-telemetry-v2",protocol_version:"apulab-protocol-2026-v1",started_at:$started,screen_width:1280,screen_height:720}}')
           out=$(mktemp)
           code=$(curl -sS -o "$out" -w '%{http_code}' -X POST "$EDGE_BASE/session" -H 'Content-Type: application/json' --data "$payload")
           test "$code" = "200"
           grep -q '"success":true' "$out"
           echo "session_id=$SESSION_ID" >> "$GITHUB_OUTPUT"
           echo "sync_token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      - name: Resume endpoint exists and rejects demo sessions
+        shell: bash
+        env:
+          SESSION_ID: ${{ steps.session.outputs.session_id }}
+          SYNC_TOKEN: ${{ steps.session.outputs.sync_token }}
+        run: |
+          set -euo pipefail
+          payload=$(jq -n --arg sid "$SESSION_ID" --arg tok "$SYNC_TOKEN" '{session_id:$sid,session_sync_token:$tok}')
+          out=$(mktemp)
+          code=$(curl -sS -o "$out" -w '%{http_code}' -X POST "$EDGE_BASE/session/resume" -H 'Content-Type: application/json' --data "$payload")
+          test "$code" = "409"
+          grep -q 'session_not_resumable' "$out"
 
       - name: PII payload is rejected
         shell: bash
