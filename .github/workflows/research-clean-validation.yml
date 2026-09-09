@@ -1,0 +1,47 @@
+name: Research clean validation
+
+on:
+  push:
+    branches:
+      - research/station-research-clean-v3
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  research-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22.16.0'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check Research runtime
+        run: npx tsc -b
+
+      - name: Run Research contract tests
+        run: node --test tests/research/*.test.mjs
+
+      - name: Verify canonical N7 static contract
+        shell: bash
+        run: |
+          npm run prepare:missions
+          grep -Fq 'PUNTO FINAL' public/missions/mission01/level7.html
+          grep -Fq 'ANALIZAR MUESTRA' public/missions/mission01/level7.html
+          grep -Fq 'FINALIZAR MISIÓN' public/missions/mission01/level7.html
+          ! grep -Fq 'data-command="send"' public/missions/mission01/level7.html
+          ! grep -Fq 'PUNTO DE COMUNICACIÓN' public/missions/mission01/level7.html
+          grep -Fq 'PUNTO DE COMUNICACIÓN' public/missions/mission01/level6.html
+          grep -Fq 'ENVIAR DATOS' public/missions/mission01/level6.html
