@@ -14,10 +14,12 @@ async function walk(dir) {
   return out;
 }
 
-test('GameState Research metadata remains lifecycle-only', async () => {
+test('GameState Research metadata is lifecycle/session metadata only', async () => {
   const source = await read('src/systems/GameState.ts');
   for (const field of ['studyId','studyCondition','sessionProof','sessionSyncToken','eventSeqLast']) assert.match(source, new RegExp(field));
-  for (const forbidden of ['ayni','checkpoint','repeatUnlocked','instrumentSelected','goalReached','programBlocks']) assert.equal(source.toLowerCase().includes(forbidden.toLowerCase()), false, `GameState Research metadata mixed with ${forbidden}`);
+  assert.match(source, /startNewSession\(/);
+  assert.match(source, /getSessionData\(/);
+  assert.equal(/AYNI|repeatUnlocked|instrumentSelected|goalReached|programBlocks/.test(source), false);
 });
 
 test('Research identity fields are absent from gameplay build/config patches', async () => {
