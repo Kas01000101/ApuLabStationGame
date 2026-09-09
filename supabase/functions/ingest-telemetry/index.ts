@@ -121,7 +121,7 @@ function normalizeCode(value: unknown): string {
   const match = code.match(/^(QT|AP)-(\d{3})$/);
   if (!match) throw new PublicError('study_code_invalid');
   const n = Number(match[2]);
-  if ((match[1] === 'QT' && (n < 1 || n > 10)) || (match[1] === 'AP' && (n < 1 || n > 50))) throw new PublicError('study_code_invalid');
+  if ((match[1] === 'QT' && (n < 1 || n > 10)) || (match[1] === 'AP' && (n < 1 || n > 70))) throw new PublicError('study_code_invalid');
   return code;
 }
 function b64url(data: Uint8Array): string { return btoa(String.fromCharCode(...data)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
