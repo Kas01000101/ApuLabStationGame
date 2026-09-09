@@ -49,7 +49,8 @@ export class SupabaseClient {
       if (!response.ok || data?.success === false) {
         return { success: false, error: typeof data?.error === 'string' ? data.error : `HTTP_${response.status}` };
       }
-      return { success: true, data };
+      const responseData = Object.prototype.hasOwnProperty.call(data, 'data') ? data.data : data;
+      return { success: true, data: responseData as T };
     } catch (error) {
       return {
         success: false,
