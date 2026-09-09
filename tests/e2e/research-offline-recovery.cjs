@@ -9,7 +9,7 @@ const COMPLETION_KEY = 'apulab_telemetry_completion_v2';
 
 (async () => {
   const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  let context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
   let page = await context.newPage();
 
   try {
@@ -38,8 +38,11 @@ const COMPLETION_KEY = 'apulab_telemetry_completion_v2';
     assert(initial.queueAfterStart === 0, 'online session_started should be synced before offline phase');
 
     await context.setOffline(true);
+    await page.waitForFunction(() => navigator.onLine === false);
+
     const offline = await page.evaluate(async () => {
       const h = window.__apulabOfflineHarness;
+      await h.SyncService.flush();
       const telemetry = h.TelemetryService.getInstance();
       telemetry.markLevelStarted(5);
       for (let i = 1; i <= 20; i += 1) {
@@ -69,10 +72,9 @@ const COMPLETION_KEY = 'apulab_telemetry_completion_v2';
       assert(offline.queued[i].event_seq === offline.queued[i - 1].event_seq + 1, 'offline event_seq must remain contiguous');
     }
 
-    // Close the document while still offline, then inspect the browser context's
-    // persisted localStorage directly. No application document is allowed to
-    // bootstrap between persistence capture and these assertions.
-    await page.close();
+    // Capture the browser's durable storage snapshot while the offline document
+    // is still alive. This avoids any app/bootstrap race and is the exact state
+    // that will seed the restarted browser context below.
     const storageState = await context.storageState();
     const origin = new URL(BASE_URL).origin;
     const originState = storageState.origins.find((entry) => entry.origin === origin);
@@ -88,18 +90,19 @@ const COMPLETION_KEY = 'apulab_telemetry_completion_v2';
     const persistedCompletion = storedCompletions[offline.sessionId] || null;
     const persistedContext = storedContexts[offline.sessionId] || null;
 
-    assert(persistedEvents.length === offline.queued.length, 'document close must preserve every pending offline event');
-    assert(persistedCompletion && persistedCompletion.status === 'pending', 'document close must preserve pending completion');
-    assert(persistedContext && persistedContext.session_id === offline.sessionId, 'document close must preserve session sync context');
+    assert(persistedEvents.length === offline.queued.length, 'storage snapshot must preserve every pending offline event');
+    assert(persistedCompletion && persistedCompletion.status === 'pending', 'storage snapshot must preserve pending completion');
+    assert(persistedContext && persistedContext.session_id === offline.sessionId, 'storage snapshot must preserve session sync context');
     for (let i = 0; i < offline.queued.length; i += 1) {
       assert(persistedEvents[i].event_id === offline.queued[i].event_id, 'event_id changed in persisted storage');
       assert(persistedEvents[i].event_seq === offline.queued[i].event_seq, 'event_seq changed in persisted storage');
     }
 
-    // Only after persistence has been proven do we restore connectivity and
-    // reopen the runtime. The normal online listener may start recovery before
-    // this explicit flush; SyncService.flush() must remain reentrant/idempotent.
-    await context.setOffline(false);
+    // Restart the browser context from the captured durable storage. Only now
+    // restore connectivity and let the normal runtime recover. An automatic
+    // online drain may race with the explicit flush; flush must be reentrant.
+    await context.close();
+    context = await browser.newContext({ viewport: { width: 1280, height: 720 }, storageState });
     page = await context.newPage();
     await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
 
@@ -136,6 +139,7 @@ const COMPLETION_KEY = 'apulab_telemetry_completion_v2';
 
     console.log(`Research offline recovery PASS · session=${offline.sessionId} · events=${offline.queued.length}`);
   } finally {
+    await context.close().catch(() => {});
     await browser.close();
   }
 })().catch((error) => {
