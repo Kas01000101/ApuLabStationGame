@@ -1,0 +1,113 @@
+name: Research DB validation
+
+on:
+  push:
+    branches:
+      - research/station-research-clean-v3
+    paths:
+      - 'supabase/**'
+      - 'tests/research/**'
+      - '.github/workflows/research-db-validation.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'supabase/**'
+      - 'tests/research/**'
+      - '.github/workflows/research-db-validation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  db-fresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Record CLI contract
+        run: |
+          supabase --version
+          supabase --help >/tmp/supabase-help.txt
+          supabase db --help >/tmp/supabase-db-help.txt
+      - name: Start local Supabase
+        run: supabase start
+      - name: Rebuild fresh database from migrations
+        run: supabase db reset
+      - name: Resolve local database URL
+        run: |
+          supabase status -o env > /tmp/supabase.env
+          grep '^DB_URL=' /tmp/supabase.env >> "$GITHUB_ENV"
+      - name: Fresh schema + security + canonical N6/N7 contract
+        run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/research_fresh_contract.sql
+      - name: Database idempotency and sequence integrity
+        run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/research_idempotency.sql
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup || true
+
+  db-legacy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      PGPASSWORD: postgres
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:55432/postgres
+    steps:
+      - uses: actions/checkout@v5
+      - name: Prepare Supabase-compatible roles
+        run: |
+          psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$ BEGIN CREATE ROLE anon NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE ROLE authenticated NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE ROLE service_role NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          SQL
+      - name: Apply historical M1-M2 only
+        run: |
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20260830090000_research_security_baseline.sql
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20260830091000_legacy_raw_code_nullable.sql
+      - name: Seed synthetic legacy rows
+        run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/research_legacy_fixture.sql
+      - name: Apply clean forward migrations M3-M7
+        run: |
+          for migration in \
+            supabase/migrations/20260906170000_research_schema_v2.sql \
+            supabase/migrations/20260906183000_research_hardening.sql \
+            supabase/migrations/20260907190000_research_pre_qa_hardening.sql \
+            supabase/migrations/20260907230000_station_game_condition_guard.sql \
+            supabase/migrations/20260908030000_edge_service_role_permissions.sql; do
+            psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$migration"
+          done
+      - name: Verify legacy preservation and no study promotion
+        run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/research_legacy_assertions.sql
+
+  runtime-recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22.16.0'
+          cache: npm
+      - run: npm ci --no-fund --no-audit
+      - name: Type-check Research runtime
+        run: npx tsc -b
+      - name: Queue, retry, idempotency and canonical Research contracts
+        run: node --test tests/research/*.test.mjs
