@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - fix/n3-n4-programming-telemetry
+      - fix/n7-final-session-completion
   pull_request:
     branches:
       - main
@@ -179,6 +180,11 @@ jobs:
           APULAB_BASE_URL: http://127.0.0.1:4173
         run: node tests/e2e/mission01-level7-contract.cjs
 
+      - name: Level 7 final completion handoff
+        env:
+          APULAB_BASE_URL: http://127.0.0.1:4173
+        run: node tests/e2e/mission01-level7-completion-handoff.cjs
+
       - name: Real electronics N1 to N2
         env:
           APULAB_BASE_URL: http://127.0.0.1:4173
@@ -200,6 +206,7 @@ jobs:
             test-results/level6-contract
             test-results/level7-n6-parity
             test-results/level7-contract
+            test-results/level7-completion-handoff
           if-no-files-found: ignore
           retention-days: 5
 
