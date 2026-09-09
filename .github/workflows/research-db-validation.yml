@@ -61,10 +61,15 @@ jobs:
             CODE=$(curl --silent --output /tmp/apulab-edge-probe.json --write-out '%{http_code}' \
               --request POST 'http://127.0.0.1:54321/functions/v1/ingest-telemetry/session/complete' \
               --header 'Content-Type: application/json' --data '{}' || true)
-            if [ "$CODE" != "000" ]; then exit 0; fi
+            if [ "$CODE" = "400" ] && grep -Fq 'session_id_invalid' /tmp/apulab-edge-probe.json; then
+              exit 0
+            fi
             sleep 1
           done
-          cat /tmp/apulab-edge.log
+          echo 'Edge readiness probe never reached application response:'
+          cat /tmp/apulab-edge-probe.json || true
+          echo 'Edge function log:'
+          cat /tmp/apulab-edge.log || true
           exit 1
       - name: Reject premature session completion
         run: |
@@ -101,7 +106,9 @@ jobs:
         run: cat /tmp/apulab-edge.log || true
       - name: Stop local Supabase
         if: always()
-        run: supabase stop --no-backup || true
+        run: |
+          if [ -f /tmp/apulab-edge.pid ]; then kill "$(cat /tmp/apulab-edge.pid)" 2>/dev/null || true; fi
+          supabase stop --no-backup || true
 
   db-legacy:
     runs-on: ubuntu-latest
