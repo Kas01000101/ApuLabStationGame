@@ -37,7 +37,7 @@ export class GameState {
   sessionSyncToken: string | null = null;
   sessionMode: SessionMode = 'demo';
   environment: ResearchEnvironment = 'preview';
-  sessionId = crypto.randomUUID();
+  sessionId: string = crypto.randomUUID();
   currentScene: SceneId = 'main-menu';
   readonly buildVersion = RESEARCH_CONFIG.studyBuildId;
   readonly gitCommitSha = getGitCommitSha();
