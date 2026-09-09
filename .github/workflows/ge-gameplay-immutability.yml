@@ -1,0 +1,72 @@
+name: GE gameplay immutability
+
+on:
+  push:
+    branches:
+      - research/station-research-clean-v3
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  gameplay-immutability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout research candidate
+        uses: actions/checkout@v5
+        with:
+          path: research
+          fetch-depth: 0
+
+      - name: Checkout frozen RC4 gameplay baseline
+        uses: actions/checkout@v5
+        with:
+          ref: 9ec692384d192fa05bda65c01904ccf369b18fae
+          path: baseline
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22.16.0'
+          cache: npm
+          cache-dependency-path: research/package-lock.json
+
+      - name: Install baseline dependencies
+        working-directory: baseline
+        run: npm ci
+
+      - name: Build frozen RC4 Mission 01 outputs
+        working-directory: baseline
+        run: npm run prepare:missions
+
+      - name: Install research dependencies
+        working-directory: research
+        run: npm ci
+
+      - name: Build research Mission 01 outputs
+        working-directory: research
+        run: npm run prepare:missions
+
+      - name: Type-check research runtime
+        working-directory: research
+        run: npx tsc -b
+
+      - name: Verify gameplay immutability and hashes
+        run: >-
+          node research/scripts/research/verify-ge-gameplay-immutability.mjs
+          baseline
+          research
+          9ec692384d192fa05bda65c01904ccf369b18fae
+
+      - name: Upload hash evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ge-gameplay-hash-evidence
+          path: research/docs/GE_GAMEPLAY_HASHES.generated.md
+          if-no-files-found: warn

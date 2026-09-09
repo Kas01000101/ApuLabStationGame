@@ -1,0 +1,155 @@
+name: Edge live negative smoke
+
+on:
+  push:
+    branches:
+      - research/station-research-clean-v3
+    paths:
+      - .github/workflows/edge-live-negative-smoke.yml
+
+permissions:
+  contents: read
+
+jobs:
+  live-negative-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      EDGE_BASE: https://dkvxbvacsegneszuopwy.supabase.co/functions/v1/ingest-telemetry
+    steps:
+      - name: Invalid body/content type is rejected
+        shell: bash
+        run: |
+          set -euo pipefail
+          out=$(mktemp)
+          code=$(curl -sS -o "$out" -w '%{http_code}' -X POST "$EDGE_BASE/authenticate" -H 'Content-Type: text/plain' --data '{}')
+          test "$code" = "415"
+          grep -q 'content_type_invalid' "$out"
+
+      - name: Disallowed origin is rejected
+        shell: bash
+        run: |
+          set -euo pipefail
+          out=$(mktemp)
+          code=$(curl -sS -o "$out" -w '%{http_code}' -X POST "$EDGE_BASE/authenticate" -H 'Content-Type: application/json' -H 'Origin: https://invalid.example' --data '{"study_code":"ZZ-001","credential":"x"}')
+          test "$code" = "403"
+          grep -q 'origin_not_allowed' "$out"
+
+      - name: Invalid study code is rejected
+        shell: bash
+        run: |
+          set -euo pipefail
+          out=$(mktemp)
+          code=$(curl -sS -o "$out" -w '%{http_code}' -X POST "$EDGE_BASE/authenticate" -H 'Content-Type: application/json' --data '{"study_code":"ZZ-001","credential":"x"}')
+          test "$code" = "400"
+          grep -q 'study_code_invalid' "$out"
+
+      - name: Create isolated demo smoke session
+        id: session
+        shell: bash
+        run: |
+          set -euo pipefail
+          SESSION_ID=$(python - <<'PY'
+          import uuid
+          print(uuid.uuid4())
+          PY
+          )
+          TOKEN=$(python - <<'PY'
+          import secrets
+          print(secrets.token_urlsafe(48))
+          PY
+          )
+          STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          payload=$(jq -n \
+            --arg sid "$SESSION_ID" \
+            --arg tok "$TOKEN" \
+            --arg started "$STARTED_AT" \
+            '{session_sync_token:$tok,session:{session_id:$sid,session_mode:"demo",environment:"preview",build_version:"APULAB-EDGE-V5-SMOKE",git_commit_sha:"edge-v5-smoke",schema_version:"apulab-telemetry-v2",protocol_version:"apulab-protocol-2026-v1",started_at:$started,screen_width:1280,screen_height:720}}')
+          out=$(mktemp)
+          code=$(curl -sS -o "$out" -w '%{http_code}' -X POST "$EDGE_BASE/session" -H 'Content-Type: application/json' --data "$payload")
+          test "$code" = "200"
+          grep -q '"success":true' "$out"
+          echo "session_id=$SESSION_ID" >> "$GITHUB_OUTPUT"
+          echo "sync_token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      - name: PII payload is rejected
+        shell: bash
+        env:
+          SESSION_ID: ${{ steps.session.outputs.session_id }}
+          SYNC_TOKEN: ${{ steps.session.outputs.sync_token }}
+        run: |
+          set -euo pipefail
+          EVENT_ID=$(python - <<'PY'
+          import uuid
+          print(uuid.uuid4())
+          PY
+          )
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          payload=$(jq -n --arg sid "$SESSION_ID" --arg tok "$SYNC_TOKEN" --arg eid "$EVENT_ID" --arg now "$NOW" '{session_sync_token:$tok,events:[{event_id:$eid,session_id:$sid,scene_id:"mission01",level_number:7,event_type:"final_point_reached",event_seq:1,timestamp:$now,payload:{email:"x@example.com"}}]}')
+          out=$(mktemp)
+          code=$(curl -sS -o "$out" -w '%{http_code}' -X POST "$EDGE_BASE/events" -H 'Content-Type: application/json' --data "$payload")
+          test "$code" = "400"
+          grep -q 'payload_forbidden_field' "$out"
+
+      - name: Oversized telemetry payload is rejected
+        shell: bash
+        env:
+          SESSION_ID: ${{ steps.session.outputs.session_id }}
+          SYNC_TOKEN: ${{ steps.session.outputs.sync_token }}
+        run: |
+          set -euo pipefail
+          EVENT_ID=$(python - <<'PY'
+          import uuid
+          print(uuid.uuid4())
+          PY
+          )
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          LARGE=$(python - <<'PY'
+          print('x' * 9000)
+          PY
+          )
+          payload=$(jq -n --arg sid "$SESSION_ID" --arg tok "$SYNC_TOKEN" --arg eid "$EVENT_ID" --arg now "$NOW" --arg large "$LARGE" '{session_sync_token:$tok,events:[{event_id:$eid,session_id:$sid,scene_id:"mission01",level_number:7,event_type:"final_point_reached",event_seq:1,timestamp:$now,payload:{value:$large}}]}')
+          out=$(mktemp)
+          code=$(curl -sS -o "$out" -w '%{http_code}' -X POST "$EDGE_BASE/events" -H 'Content-Type: application/json' --data "$payload")
+          test "$code" = "413"
+          grep -q 'payload_too_large' "$out"
+
+      - name: N7 communication and data_sent are rejected
+        shell: bash
+        env:
+          SESSION_ID: ${{ steps.session.outputs.session_id }}
+          SYNC_TOKEN: ${{ steps.session.outputs.sync_token }}
+        run: |
+          set -euo pipefail
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          for EVENT_TYPE in communication_point_reached data_sent; do
+            EVENT_ID=$(python - <<'PY'
+          import uuid
+          print(uuid.uuid4())
+          PY
+          )
+            payload=$(jq -n --arg sid "$SESSION_ID" --arg tok "$SYNC_TOKEN" --arg eid "$EVENT_ID" --arg now "$NOW" --arg et "$EVENT_TYPE" '{session_sync_token:$tok,events:[{event_id:$eid,session_id:$sid,scene_id:"mission01",level_number:7,event_type:$et,event_seq:1,timestamp:$now,payload:{}}]}')
+            out=$(mktemp)
+            code=$(curl -sS -o "$out" -w '%{http_code}' -X POST "$EDGE_BASE/events" -H 'Content-Type: application/json' --data "$payload")
+            test "$code" = "400"
+            grep -q 'event_level_mismatch' "$out"
+          done
+
+      - name: Canonical N7 final point is accepted
+        shell: bash
+        env:
+          SESSION_ID: ${{ steps.session.outputs.session_id }}
+          SYNC_TOKEN: ${{ steps.session.outputs.sync_token }}
+        run: |
+          set -euo pipefail
+          EVENT_ID=$(python - <<'PY'
+          import uuid
+          print(uuid.uuid4())
+          PY
+          )
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          payload=$(jq -n --arg sid "$SESSION_ID" --arg tok "$SYNC_TOKEN" --arg eid "$EVENT_ID" --arg now "$NOW" '{session_sync_token:$tok,events:[{event_id:$eid,session_id:$sid,scene_id:"mission01",level_number:7,event_type:"final_point_reached",event_seq:1,timestamp:$now,payload:{}}]}')
+          out=$(mktemp)
+          code=$(curl -sS -o "$out" -w '%{http_code}' -X POST "$EDGE_BASE/events" -H 'Content-Type: application/json' --data "$payload")
+          test "$code" = "200"
+          grep -q '"success":true' "$out"

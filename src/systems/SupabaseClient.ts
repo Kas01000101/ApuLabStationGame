@@ -21,7 +21,7 @@ export class SupabaseClient {
   }
 
   static authenticateParticipant(code: string, credential: string): Promise<RepositoryResult<AuthenticatedParticipant>> {
-    return this.post('/authenticate', { participant_code: code, credential });
+    return this.post('/authenticate', { study_code: code, credential });
   }
 
   static async post<T = void>(path: string, body: unknown): Promise<RepositoryResult<T>> {
@@ -49,7 +49,8 @@ export class SupabaseClient {
       if (!response.ok || data?.success === false) {
         return { success: false, error: typeof data?.error === 'string' ? data.error : `HTTP_${response.status}` };
       }
-      return { success: true, data };
+      const responseData = Object.prototype.hasOwnProperty.call(data, 'data') ? data.data : data;
+      return { success: true, data: responseData as T };
     } catch (error) {
       return {
         success: false,

@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+      - fix/n3-n4-programming-telemetry
+      - fix/n7-final-session-completion
   pull_request:
     branches:
       - main
@@ -133,6 +135,16 @@ jobs:
           cat /tmp/apulab-gameplay-preview.log
           exit 1
 
+      - name: Integrated N2 selection telemetry contract
+        env:
+          APULAB_BASE_URL: http://127.0.0.1:4173
+        run: node tests/e2e/mission01-n2-selection-telemetry.cjs
+
+      - name: Integrated N3/N4 programming telemetry contract
+        env:
+          APULAB_BASE_URL: http://127.0.0.1:4173
+        run: node tests/e2e/mission01-n3-n4-programming-telemetry.cjs
+
       - name: Level 5 final loops contract
         env:
           APULAB_BASE_URL: http://127.0.0.1:4173
@@ -168,6 +180,11 @@ jobs:
           APULAB_BASE_URL: http://127.0.0.1:4173
         run: node tests/e2e/mission01-level7-contract.cjs
 
+      - name: Level 7 final completion handoff
+        env:
+          APULAB_BASE_URL: http://127.0.0.1:4173
+        run: node tests/e2e/mission01-level7-completion-handoff.cjs
+
       - name: Real electronics N1 to N2
         env:
           APULAB_BASE_URL: http://127.0.0.1:4173
@@ -189,6 +206,7 @@ jobs:
             test-results/level6-contract
             test-results/level7-n6-parity
             test-results/level7-contract
+            test-results/level7-completion-handoff
           if-no-files-found: ignore
           retention-days: 5
 
