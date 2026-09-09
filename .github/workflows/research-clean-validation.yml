@@ -14,7 +14,7 @@ permissions:
 jobs:
   research-contract:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -34,10 +34,12 @@ jobs:
       - name: Run Research contract tests
         run: node --test tests/research/*.test.mjs
 
+      - name: Build canonical gameplay candidate
+        run: npm run build
+
       - name: Verify canonical N7 static contract
         shell: bash
         run: |
-          npm run prepare:missions
           grep -Fq 'PUNTO FINAL' public/missions/mission01/level7.html
           grep -Fq 'ANALIZAR MUESTRA' public/missions/mission01/level7.html
           grep -Fq 'FINALIZAR MISIÓN' public/missions/mission01/level7.html
@@ -45,3 +47,28 @@ jobs:
           ! grep -Fq 'PUNTO DE COMUNICACIÓN' public/missions/mission01/level7.html
           grep -Fq 'PUNTO DE COMUNICACIÓN' public/missions/mission01/level6.html
           grep -Fq 'ENVIAR DATOS' public/missions/mission01/level6.html
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --global playwright@1.55.0 --no-fund --no-audit
+          playwright install --with-deps chromium
+          echo "NODE_PATH=$(npm root -g)" >> "$GITHUB_ENV"
+
+      - name: Start preview
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/apulab-research-preview.log 2>&1 &
+          for i in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/apulab-research-preview.log
+          exit 1
+
+      - name: Canonical N7 browser smoke
+        env:
+          APULAB_BASE_URL: http://127.0.0.1:4173
+        run: node tests/e2e/mission01-level7-canonical-smoke.cjs
+
+      - name: Print preview log on failure
+        if: failure()
+        run: cat /tmp/apulab-research-preview.log || true
