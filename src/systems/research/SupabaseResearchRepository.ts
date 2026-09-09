@@ -1,7 +1,7 @@
 import type { SessionData } from '../GameState';
 import type { QueueEvent } from '../LocalQueueService';
 import { SupabaseClient } from '../SupabaseClient';
-import type { ResearchRepository, RepositoryResult, AuthenticatedParticipant } from './ResearchRepository';
+import type { ResearchRepository, RepositoryResult, AuthenticatedParticipant, ResumedSession } from './ResearchRepository';
 
 export class SupabaseResearchRepository implements ResearchRepository {
   readonly mode = 'supabase' as const;
@@ -14,6 +14,13 @@ export class SupabaseResearchRepository implements ResearchRepository {
     return SupabaseClient.post('/session', {
       session,
       session_proof: sessionProof,
+      session_sync_token: sessionSyncToken,
+    });
+  }
+
+  resumeSession(sessionId: string, sessionSyncToken: string): Promise<RepositoryResult<ResumedSession>> {
+    return SupabaseClient.post('/session/resume', {
+      session_id: sessionId,
       session_sync_token: sessionSyncToken,
     });
   }
