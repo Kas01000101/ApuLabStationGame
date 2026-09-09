@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - fix/n3-n4-programming-telemetry
   pull_request:
     branches:
       - main
@@ -137,6 +138,11 @@ jobs:
         env:
           APULAB_BASE_URL: http://127.0.0.1:4173
         run: node tests/e2e/mission01-n2-selection-telemetry.cjs
+
+      - name: Integrated N3/N4 programming telemetry contract
+        env:
+          APULAB_BASE_URL: http://127.0.0.1:4173
+        run: node tests/e2e/mission01-n3-n4-programming-telemetry.cjs
 
       - name: Level 5 final loops contract
         env:
