@@ -36,6 +36,7 @@ jobs:
           supabase --version
           supabase --help >/tmp/supabase-help.txt
           supabase db --help >/tmp/supabase-db-help.txt
+          supabase functions --help >/tmp/supabase-functions-help.txt
       - name: Start local Supabase
         run: supabase start
       - name: Rebuild fresh database from migrations
@@ -43,11 +44,61 @@ jobs:
       - name: Resolve local database URL
         run: |
           supabase status -o env > /tmp/supabase.env
-          grep '^DB_URL=' /tmp/supabase.env >> "$GITHUB_ENV"
+          DB_URL_VALUE=$(sed -n 's/^DB_URL="\{0,1\}\([^"[:space:]]*\)"\{0,1\}$/\1/p' /tmp/supabase.env)
+          test -n "$DB_URL_VALUE"
+          echo "DB_URL=$DB_URL_VALUE" >> "$GITHUB_ENV"
       - name: Fresh schema + security + canonical N6/N7 contract
         run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/research_fresh_contract.sql
       - name: Database idempotency and sequence integrity
         run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/research_idempotency.sql
+      - name: Seed completion recovery fixture
+        run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/research_completion_fixture.sql
+      - name: Serve Edge Function locally
+        run: |
+          supabase functions serve ingest-telemetry --no-verify-jwt > /tmp/apulab-edge.log 2>&1 &
+          echo $! > /tmp/apulab-edge.pid
+          for i in {1..30}; do
+            CODE=$(curl --silent --output /tmp/apulab-edge-probe.json --write-out '%{http_code}' \
+              --request POST 'http://127.0.0.1:54321/functions/v1/ingest-telemetry/session/complete' \
+              --header 'Content-Type: application/json' --data '{}' || true)
+            if [ "$CODE" != "000" ]; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/apulab-edge.log
+          exit 1
+      - name: Reject premature session completion
+        run: |
+          BODY='{"session_id":"00000000-0000-4000-8000-000000001002","session_sync_token":"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGH"}'
+          CODE=$(curl --silent --show-error --output /tmp/premature.json --write-out '%{http_code}' \
+            --request POST 'http://127.0.0.1:54321/functions/v1/ingest-telemetry/session/complete' \
+            --header 'Content-Type: application/json' --data "$BODY")
+          cat /tmp/premature.json
+          test "$CODE" = "409"
+          grep -Fq 'session_not_complete' /tmp/premature.json
+          test "$(psql "$DB_URL" -Atc "select status from apulab_sessions where session_id='00000000-0000-4000-8000-000000001002'")" = "in_progress"
+      - name: Sync canonical completion events
+        run: psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/research_completion_events.sql
+      - name: Complete recovered session and verify idempotency
+        run: |
+          BODY='{"session_id":"00000000-0000-4000-8000-000000001002","session_sync_token":"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGH"}'
+          CODE=$(curl --silent --show-error --output /tmp/completed.json --write-out '%{http_code}' \
+            --request POST 'http://127.0.0.1:54321/functions/v1/ingest-telemetry/session/complete' \
+            --header 'Content-Type: application/json' --data "$BODY")
+          cat /tmp/completed.json
+          test "$CODE" = "200"
+          grep -Fq '"success":true' /tmp/completed.json
+          test "$(psql "$DB_URL" -Atc "select status from apulab_sessions where session_id='00000000-0000-4000-8000-000000001002'")" = "completed"
+          test "$(psql "$DB_URL" -Atc "select last_level from apulab_sessions where session_id='00000000-0000-4000-8000-000000001002'")" = "7"
+          CODE2=$(curl --silent --show-error --output /tmp/completed-again.json --write-out '%{http_code}' \
+            --request POST 'http://127.0.0.1:54321/functions/v1/ingest-telemetry/session/complete' \
+            --header 'Content-Type: application/json' --data "$BODY")
+          cat /tmp/completed-again.json
+          test "$CODE2" = "200"
+          grep -Fq '"success":true' /tmp/completed-again.json
+          test "$(psql "$DB_URL" -Atc "select count(*) from apulab_events where session_id='00000000-0000-4000-8000-000000001002' and event_type='session_completed'")" = "1"
+      - name: Print Edge log on failure
+        if: failure()
+        run: cat /tmp/apulab-edge.log || true
       - name: Stop local Supabase
         if: always()
         run: supabase stop --no-backup || true
