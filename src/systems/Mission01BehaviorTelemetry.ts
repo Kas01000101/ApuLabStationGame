@@ -201,18 +201,17 @@ function instrumentProgrammingLevel(
   on: <K extends keyof DocumentEventMap>(target: Document | Element, type: K, listener: (event: DocumentEventMap[K]) => void, options?: AddEventListenerOptions | boolean) => void,
   observe: (target: Node, callback: MutationCallback, options: MutationObserverInit) => MutationObserver,
 ): void {
-  const program = doc.querySelector('#program');
   const run = doc.querySelector('#run-btn');
   const success = doc.querySelector('#success-overlay');
   const feedback = doc.querySelector('#feedback');
-  let previous = readProgram(program);
+  let previous = readCurrentProgram(doc);
   let goalRecorded = false;
   let collisionSeen = false;
   let failureRevisionRecorded = false;
   let lastCollisionText = '';
 
   const inspectProgram = () => {
-    const next = readProgram(program);
+    const next = readCurrentProgram(doc);
     if (next === previous) return;
     const before = previous ? previous.split('|').filter(Boolean) : [];
     const after = next ? next.split('|').filter(Boolean) : [];
@@ -231,10 +230,23 @@ function instrumentProgrammingLevel(
     }
     previous = next;
   };
-  if (program) observe(program, inspectProgram, { subtree: true, childList: true, attributes: true, attributeFilter: ['data-command'] });
+
+  // N3/N4 can render their live instructions under #program-list while an
+  // older #program container remains empty. Observe the document body and
+  // resolve the active editor root on every mutation instead of freezing a
+  // stale container at instrumentation attach time.
+  if (doc.body) {
+    observe(doc.body, inspectProgram, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ['data-command', 'data-type'],
+    });
+  }
+  inspectProgram();
 
   if (run) on(run, 'click', () => {
-    const count = readProgram(program).split('|').filter(Boolean).length;
+    const count = readCurrentProgram(doc).split('|').filter(Boolean).length;
     telemetry.recordEvent('program_started', { command_count: count }, { levelNumber: level });
     telemetry.recordEvent('command_executed', { command_count: count }, { levelNumber: level });
   });
@@ -263,9 +275,17 @@ function instrumentProgrammingLevel(
   }
 }
 
-function readProgram(program: Element | null): string {
-  if (!program) return '';
-  return [...program.querySelectorAll<HTMLElement>('.program-block')]
+function resolveProgramRoot(doc: Document): Element | null {
+  return doc.querySelector('#program-list')
+    ?? doc.querySelector('#program')
+    ?? doc.querySelector('.program-list')
+    ?? doc.querySelector('.program');
+}
+
+function readCurrentProgram(doc: Document): string {
+  const root = resolveProgramRoot(doc);
+  if (!root) return '';
+  return [...root.querySelectorAll<HTMLElement>('.program-block')]
     .map((node) => node.dataset.command ?? node.getAttribute('data-type') ?? node.textContent?.trim().toLowerCase() ?? 'unknown')
     .join('|');
 }
