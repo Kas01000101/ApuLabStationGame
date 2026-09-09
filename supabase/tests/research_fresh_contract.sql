@@ -10,6 +10,15 @@ DO $$ BEGIN
   IF has_table_privilege('authenticated','public.apulab_events','SELECT') THEN RAISE EXCEPTION 'authenticated can select events'; END IF;
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='v_level7_instrument_metrics' AND column_name IN ('data_sent','communication_time_ms','communication_send_order_correct')) THEN RAISE EXCEPTION 'contaminated N7 metric columns remain'; END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='v_level7_instrument_metrics' AND column_name='final_point_before_completion') THEN RAISE EXCEPTION 'missing canonical N7 final point metric'; END IF;
+
+  IF NOT has_table_privilege('service_role','public.apulab_participants','SELECT') THEN RAISE EXCEPTION 'service_role missing participant SELECT'; END IF;
+  IF NOT has_table_privilege('service_role','public.apulab_studies','SELECT') THEN RAISE EXCEPTION 'service_role missing studies SELECT'; END IF;
+  IF NOT has_table_privilege('service_role','public.apulab_study_assignments','SELECT') THEN RAISE EXCEPTION 'service_role missing assignment SELECT'; END IF;
+  IF NOT has_table_privilege('service_role','public.apulab_auth_attempts','SELECT,INSERT') THEN RAISE EXCEPTION 'service_role auth_attempt grants incorrect'; END IF;
+  IF NOT has_table_privilege('service_role','public.apulab_sessions','SELECT,INSERT,UPDATE') THEN RAISE EXCEPTION 'service_role session grants incorrect'; END IF;
+  IF NOT has_table_privilege('service_role','public.apulab_events','SELECT,INSERT') THEN RAISE EXCEPTION 'service_role event grants incorrect'; END IF;
+  IF has_table_privilege('service_role','public.apulab_events','UPDATE') OR has_table_privilege('service_role','public.apulab_events','DELETE') THEN RAISE EXCEPTION 'service_role has excessive event mutation grants'; END IF;
+  IF has_table_privilege('service_role','public.apulab_participants','INSERT') OR has_table_privilege('service_role','public.apulab_participants','UPDATE') OR has_table_privilege('service_role','public.apulab_participants','DELETE') THEN RAISE EXCEPTION 'service_role has excessive participant mutation grants'; END IF;
 END $$;
 
 INSERT INTO apulab_participants(participant_id,participant_code_hash,credential_hash,is_active)
@@ -19,11 +28,9 @@ VALUES ('APULAB-STUDY-2026','00000000-0000-4000-8000-000000000701','game','manua
 INSERT INTO apulab_sessions(session_id,participant_id,participant_code,study_id,study_condition,session_mode,environment,build_version,git_commit_sha,schema_version,protocol_version,started_at,status,event_seq_last,sync_token_hash,screen_width,screen_height,user_agent)
 VALUES ('00000000-0000-4000-8000-000000000702','00000000-0000-4000-8000-000000000701',NULL,'APULAB-STUDY-2026','game','study','study','APULAB-STUDY-RC.1','TEST-SHA','apulab-telemetry-v2','apulab-protocol-2026-v1',now(),'in_progress',0,repeat('x',43),1280,720,'web');
 
--- Canonical N6 event is accepted.
 INSERT INTO apulab_events(event_id,session_id,participant_id,participant_code,study_id,study_condition,session_mode,environment,build_version,git_commit_sha,schema_version,protocol_version,scene_id,level_number,event_type,event_seq,payload,client_timestamp,received_at,sync_status)
 VALUES (gen_random_uuid(),'00000000-0000-4000-8000-000000000702','00000000-0000-4000-8000-000000000701',NULL,'APULAB-STUDY-2026','game','study','study','APULAB-STUDY-RC.1','TEST-SHA','apulab-telemetry-v2','apulab-protocol-2026-v1','mission01',6,'data_sent',1,'{}',now(),now(),'synced');
 
--- Canonical N7 final point is accepted.
 INSERT INTO apulab_events(event_id,session_id,participant_id,participant_code,study_id,study_condition,session_mode,environment,build_version,git_commit_sha,schema_version,protocol_version,scene_id,level_number,event_type,event_seq,payload,elapsed_ms,client_timestamp,received_at,sync_status)
 VALUES (gen_random_uuid(),'00000000-0000-4000-8000-000000000702','00000000-0000-4000-8000-000000000701',NULL,'APULAB-STUDY-2026','game','study','study','APULAB-STUDY-RC.1','TEST-SHA','apulab-telemetry-v2','apulab-protocol-2026-v1','mission01',7,'final_point_reached',2,'{}',1200,now(),now(),'synced');
 
