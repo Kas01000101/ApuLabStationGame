@@ -6,7 +6,7 @@ const assert = (condition, message) => { if (!condition) throw new Error(message
 (async () => {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
-  const page = await context.newPage();
+  let page = await context.newPage();
 
   try {
     await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
@@ -65,18 +65,33 @@ const assert = (condition, message) => { if (!condition) throw new Error(message
       assert(offline.queued[i].event_seq === offline.queued[i - 1].event_seq + 1, 'offline event_seq must remain contiguous');
     }
 
-    // Restore connectivity before reloading the document. The queue itself was
-    // generated and persisted while truly offline; this reload validates durable
-    // recovery without requiring the application shell to be a PWA/offline cache.
+    // Close the document while it is still offline so the existing SyncService
+    // online listener cannot drain the queue before the restart assertion.
+    await page.close();
     await context.setOffline(false);
-    await page.reload({ waitUntil: 'domcontentloaded' });
+    page = await context.newPage();
+    await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
+
+    const persistedBeforeRecovery = await page.evaluate(async (sessionId) => {
+      const { LocalQueueService } = await import('/src/systems/LocalQueueService.ts');
+      return {
+        queued: LocalQueueService.getEventsBySession(sessionId).map((event) => ({ event_id: event.event_id, event_seq: event.event_seq })),
+        completion: LocalQueueService.getPendingCompletion(sessionId),
+        context: LocalQueueService.getSessionContext(sessionId),
+      };
+    }, offline.sessionId);
+
+    assert(persistedBeforeRecovery.queued.length === offline.queued.length, 'document restart must preserve every pending offline event');
+    assert(persistedBeforeRecovery.completion, 'document restart must preserve pending completion');
+    assert(persistedBeforeRecovery.context, 'document restart must preserve session sync context');
+    for (let i = 0; i < offline.queued.length; i += 1) {
+      assert(persistedBeforeRecovery.queued[i].event_id === offline.queued[i].event_id, 'event_id changed across document restart');
+      assert(persistedBeforeRecovery.queued[i].event_seq === offline.queued[i].event_seq, 'event_seq changed across document restart');
+    }
 
     const recovered = await page.evaluate(async ({ sessionId, expected }) => {
       const { SyncService } = await import('/src/systems/SyncService.ts');
       const { LocalQueueService } = await import('/src/systems/LocalQueueService.ts');
-      const beforeFlush = LocalQueueService.getEventsBySession(sessionId).map((event) => ({ event_id: event.event_id, event_seq: event.event_seq }));
-      const completionBefore = LocalQueueService.getPendingCompletion(sessionId);
-      const contextBefore = LocalQueueService.getSessionContext(sessionId);
       await SyncService.flush();
       const afterFlush = LocalQueueService.getEventsBySession(sessionId);
       const completionAfter = LocalQueueService.getPendingCompletion(sessionId);
@@ -85,9 +100,6 @@ const assert = (condition, message) => { if (!condition) throw new Error(message
       const mockSessions = JSON.parse(localStorage.getItem('apulab_mock_sessions_v2') || '[]');
       const persistedById = new Map(mockEvents.map((event) => [event.event_id, event]));
       return {
-        beforeFlush,
-        completionBefore,
-        contextBefore,
         afterFlushCount: afterFlush.length,
         completionAfter,
         contextAfter,
@@ -99,9 +111,6 @@ const assert = (condition, message) => { if (!condition) throw new Error(message
       };
     }, { sessionId: offline.sessionId, expected: offline.queued });
 
-    assert(recovered.beforeFlush.length === offline.queued.length, 'reload must preserve every pending offline event');
-    assert(recovered.completionBefore, 'reload must preserve pending completion');
-    assert(recovered.contextBefore, 'reload must preserve session sync context');
     assert(recovered.afterFlushCount === 0, 'successful recovery flush must empty pending queue');
     assert(recovered.completionAfter === null, 'successful completion ACK must clear pending completion');
     assert(recovered.contextAfter === null, 'settled session must release sync context');
