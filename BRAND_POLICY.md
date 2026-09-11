@@ -1,28 +1,38 @@
-# ApuLab Station — Name and Brand Identity Policy
+# ApuLab Station — Brand and Identity Policy
 
-The MIT License covering the source code **does not grant a license to the names, logos, emblems, visual identity, or other signs used to identify the project**.
+ApuLab Station is an open-source and open-content project. Copyrightable brand artwork included in this repository is reusable under the applicable open-content license, while trademark rights remain separate.
 
-## Identity elements
+## Openly licensed identity artwork
 
-This policy covers, among other things, the names **ApuLab** and **ApuLab Station**, their logos, emblems, and graphic combinations used as part of the project's identity.
+Unless otherwise marked, copyrightable logo artwork, emblems, graphic identity assets, and related visual materials included in this repository are covered by **CC BY 4.0** through [`CONTENT-LICENSE.md`](CONTENT-LICENSE.md).
 
-## Permitted references without implying affiliation
+This means those files may be shared and adapted, including commercially, subject to attribution.
 
-Reasonable nominative references to the project are permitted, for example to:
+## Names and trademark rights
 
-- state that a fork is derived from ApuLab Station;
-- cite the project in documentation, research, or academic material;
-- link to the original repository;
-- describe compatibility with or provenance from the codebase.
+The names **ApuLab** and **ApuLab Station**, and any trademark rights associated with project identifiers, are not granted as trademarks by the MIT License or CC BY 4.0.
 
-Such references must not imply sponsorship, endorsement, official association, or authorship that does not exist.
+The open licenses do not authorize anyone to:
 
-## Forks and derivative products
+- claim to be the official ApuLab Station project or team;
+- imply sponsorship, endorsement, partnership, or affiliation that does not exist;
+- register the project name or confusingly similar marks as their own in a way that misrepresents origin;
+- present a modified fork as an official release of the original project.
 
-Code covered by the MIT License may be reused according to that license. However, a fork or derivative product presented publicly as a separate project should use its own name and visual identity and should not reuse the ApuLab brand in a way that could create confusion about its origin.
+## Forks and derivative projects
 
-## No transfer of brand rights
+Forks and derivative projects are welcome under the repository licenses.
 
-Nothing in the MIT License should be interpreted as authorization to register, appropriate, or use the project's identity as one's own trademark or brand.
+A derivative may accurately state that it is based on ApuLab Station and may use openly licensed creative material under CC BY 4.0. When presenting a substantially modified project, it should clearly identify itself as a fork or derivative so users are not misled about its origin or maintenance.
 
-This document does not claim that every sign mentioned above is registered in every jurisdiction. It only defines the identity rights that **are not granted** through the software license.
+## Nominative and academic references
+
+Reasonable references to ApuLab Station are permitted for documentation, research, academic citation, compatibility statements, attribution, and links to the original repository.
+
+## Licensing distinction
+
+- Software copyright: MIT License.
+- Original non-code content and identity artwork: CC BY 4.0 unless otherwise marked.
+- Trademark and endorsement rights: not granted by those copyright licenses.
+
+See [`OPEN_SOURCE.md`](OPEN_SOURCE.md) for the complete repository licensing model.
