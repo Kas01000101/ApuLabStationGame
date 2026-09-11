@@ -1,38 +1,51 @@
 # Contributing to ApuLab Station
 
-Thank you for contributing to the project. These rules are intended to keep the provenance of code and project resources clear.
+ApuLab Station is an open-source and open-content project. Contributions to code, documentation, educational content, and eligible creative assets are welcome.
 
-## Code
+## Licensing of contributions
 
-By submitting code to the repository, you represent that you have the right to contribute it and agree that the contribution may be distributed under the same license that applies to the destination file or component. For the main source code covered by [`LICENSE`](LICENSE), that license is MIT.
+By submitting a contribution, you confirm that you have the right to contribute it and agree that it may be distributed under the license applicable to the part of the repository you modify.
 
-You retain any copyright that legally belongs to you over your contribution.
+- Contributions to software source code are licensed under the **MIT License**.
+- Contributions to original non-code content and assets are licensed under **CC BY 4.0**, unless a file clearly states another compatible license.
+- Third-party material must retain its original license and attribution requirements.
 
-## Assets and creative content
+You retain the copyright that legally belongs to you over your contribution.
 
-Do not submit third-party images, models, audio, illustrations, fonts, text, datasets, or other materials unless:
-
-- you created them and have the right to contribute them; or
-- a compatible license permits their use and redistribution; and
-- attribution and licensing are clearly documented in the pull request and, where applicable, in `THIRD_PARTY_NOTICES.md`.
-
-Original assets accepted into protected project areas are governed by [`CONTENT-LICENSE.md`](CONTENT-LICENSE.md), unless a different agreement or specific license applies.
-
-## Pull requests
+## Code contributions
 
 Before requesting review:
 
 - run `npm run build`;
-- do not include credentials, tokens, personal information, participant data, private datasets, or real `.env` files;
-- explain what changes and why;
+- keep changes focused and explain what changed and why;
 - document new dependencies and their licenses;
-- do not remove existing copyright or license notices;
-- do not change the project's visual identity or legal scope without explicit review.
+- preserve existing copyright and license notices;
+- do not weaken research, authentication, privacy, or telemetry safeguards without explicit review.
+
+## Content and asset contributions
+
+Do not submit third-party images, models, audio, illustrations, fonts, text, datasets, or other materials unless you have the right to redistribute them under terms compatible with this repository.
+
+For third-party material, document the source, author, license, and any required attribution in the pull request and, where appropriate, in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+
+Original accepted creative contributions are covered by [`CONTENT-LICENSE.md`](CONTENT-LICENSE.md) unless a different license is explicitly documented.
+
+## Sensitive material
+
+Never commit:
+
+- participant credentials;
+- passwords, tokens, API keys, peppers, session secrets, or service-role keys;
+- personal information;
+- private participant data or private research datasets;
+- real `.env` files.
 
 ## Security
 
-Security issues must not be published together with secrets, credentials, or sensitive data. See [`docs/SECURITY.md`](docs/SECURITY.md).
+Security issues must not be published together with secrets, credentials, or sensitive participant data. See [`docs/SECURITY.md`](docs/SECURITY.md).
 
-## Brand
+## Brand and forks
 
-A code contribution does not grant rights to the ApuLab Station name or identity. See [`BRAND_POLICY.md`](BRAND_POLICY.md).
+Forks and derivative projects are welcome. Open licensing does not grant a right to imply official endorsement or affiliation with ApuLab Station.
+
+See [`BRAND_POLICY.md`](BRAND_POLICY.md) and [`OPEN_SOURCE.md`](OPEN_SOURCE.md).
