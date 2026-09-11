@@ -1,8 +1,8 @@
 # ApuLab Station · UI Standard
 
-Este documento fija el lenguaje visual canónico derivado de Misión 01 V50/V51. Menú, HUD, modales, diálogos y futuras misiones deben reutilizar estos tokens y geometría; no crear estilos alternativos por pantalla.
+This document defines the canonical visual language derived from Mission 01 V50/V51. Menus, HUDs, modals, dialogs, and future missions should reuse these tokens and geometry rather than introducing unrelated styles per screen.
 
-## Paleta
+## Palette
 
 ### Base
 - `#0B0E26` night
@@ -12,14 +12,14 @@ Este documento fija el lenguaje visual canónico derivado de Misión 01 V50/V51.
 - `#4D4288` purple border/shadow
 - `#8E7DCE` lavender
 
-### Acción principal
+### Primary action
 - `#F4C75E` yellow
 - `#F7D06F` hover
 - `#DDB047` pressed
 - `#D5A43D` shadow
-- `#FFE5A3` highlight/border auxiliar
+- `#FFE5A3` auxiliary highlight/border
 
-### Acción secundaria
+### Secondary action
 - `#6960B8` utility dark
 - `#776EC4` hover
 - `#5A51A7` pressed
@@ -27,66 +27,66 @@ Este documento fija el lenguaje visual canónico derivado de Misión 01 V50/V51.
 - `#9F92DB` light hover
 - `#8072C4` light pressed
 
-### Cian
+### Cyan
 - `#49C9D7` cyan
 - `#5FD3DF` hover
 - `#269AAA` shadow
 - `#A8EDF1` light
 
-### Texto
+### Text
 - `#FFFFFF` white
 - `#F8F9FA` soft white
 - `#B8C2CC` muted
 - `#17133A` dark text / dark outline
 
-## Botón estándar
+## Standard button
 
-La referencia es EXPLORAR / GUÍA de Misión 01.
+The canonical reference is the Mission 01 **EXPLORAR / GUÍA** (Explore / Guide) control family.
 
-- borde: `2px solid #17133A`
-- radio: `4px`
-- sombra: desplazada sólida, normalmente `5px 5px 0`
-- tipografía: Poppins normal, 700
-- sin sombras borrosas
-- sin efecto de flotación al hover
-- pressed: `translate(3px, 3px)` y sombra reducida `2px 2px 0`
-- acciones principales: amarillo sólido
-- acciones secundarias: morado sólido
-- triángulo simple a la izquierda para acciones ejecutables
+- border: `2px solid #17133A`
+- radius: `4px`
+- shadow: solid offset, normally `5px 5px 0`
+- typography: Poppins normal, 700
+- no blurred shadows
+- no floating/lift effect on hover
+- pressed state: `translate(3px, 3px)` with reduced `2px 2px 0` shadow
+- primary actions: solid yellow
+- secondary actions: solid purple
+- simple triangle on the left for executable actions
 
-El menú puede aumentar ancho/alto, pero no debe cambiar esta geometría ni el comportamiento.
+The menu may increase button width or height, but it should preserve this geometry and interaction behavior.
 
-## Caja de texto / panel estándar
+## Standard text box / panel
 
-- fondo principal: `#3B326B`
-- borde: `2px solid #17133A`
-- radio: `4px`
-- sombra: `6px 6px 0 #6960B8`
-- título: blanco, Poppins 700/800
-- cuerpo: `#F8F9FA`, Poppins 500
-- no usar glassmorphism, blur fuerte, bordes de 20–36 px ni sombras difusas como lenguaje principal
+- main background: `#3B326B`
+- border: `2px solid #17133A`
+- radius: `4px`
+- shadow: `6px 6px 0 #6960B8`
+- title: white, Poppins 700/800
+- body: `#F8F9FA`, Poppins 500
+- do not use glassmorphism, strong blur, 20–36 px radii, or diffuse shadows as the primary visual language
 
-Paneles internos pueden usar `#2D2654` con sombra `#4D4288`.
+Internal panels may use `#2D2654` with `#4D4288` shadow.
 
 ## Inputs
 
-- fondo claro `#F4EEFF`
-- borde oscuro `#17133A`
-- radio `4px`
-- texto `#17133A`
-- foco marcado con cian, sin cambiar de geometría
+- light background: `#F4EEFF`
+- dark border: `#17133A`
+- radius: `4px`
+- text: `#17133A`
+- focus indicated with cyan without changing component geometry
 
-## Componentes afectados
+## Components covered by this standard
 
 - `MenuScreen`
 - `AccessModal`
 - `IntroOverlay`
-- HUD de Misión 01 y posteriores
-- cajas de guía
-- cajas de explicación
-- popups de éxito/bitácora
-- formularios y nickname
+- Mission 01 and future mission HUDs
+- guide boxes
+- explanation boxes
+- success/logbook popups
+- forms and nickname fields
 
-## Regla permanente
+## Permanent rule
 
-No introducir un nuevo estilo de botón o caja por escena. Primero reutilizar `tokens.css` y `game-ui.css`; si falta una variante, agregarla al sistema común y documentarla aquí.
+Do not introduce a new button or panel style for an individual scene. Reuse `tokens.css` and `game-ui.css` first; if a required variant is missing, add it to the shared system and document it here.
