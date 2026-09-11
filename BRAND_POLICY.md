@@ -1,28 +1,28 @@
-# ApuLab Station — política de nombre e identidad
+# ApuLab Station — Name and Brand Identity Policy
 
-La licencia MIT del código **no concede una licencia sobre nombres, logotipos, emblemas, identidad visual ni otros signos utilizados para identificar el proyecto**.
+The MIT License covering the source code **does not grant a license to the names, logos, emblems, visual identity, or other signs used to identify the project**.
 
-## Elementos de identidad
+## Identity elements
 
-Esta política cubre, entre otros, los nombres **ApuLab** y **ApuLab Station**, sus logotipos, emblemas y combinaciones gráficas utilizadas como identidad del proyecto.
+This policy covers, among other things, the names **ApuLab** and **ApuLab Station**, their logos, emblems, and graphic combinations used as part of the project's identity.
 
-## Usos permitidos sin implicar afiliación
+## Permitted references without implying affiliation
 
-Se permite hacer referencias nominativas razonables al proyecto, por ejemplo para:
+Reasonable nominative references to the project are permitted, for example to:
 
-- indicar que un fork deriva de ApuLab Station;
-- citar el proyecto en documentación, investigación o material académico;
-- enlazar al repositorio original;
-- describir compatibilidad o procedencia del código.
+- state that a fork is derived from ApuLab Station;
+- cite the project in documentation, research, or academic material;
+- link to the original repository;
+- describe compatibility with or provenance from the codebase.
 
-Estas referencias no deben sugerir patrocinio, aprobación, asociación oficial o autoría que no exista.
+Such references must not imply sponsorship, endorsement, official association, or authorship that does not exist.
 
-## Forks y productos derivados
+## Forks and derivative products
 
-El código MIT puede ser reutilizado conforme a su licencia. Sin embargo, un fork o producto derivado que se presente públicamente como un proyecto distinto debería utilizar un nombre e identidad visual propios y no reutilizar la marca de forma que pueda generar confusión sobre su origen.
+Code covered by the MIT License may be reused according to that license. However, a fork or derivative product presented publicly as a separate project should use its own name and visual identity and should not reuse the ApuLab brand in a way that could create confusion about its origin.
 
-## Sin cesión de marca
+## No transfer of brand rights
 
-Ninguna disposición de la licencia MIT debe interpretarse como una autorización para registrar, apropiarse o utilizar la identidad del proyecto como marca propia.
+Nothing in the MIT License should be interpreted as authorization to register, appropriate, or use the project's identity as one's own trademark or brand.
 
-Este documento no afirma que todos los signos mencionados estén registrados en todas las jurisdicciones; delimita únicamente los derechos de identidad que **no se conceden** mediante la licencia del código.
+This document does not claim that every sign mentioned above is registered in every jurisdiction. It only defines the identity rights that **are not granted** through the software license.
