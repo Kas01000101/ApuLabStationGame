@@ -1,16 +1,45 @@
-# Fuentes finales de Misión 01
+# Mission 01 Final Sources
 
-La Misión 01 usa **7 posiciones lógicas** después de retirar completamente el antiguo Nivel 3.
+Mission 01 uses **seven canonical logical levels** after the former legacy Level 3 was removed from the active sequence.
 
-## Correspondencia de fuentes empaquetadas
+## Packed source lineage
 
-- `level1/` → Nivel 1.
-- `level2/` → Nivel 2.
-- `level3/` → eliminado del repositorio; ya no forma parte del build ni del flujo.
-- `level4/` → fuente del nuevo Nivel 3.
-- `level5/` → fuente del nuevo Nivel 4.
-- `level6/` → fuente del nuevo Nivel 5.
+The early and mid-mission packed source folders retain legacy names to preserve approved gameplay lineage:
 
-Los nombres empaquetados `level4/`, `level5/` y `level6/` se mantienen internamente para no reescribir ni alterar su gameplay. El último paso del pipeline genera las rutas públicas nuevas `level3.html`, `level4.html` y `level5.html`, actualizando únicamente numeración, navegación, desbloqueos y claves de continuidad dependientes del número de nivel.
+- `level1/` → canonical Level 1
+- `level2/` → canonical Level 2
+- `level3/` → removed; no longer part of the active build or flow
+- `level4/` → source lineage for canonical Level 3
+- `level5/` → source lineage for canonical Level 4
+- `level6/` → source lineage for canonical Level 5
 
-Los antiguos niveles 7 y 8 **no existen como fuentes integradas en esta rama**, por lo que los nuevos niveles 6 y 7 permanecen reservados/no disponibles. No se genera gameplay ficticio para ellos.
+The folder names `level4/`, `level5/`, and `level6/` intentionally remain unchanged internally. Renaming those source folders would add unnecessary risk to already validated gameplay.
+
+## Canonical Levels 6 and 7
+
+Canonical Levels 6 and 7 are generated and finalized by the current dedicated build pipeline, including:
+
+- `scripts/build-mission01-level6-from-level5.mjs`
+- Level 6 patch, telemetry, UX, and audit scripts
+- `scripts/build-mission01-level7-from-level5.mjs`
+- Level 7 sample/instrument, telemetry, UX, completion, and audit scripts
+
+This process deterministically produces the final mission runtime without requiring separate legacy `level7/` or `level8/` packed-source directories.
+
+## Build output
+
+The active pipeline emits and validates all seven public mission routes:
+
+```text
+level1.html
+level2.html
+level3.html
+level4.html
+level5.html
+level6.html
+level7.html
+```
+
+Only the canonical seven-level sequence is part of production. The removed legacy Level 3 is not restored or synthesized.
+
+**Mission 01 status: 7/7 complete.**

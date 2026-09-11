@@ -1,26 +1,26 @@
-# ApuLab Station — Auditoría de Canon de Intro
+# ApuLab Station — Intro Canon Audit
 
-La migración modular debe preservar el comportamiento visual aprobado de la intro V38/V42. Esta auditoría identifica regresiones encontradas tras la primera migración.
+The modular migration must preserve the approved visual behavior of Intro V38/V42. This audit documents regressions identified after the first migration.
 
-## Regla
+## Rule
 
-**Modularizar no significa rediseñar.** Los módulos Three.js deben extraer el código visual aprobado, no reinterpretarlo.
+**Modularizing does not mean redesigning.** Three.js modules should extract the approved visual implementation rather than reinterpret it.
 
-## Restauración obligatoria
+## Required restoration
 
-1. Óptica/cámaras canónicas (FOV 36, exposure .93).
-2. Ruth voxel canónica completa.
-3. Rover Spirit/Opportunity canónico y Ayni con el mismo diseño base.
-4. Match cut de telemetría Marte → monitor ApuLab.
-5. Monitor dinámico, visuales STEM y sensores de Ayni antes de la caída.
-6. Estado `telemetrySimulation` previo al reveal de la batería.
-7. Audio de conducción/falla y recuperación segura del animation loop.
-8. `OMITIR INTRO` solo cuando la intro ya fue vista.
-9. Conexión efectiva del cierre de intro con Mission01.
+1. Canonical optics/cameras (FOV 36, exposure .93).
+2. Complete canonical voxel Ruth.
+3. Canonical Spirit/Opportunity-style rover and AYNI with the same base design.
+4. Mars telemetry → ApuLab monitor match cut.
+5. Dynamic monitor, STEM visuals, and AYNI sensors before the failure.
+6. `telemetrySimulation` state before the battery reveal.
+7. Driving/failure audio and safe animation-loop recovery.
+8. The canonical `OMITIR INTRO` (Skip Intro) control only after the intro has already been viewed.
+9. Effective handoff from the end of the intro into Mission 01.
 
-## Partes que no deben rehacerse desde cero
+## Parts that must not be rebuilt from scratch
 
-- FailureEffects: tapa, humo gris, panel solar, piezas y apagado progresivo.
-- Nickname sin timeout.
-- Diálogos condensados Ruth/Ayni.
-- Presentación dinámica de Ayni.
+- `FailureEffects`: cover, gray smoke, solar panel, debris, and progressive shutdown.
+- Nickname flow without a timeout.
+- Condensed Ruth/AYNI dialog.
+- Dynamic AYNI presentation.

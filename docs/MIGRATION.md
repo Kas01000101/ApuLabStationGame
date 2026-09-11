@@ -1,54 +1,60 @@
-# Migración desde el prototipo monolítico Three.js
+# Migration from the Monolithic Three.js Prototype
 
-El HTML prototipo queda únicamente como referencia histórica/visual. La arquitectura activa vive en módulos TypeScript dentro de `src/`.
+The original prototype HTML is retained only as historical/visual reference. The active architecture lives in TypeScript modules under `src/`, while the canonical Mission 01 runtime is produced through the current deterministic build/patch pipeline.
 
-## Fase 1 — completada
+## Phase 1 — complete
 
 - Vite + TypeScript + Three.js
-- ThreeEngine
-- MenuScreen y AccessModal DOM
-- GameState y SessionService
-- frontera Mock/Supabase mediante ResearchRepository
-- telemetría offline-first
-- arquitectura sin Phaser en runtime
+- `ThreeEngine`
+- DOM-based `MenuScreen` and `AccessModal`
+- `GameState` and `SessionService`
+- Mock/Supabase boundary through `ResearchRepository`
+- offline-first telemetry
+- no Phaser dependency in the active runtime
 
-## Fase 2 — portada de la intro, completada como base funcional
+## Phase 2 — intro migration — complete
 
-Se migró desde el prototipo a módulos reales:
+The prototype intro was migrated into real modules:
 
-1. `Rover.ts`: base Spirit/Opportunity reutilizable con deck mariposa, seis ruedas, rocker-bogie, mástil, cámaras principales, antena, parabólica, luces y panel desprendible.
-2. `Yachay.ts`: comportamiento de exploración, escaneo, telemetría y reacción visual.
-3. `Ayni.ts`: rover gemelo con avance/rebote de presentación y gestos de mástil.
-4. `Ruth.ts`: personaje voxel cuadrado con cabello por bloques, ojos rectangulares, gafas finas, uniforme, banderas y placa RUTH / MANZANARES.
-5. `MarsWorld.ts`: Sector APU-07 natural, terreno irregular, rocas, dunas, huellas, formación objetivo, polvo y escaneo cian. No existe la antigua rampa/piedra rectangular naranja.
-6. `FailureEffects.ts`: tapa lateral, humo low-poly, desprendimiento del panel solar y piezas que caen y permanecen atrás mientras Yachay sigue avanzando.
-7. `TelemetryEffects.ts`: pulsos y pulso protagonista de telemetría.
-8. `ApuLabWorld.ts`: bahía, paredes, techo/compuerta, luces, aterrizaje, ambiente técnico, foco de Ruth y reveal de mesa de práctica.
-9. `CinematicCamera.ts`: cámara por shots y blends.
-10. `IntroAudio.ts`: BIP, PFF, CLANK, CLINK, WOOOSH, BOOM, telemetría y success con WebAudio.
-11. `IntroOverlay.ts`: diálogos, SFX, ubicación, beats, OMITIR INTRO arriba-izquierda y apodo sin temporizador.
-12. `IntroController.ts`: timeline Marte → falla → telemetría → Ruth → apodo → Ayni → método → Misión 01.
+1. `Rover.ts`: reusable Spirit/Opportunity-style base with butterfly deck, six wheels, rocker-bogie suspension, mast, main cameras, antenna, dish, lights, and detachable panel.
+2. `Yachay.ts`: exploration, scanning, telemetry, and visual reaction behavior.
+3. `Ayni.ts`: twin rover with presentation movement/bounce and mast gestures.
+4. `Ruth.ts`: block-style voxel character with hair, rectangular eyes, thin glasses, uniform, flags, and RUTH / MANZANARES badge.
+5. `MarsWorld.ts`: natural APU-07 sector with irregular terrain, rocks, dunes, tracks, target formation, dust, and cyan scanning.
+6. `FailureEffects.ts`: side cover, low-poly smoke, solar-panel detachment, and debris behavior.
+7. `TelemetryEffects.ts`: telemetry pulses and protagonist pulse.
+8. `ApuLabWorld.ts`: bay, walls, roof/gate, lighting, landing area, technical atmosphere, Ruth spotlight, and practice-table reveal.
+9. `CinematicCamera.ts`: shot-based camera and blends.
+10. `IntroAudio.ts`: BIP, PFF, CLANK, CLINK, WOOOSH, BOOM, telemetry, and success WebAudio cues.
+11. `IntroOverlay.ts`: dialog, SFX, location, beats, `SKIP INTRO`, and nickname flow without a timer.
+12. `IntroController.ts`: Mars → failure → telemetry → Ruth → nickname → AYNI → method → Mission 01 timeline.
 
-## Regla de apodo
+## Nickname rule
 
-El estado `nickname` no tiene timeout ni avance automático. La cinemática se mantiene pausada hasta que la jugadora escriba un apodo y pulse Continuar.
+The `nickname` state has no timeout or automatic progression. The cinematic remains paused until the player enters a nickname and continues.
 
-## Regla de datos
+## Data boundary
 
-Three.js y la intro no conocen contraseñas, Supabase ni persistencia. El flujo de sesión sigue siendo:
+Three.js and the intro do not know participant passwords, service-role credentials, RLS internals, or direct database persistence details. The session flow remains:
 
-`MenuScreen → AccessModal → SessionService → ResearchRepository → intro`
+```text
+MenuScreen → AccessModal → SessionService → ResearchRepository → Intro → Mission 01
+```
 
-DEMO usa sesión anónima (`participant_id = null`). STUDY permanece fail-closed hasta que la autenticación server-side real esté configurada.
+DEMO uses an anonymous session (`participant_id = null`). STUDY now uses implemented server-side authentication, a signed short-lived session proof, and the Supabase research repository.
 
-## Siguiente fase
+## Mission migration — complete
 
-- portar gameplay interactivo de Misión 01 · MEDIR a módulos Three.js
-- conectar multímetro y batería como objetos interactivos reales
-- añadir tests visuales/funcionales del timeline
-- revisar assets binarios (fondo canónico del menú, audio/modelos si luego se externalizan)
-- validar build y rendimiento en navegador objetivo
+Mission 01 is now fully integrated as a seven-level canonical sequence. The active pipeline reconstructs and validates the approved gameplay sources, generates Levels 6 and 7 through dedicated builders, applies level-specific patches, and runs regression audits before the production build.
 
-## Regla permanente
+Current state:
 
-No volver a crear nuevas versiones `Vxx.html` como arquitectura final. Cada mejora debe vivir en su módulo TypeScript correspondiente.
+- canonical Mission 01: **7/7 complete**;
+- study telemetry: implemented for all seven levels;
+- production deployment: active on Vercel;
+- official study backend: active on Supabase;
+- browser E2E and research validation: included in CI.
+
+## Permanent rule
+
+Do not return to standalone `Vxx.html` files as the final application architecture. Improvements must live in the maintained TypeScript/application modules or in the explicit Mission 01 source/build pipeline, with regression coverage for approved gameplay behavior.

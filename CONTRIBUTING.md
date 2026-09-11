@@ -1,38 +1,38 @@
-# Contribuir a ApuLab Station
+# Contributing to ApuLab Station
 
-Gracias por contribuir al proyecto. Estas reglas buscan mantener una procedencia clara del código y de los recursos utilizados.
+Thank you for contributing to the project. These rules are intended to keep the provenance of code and project resources clear.
 
-## Código
+## Code
 
-Al enviar código al repositorio, declaras que tienes derecho a aportarlo y aceptas que la contribución pueda distribuirse bajo la misma licencia que corresponda al archivo o componente de destino. Para el código principal cubierto por [`LICENSE`](LICENSE), esa licencia es MIT.
+By submitting code to the repository, you represent that you have the right to contribute it and agree that the contribution may be distributed under the same license that applies to the destination file or component. For the main source code covered by [`LICENSE`](LICENSE), that license is MIT.
 
-Conservas el copyright que legalmente te corresponda sobre tu contribución.
+You retain any copyright that legally belongs to you over your contribution.
 
-## Assets y contenido creativo
+## Assets and creative content
 
-No envíes imágenes, modelos, audio, ilustraciones, fuentes, textos, datasets u otros materiales de terceros salvo que:
+Do not submit third-party images, models, audio, illustrations, fonts, text, datasets, or other materials unless:
 
-- sean de tu autoría y tengas derecho a aportarlos; o
-- exista una licencia compatible que permita su uso y redistribución; y
-- la atribución y licencia se documenten claramente en el pull request y, cuando corresponda, en `THIRD_PARTY_NOTICES.md`.
+- you created them and have the right to contribute them; or
+- a compatible license permits their use and redistribution; and
+- attribution and licensing are clearly documented in the pull request and, where applicable, in `THIRD_PARTY_NOTICES.md`.
 
-Los assets originales aceptados en las áreas protegidas del proyecto se rigen por [`CONTENT-LICENSE.md`](CONTENT-LICENSE.md), salvo acuerdo o licencia específica diferente.
+Original assets accepted into protected project areas are governed by [`CONTENT-LICENSE.md`](CONTENT-LICENSE.md), unless a different agreement or specific license applies.
 
 ## Pull requests
 
-Antes de solicitar revisión:
+Before requesting review:
 
-- ejecuta `npm run build`;
-- evita incluir credenciales, tokens, datos personales o archivos `.env` reales;
-- explica qué cambia y por qué;
-- documenta nuevas dependencias y sus licencias;
-- no elimines avisos de copyright o licencia existentes;
-- no cambies la identidad visual o el alcance legal del proyecto sin revisión explícita.
+- run `npm run build`;
+- do not include credentials, tokens, personal information, participant data, private datasets, or real `.env` files;
+- explain what changes and why;
+- document new dependencies and their licenses;
+- do not remove existing copyright or license notices;
+- do not change the project's visual identity or legal scope without explicit review.
 
-## Seguridad
+## Security
 
-Los problemas de seguridad no deben publicarse con secretos, credenciales o datos sensibles. Consulta [`docs/SECURITY.md`](docs/SECURITY.md).
+Security issues must not be published together with secrets, credentials, or sensitive data. See [`docs/SECURITY.md`](docs/SECURITY.md).
 
-## Marca
+## Brand
 
-Una contribución de código no concede derechos sobre el nombre o identidad de ApuLab Station. Consulta [`BRAND_POLICY.md`](BRAND_POLICY.md).
+A code contribution does not grant rights to the ApuLab Station name or identity. See [`BRAND_POLICY.md`](BRAND_POLICY.md).

@@ -1,28 +1,52 @@
-# Misión 01 · Auditoría de secuencia 1–7
+# Mission 01 · Canonical 1–7 Sequence Audit
 
-La Misión 01 fue renumerada conceptualmente a **7 niveles** después de eliminar por completo el antiguo Nivel 3.
+Mission 01 uses **seven canonical logical levels**. The former legacy Level 3 was removed from the active mission, and the remaining sequence was renumbered.
 
-## Correspondencia
+## Legacy-to-canonical mapping
 
-| Antes | Ahora |
+| Legacy position | Canonical position |
 | --- | --- |
-| Nivel 1 | Nivel 1 |
-| Nivel 2 | Nivel 2 |
-| Nivel 3 | ELIMINADO |
-| Nivel 4 | Nivel 3 |
-| Nivel 5 | Nivel 4 |
-| Nivel 6 | Nivel 5 |
-| Nivel 7 | Nivel 6 |
-| Nivel 8 | Nivel 7 |
+| Level 1 | Level 1 |
+| Level 2 | Level 2 |
+| Level 3 | Removed |
+| Level 4 | Level 3 |
+| Level 5 | Level 4 |
+| Level 6 | Level 5 |
+| Legacy later-stage lineage | Levels 6–7 are produced by the current dedicated builders and patch pipeline |
 
-## Estado real de esta rama
+## Current repository state
 
-Las fuentes integradas existentes son los antiguos niveles **1, 2, 4, 5 y 6**. Por lo tanto, después del remapeo quedan disponibles los nuevos niveles **1–5**. Los antiguos niveles 7 y 8 nunca fueron integrados en este repositorio, así que los nuevos niveles 6 y 7 quedan reservados/no disponibles hasta que existan sus fuentes reales.
+The active production pipeline builds and validates **all seven canonical levels**.
 
-No se inventa gameplay para completar posiciones faltantes.
+The packed source directories preserve legacy naming for the early/mid mission lineage so approved gameplay does not need to be rewritten solely for renumbering. Canonical Levels 6 and 7 are deterministically created and finalized by the current Level 6/7 build and patch scripts before the production mission is emitted.
 
-## Regla de regresión
+The final runtime therefore exposes:
 
-La jugabilidad interna de los niveles conservados no se modifica. El pipeline solo cambia numeración visible, metadata de nivel, navegación, desbloqueos y claves de continuidad cuyo nombre depende del número de nivel.
+- `level1.html`
+- `level2.html`
+- `level3.html`
+- `level4.html`
+- `level5.html`
+- `level6.html`
+- `level7.html`
 
-El antiguo Nivel 3 y sus parches de TP1/TP2/TP3, rastreo y source harness fueron retirados del pipeline activo y del árbol de fuentes.
+Mission 01 is **7/7 complete**.
+
+## Regression rule
+
+Approved gameplay behavior must not be changed merely to rename or renumber levels. The pipeline may transform visible numbering, navigation, unlock keys, telemetry identity, and other level-number-dependent continuity fields while preserving the intended interaction contract.
+
+The active validation pipeline checks, among other things:
+
+- seven-level generation and completeness;
+- canonical numbering;
+- level-to-level transitions;
+- generated inline JavaScript syntax;
+- the shared `1672 × 941` logical stage contract;
+- help/guide lifecycle behavior;
+- level-specific gameplay contracts;
+- Level 5 repeat/optimization flow;
+- Level 6 scientific-operation flow;
+- Level 7 instrument-selection and completion handoff.
+
+The removed legacy Level 3 and its old tracing/source-harness behavior are not part of the canonical production mission.

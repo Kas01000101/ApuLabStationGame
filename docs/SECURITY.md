@@ -1,44 +1,94 @@
-# Seguridad y gobernanza de datos
+# Security and Data Governance
 
-## Estado actual
+## Current state
 
-La arquitectura activa es `Vite + TypeScript + Three.js + DOM`. Phaser no forma parte del runtime principal.
+The active application architecture is `Vite + TypeScript + Three.js + DOM`, with Supabase providing the protected research backend. Phaser is not part of the main runtime.
 
-### Garantías aplicadas
+The official study flow is implemented and operates with server-side participant authentication, bounded telemetry ingestion, research-table access controls, and build/version guards.
 
-- Nunca guardar contraseña en `localStorage`.
-- El código del participante no se guarda en `GameState` ni viaja en telemetría después de autenticarse.
-- DEMO usa `participant_id = null`.
-- STUDY requiere `participant_id` y permanece **fail-closed** hasta implementar autenticación real server-side.
-- `SUPABASE_SERVICE_ROLE_KEY` existe únicamente en la Edge Function / entorno de Supabase, nunca en variables `VITE_*`.
-- El cliente de telemetría rechaza payloads con campos de PII/credenciales y limita cada payload a 8192 bytes.
-- La Edge Function vuelve a validar payload, tamaño, tipos de evento, origen y campos permitidos.
-- La Edge Function no hace `...spread` del objeto enviado por el navegador hacia la base de datos: normaliza mediante lista blanca.
-- `participant_id`, `session_mode`, `build_version` y `schema_version` de los eventos se derivan de la sesión almacenada, no del cliente.
-- Los errores internos de Postgres/Supabase no se devuelven al navegador.
-- Los eventos se sincronizan en lotes máximos de 20 con backoff y se eliminan localmente una vez confirmados.
-- La migración `supabase/migrations/20260830090000_research_security_baseline.sql` habilita RLS y revoca acceso directo de `anon` y `authenticated` a las tablas de investigación.
-- `participant_code` crudo queda forzado a `NULL` para nuevas filas mediante constraints.
-- Se minimiza fingerprinting: `user_agent` persistido se reduce al valor fijo `web`.
-- CORS de la Edge Function usa allowlist `APULAB_ALLOWED_ORIGINS`; no usa `*`.
+## Implemented controls
 
-## Dependencias
+### Authentication and participant identity
 
-- Vite debe mantenerse en una rama con soporte de seguridad. El proyecto fija `vite@7.3.6`.
-- `esbuild@0.28.2` está fijado y aprobado explícitamente mediante `allowScripts`.
-- No usar `dangerously-allow-all-scripts`.
-- Falta todavía versionar un `package-lock.json`; hasta que exista, la instalación de dependencias transitivas no es totalmente reproducible.
+- Participant study codes and credentials are verified server-side by the Supabase Edge Function.
+- Credentials are stored as **PBKDF2-SHA256 hashes**, never as plaintext database values.
+- Participant study codes are represented server-side by keyed hashes rather than raw codes in research records.
+- Successful authentication produces a short-lived signed session proof used to authorize study-session operations.
+- The browser is never trusted to declare its own `participant_id` for an official study session.
+- Authentication failures are rate-limited: repeated failures within the configured window trigger a temporary cooldown.
 
-## Bloqueadores antes de habilitar STUDY
+### Secret management
 
-1. Implementar `/authenticate` en Edge Function con hash de código/credencial server-side.
-2. Implementar rate limiting/cooldown usando `apulab_auth_attempts`.
-3. Emitir una prueba/token de sesión de corta duración después del login y exigirla en endpoints STUDY.
-4. Validar y aplicar la migración RLS en un proyecto Supabase de staging.
-5. Ejecutar pruebas de idempotencia, separación STUDY/DEMO y offline→online.
-6. Generar y versionar `package-lock.json` con un npm confiable, luego usar `npm ci` en CI/Vercel.
-7. Configurar `APULAB_ALLOWED_ORIGINS` con los dominios exactos de producción/preview autorizados.
+- `SUPABASE_SERVICE_ROLE_KEY` exists only in the Supabase server environment and is never exposed through `VITE_*` variables or shipped to the browser.
+- Authentication pepper and session-proof signing secrets are server-side only.
+- Real credentials, participant datasets, and production secrets must never be committed to Git.
 
-## Regla de seguridad
+### Telemetry validation
 
-CORS no es autenticación. Aunque el origen esté restringido, las sesiones STUDY nunca deben confiar en `participant_id` enviado por el navegador. La identidad debe derivarse exclusivamente de una autenticación server-side verificable.
+- The client and Edge Function use an explicit event allowlist.
+- Telemetry payloads reject PII and credential-related field names.
+- Individual event payloads are size-limited.
+- Requests and telemetry batches are bounded; event synchronization uses batches of at most 20 events.
+- The Edge Function validates payload shape, types, event names, participant/session ownership, and study metadata.
+- Browser-supplied objects are not blindly spread into database inserts; accepted fields are normalized through an allowlist.
+- Internal PostgreSQL/Supabase errors are not returned verbatim to the browser.
+
+### Study integrity
+
+Official STUDY sessions are accepted only when the backend confirms:
+
+- the study exists and is active;
+- the participant and assignment are active;
+- the assignment uses the expected `game` condition;
+- the request is for the authorized research environment;
+- build version matches the frozen study configuration;
+- Git commit SHA matches the frozen study configuration;
+- telemetry schema version matches;
+- protocol version matches.
+
+This prevents official data from being silently mixed across incompatible deployments or research protocols.
+
+### Database protections
+
+- Research tables use Row Level Security and direct anonymous/authenticated browser access is revoked where appropriate.
+- New research rows do not persist raw participant codes.
+- Service-role permissions are restricted to the server-side ingestion path.
+- Database constraints and uniqueness rules support event ordering and idempotent ingestion.
+- QA and official-study analytics are separated.
+
+### Privacy and data minimization
+
+Gameplay telemetry does not accept fields for names, email addresses, phone numbers, addresses, government IDs, birth dates, schools, parent names, passwords, credentials, audio, video, images, or screenshots.
+
+`user_agent` is intentionally reduced to the fixed value `web` to avoid unnecessary browser fingerprinting.
+
+### Synchronization and resilience
+
+- Events are queued locally using an offline-first approach.
+- Confirmed events are removed from the local queue only after successful server acknowledgment.
+- Synchronization uses bounded batches and retry/backoff behavior.
+- Duplicate ingestion is controlled through event identity and database constraints.
+
+### CORS
+
+The Edge Function uses an explicit origin allowlist for authorized application origins and does not rely on wildcard CORS.
+
+**CORS is not authentication.** Origin checks are an additional browser control; official study identity and authorization still come from server-side credential verification and signed session proof.
+
+## Dependency and build controls
+
+- Vite is pinned to `7.3.6`.
+- TypeScript is pinned to `5.9.2`.
+- Three.js is pinned to `0.180.0`.
+- `esbuild@0.28.2` is explicitly pinned and approved through `allowScripts`.
+- `package-lock.json` is versioned, allowing reproducible npm dependency resolution.
+- CI runs build, security, research-contract, database, gameplay-integrity, and browser E2E checks.
+
+## Permanent rules
+
+- Never expose server-only secrets to the client.
+- Never commit participant credentials or private research datasets.
+- Never accept official participant identity directly from browser-controlled fields.
+- Never expand telemetry to personal information without an explicit research, ethical, and technical review.
+- Keep DEMO, QA, and official STUDY data paths isolated.
+- Treat changes to study build/version contracts as release changes that require corresponding research configuration updates.

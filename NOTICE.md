@@ -2,30 +2,30 @@
 
 Copyright © 2026 ApuLab Station contributors.
 
-Este repositorio contiene materiales con **distintos regímenes de licencia**.
+This repository contains materials governed by **different licensing terms**.
 
-## 1. Código fuente
+## 1. Source code
 
-El código fuente identificado como parte del software se distribuye bajo la **MIT License**, disponible en [`LICENSE`](LICENSE).
+Source code identified as part of the software is distributed under the **MIT License**, available in [`LICENSE`](LICENSE).
 
-MIT permite, entre otras cosas, usar, copiar, modificar, fusionar, publicar, distribuir, sublicenciar y vender copias del software cubierto por esa licencia, sujeto a sus condiciones.
+Among other permissions, MIT allows use, copying, modification, merging, publication, distribution, sublicensing, and sale of copies of the software covered by that license, subject to its conditions.
 
-## 2. Contenido protegido
+## 2. Protected content
 
-La licencia MIT no debe interpretarse como una licencia general sobre la identidad visual, narrativa, personajes, textos educativos, diseño de misiones, ilustraciones, modelos, texturas, audio u otros assets originales. Esos materiales se rigen por [`CONTENT-LICENSE.md`](CONTENT-LICENSE.md), salvo indicación distinta.
+The MIT License must not be interpreted as a general license for the project's visual identity, narrative, characters, educational text, mission design, illustrations, models, textures, audio, or other original assets. Those materials are governed by [`CONTENT-LICENSE.md`](CONTENT-LICENSE.md), unless stated otherwise.
 
-## 3. Nombre e identidad
+## 3. Name and identity
 
-La licencia del código no concede derechos sobre la identidad del proyecto. Consulta [`BRAND_POLICY.md`](BRAND_POLICY.md).
+The source-code license does not grant rights to the project's name or identity. See [`BRAND_POLICY.md`](BRAND_POLICY.md).
 
-## 4. Software de terceros
+## 4. Third-party software
 
-Las librerías y herramientas externas conservan sus respectivas licencias y copyrights. Consulta [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) y los avisos incluidos por cada dependencia.
+External libraries and tools retain their respective licenses and copyrights. See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) and the notices distributed by each dependency.
 
-## 5. Datos y credenciales
+## 5. Data and credentials
 
-Credenciales, secretos, datos personales, datos de participantes y datasets privados no forman parte del material licenciado públicamente por este repositorio y no deben incorporarse al control de versiones.
+Credentials, secrets, personal information, participant data, and private datasets are not part of the material publicly licensed through this repository and must not be committed to version control.
 
-## 6. Ausencia de garantías
+## 6. No warranties
 
-El software MIT se entrega bajo las condiciones y exclusiones de garantía establecidas en la propia licencia MIT. Los documentos adicionales del repositorio no amplían esas garantías.
+Software distributed under MIT is provided subject to the warranty disclaimers and limitations stated in the MIT License itself. Additional repository documents do not expand those warranties.
