@@ -1,10 +1,10 @@
 # Third-Party Notices
 
-ApuLab Station utiliza software de terceros. Cada componente conserva su copyright y licencia original.
+ApuLab Station uses third-party software. Each component retains its original copyright and license.
 
-Las versiones directas declaradas actualmente en `package.json` incluyen:
+The direct versions currently declared in `package.json` include:
 
-| Componente | Versión | Licencia |
+| Component | Version | License |
 | --- | ---: | --- |
 | Three.js | 0.180.0 | MIT |
 | @types/three | 0.180.0 | MIT |
@@ -13,11 +13,11 @@ Las versiones directas declaradas actualmente en `package.json` incluyen:
 | esbuild | 0.28.2 | MIT |
 | @webgpu/types | 0.1.71 | BSD-3-Clause |
 
-El archivo `package-lock.json` contiene el árbol de dependencias resuelto utilizado por npm. Las dependencias transitivas pueden utilizar licencias adicionales y deben conservar los avisos exigidos por sus respectivos titulares.
+`package-lock.json` contains the resolved dependency tree used by npm. Transitive dependencies may use additional licenses and must retain the notices required by their respective rights holders.
 
-Este documento es un índice informativo y no sustituye los textos de licencia incluidos por los proyectos upstream o distribuidos con sus paquetes.
+This document is an informational index and does not replace the license texts provided by upstream projects or distributed with their packages.
 
-## Referencias upstream
+## Upstream references
 
 - Three.js: `mrdoob/three.js`
 - TypeScript: `microsoft/TypeScript`
@@ -26,15 +26,15 @@ Este documento es un índice informativo y no sustituye los textos de licencia i
 - @webgpu/types: `gpuweb/types`
 - @types/three: `DefinitelyTyped/DefinitelyTyped`
 
-Al redistribuir builds, paquetes o copias que incluyan código de terceros, deben conservarse los avisos y textos exigidos por las licencias correspondientes.
+When redistributing builds, packages, or copies that include third-party code, retain all notices and license texts required by the corresponding licenses.
 
-## Música
+## Music
 
 ### “Specular City” — Vitalezzz
 
-- Fuente: https://opengameart.org/content/specular-city
-- Licencia: CC0 1.0 Universal (dedicación al dominio público)
-- Texto de la licencia: https://creativecommons.org/publicdomain/zero/1.0/
-- Archivo local: `public/assets/audio/specular-city.mp3`
+- Source: https://opengameart.org/content/specular-city
+- License: CC0 1.0 Universal (Public Domain Dedication)
+- License text: https://creativecommons.org/publicdomain/zero/1.0/
+- Local file: `public/assets/audio/specular-city.mp3`
 
-La pista se utiliza como música ambiental de ApuLab Station, a volumen bajo y en reproducción continua.
+The track is used as low-volume, continuously looping ambient music in ApuLab Station.
