@@ -1,39 +1,39 @@
-# ApuLab Station — licencia de contenido y assets
+# ApuLab Station — Content and Asset License
 
-Copyright © 2026 ApuLab Station contributors. **Todos los derechos reservados.**
+Copyright © 2026 ApuLab Station contributors. **All rights reserved.**
 
-## Alcance
+## Scope
 
-Salvo que un archivo concreto indique expresamente otra licencia, la licencia MIT del archivo [`LICENSE`](LICENSE) **no se aplica** a los materiales creativos, educativos o de identidad del proyecto.
+Unless a specific file expressly states otherwise, the MIT License in [`LICENSE`](LICENSE) **does not apply** to the project's creative, educational, or identity materials.
 
-Esto incluye, entre otros:
+This includes, among other things:
 
-- logotipos, emblemas, iconografía y sistema visual original;
-- ilustraciones, imágenes, fondos, sprites, texturas y modelos 3D originales;
-- personajes, representaciones visuales y diseños de personajes;
-- narrativa, diálogos, guiones, textos y secuencias de historia;
-- diseño pedagógico, contenido educativo y estructura narrativa de las misiones;
-- diseño original de niveles, retos y material audiovisual;
-- música, efectos de sonido y grabaciones originales, cuando existan;
-- material promocional, capturas preparadas y piezas gráficas originales.
+- logos, emblems, iconography, and the original visual system;
+- original illustrations, images, backgrounds, sprites, textures, and 3D models;
+- characters, visual representations, and character designs;
+- narrative, dialogue, scripts, written content, and story sequences;
+- pedagogical design, educational content, and mission narrative structure;
+- original level design, challenges, and audiovisual material;
+- original music, sound effects, and recordings, when present;
+- promotional material, prepared screenshots, and original graphic pieces.
 
-## Derechos reservados
+## Rights reserved
 
-No se concede mediante este repositorio permiso para copiar, redistribuir, publicar, vender, sublicenciar, adaptar o explotar comercialmente estos materiales protegidos, excepto cuando:
+This repository does not grant permission to copy, redistribute, publish, sell, sublicense, adapt, or commercially exploit these protected materials, except when:
 
-1. una licencia específica incluida junto al material lo permita; o
-2. exista autorización escrita del titular correspondiente.
+1. a specific license included with the material permits such use; or
+2. written authorization has been granted by the corresponding rights holder.
 
-La disponibilidad pública de un archivo en GitHub **no equivale por sí sola a una licencia de reutilización**.
+The public availability of a file on GitHub **does not by itself constitute a license for reuse**.
 
-## Código y contenido son ámbitos distintos
+## Code and content are separate licensing domains
 
-El código expresamente cubierto por [`LICENSE`](LICENSE) continúa bajo MIT y conserva todas las libertades que esa licencia concede. Este documento no modifica ni reduce los derechos ya otorgados por MIT sobre ese código.
+Source code expressly covered by [`LICENSE`](LICENSE) remains under the MIT License and retains all freedoms granted by that license. This document does not modify or reduce rights already granted under MIT for that code.
 
-## Materiales de terceros
+## Third-party materials
 
-Este documento tampoco reclama derechos sobre materiales pertenecientes a terceros. Las dependencias, librerías y materiales externos conservan sus propias licencias y avisos. Consulta [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+This document does not claim rights over materials owned by third parties. Dependencies, libraries, and external materials retain their own licenses and notices. See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 
-## Uso educativo o académico
+## Educational or academic use
 
-Una cita, referencia o análisis académico del proyecto no implica autorización para redistribuir sus assets. Cuando la legislación aplicable permita determinados usos sin autorización, este documento no pretende limitar esos derechos legales.
+Citing, referencing, or academically analyzing the project does not imply permission to redistribute its assets. Where applicable law permits certain uses without authorization, this document is not intended to restrict those legal rights.
