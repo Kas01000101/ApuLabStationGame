@@ -15,7 +15,7 @@ The modular migration must preserve the approved visual behavior of Intro V38/V4
 5. Dynamic monitor, STEM visuals, and AYNI sensors before the failure.
 6. `telemetrySimulation` state before the battery reveal.
 7. Driving/failure audio and safe animation-loop recovery.
-8. `SKIP INTRO` only after the intro has already been viewed.
+8. The canonical `OMITIR INTRO` (Skip Intro) control only after the intro has already been viewed.
 9. Effective handoff from the end of the intro into Mission 01.
 
 ## Parts that must not be rebuilt from scratch
