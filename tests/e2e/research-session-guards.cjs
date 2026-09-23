@@ -88,10 +88,52 @@ const STUDY_ID = 'APULAB-QA-2026';
     });
   };
 
+  let demoContext;
   let context1;
   let context2;
   let lifecycleContext;
   try {
+    // Production-like Vite runs with VITE_DATA_MODE=supabase. Demo must still
+    // be fully local and must not touch the Edge endpoint at all.
+    let demoEdgeRequests = 0;
+    demoContext = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+    await demoContext.route(`${EDGE_PREFIX}/**`, async (route) => {
+      demoEdgeRequests += 1;
+      await route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: false, error: 'supabase_unavailable' }),
+      });
+    });
+    const demoPage = await demoContext.newPage();
+    await demoPage.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
+    const demo = await demoPage.evaluate(async () => {
+      localStorage.clear();
+      const { SessionService } = await import('/src/systems/SessionService.ts');
+      const { SyncService } = await import('/src/systems/SyncService.ts');
+      const { GameState } = await import('/src/systems/GameState.ts');
+      const { LocalQueueService } = await import('/src/systems/LocalQueueService.ts');
+
+      const started = await new SessionService().startDemo();
+      await SyncService.flush();
+      const state = GameState.getInstance();
+      const sessions = JSON.parse(localStorage.getItem('apulab_mock_sessions_v2') || '[]');
+      const events = JSON.parse(localStorage.getItem('apulab_mock_events_v2') || '[]');
+      return {
+        started,
+        sessionId: state.sessionId,
+        context: LocalQueueService.getSessionContext(state.sessionId),
+        localSession: sessions.find((row) => row.session_id === state.sessionId) || null,
+        localEvents: events.filter((row) => row.session_id === state.sessionId),
+      };
+    });
+    assert(demo.started === true, 'demo did not start while Supabase endpoint was unavailable');
+    assert(demoEdgeRequests === 0, `demo unexpectedly called Edge endpoint ${demoEdgeRequests} time(s)`);
+    assert(demo.context && demo.context.repository_mode === 'mock', 'demo session context was not pinned to mock repository');
+    assert(demo.localSession && demo.localSession.session_mode === 'demo', 'demo session was not persisted locally');
+    assert(demo.localEvents.some((event) => event.event_type === 'session_started'), 'demo session_started was not persisted locally');
+    await demoContext.close(); demoContext = null;
+
     context1 = await browser.newContext({ viewport: { width: 1280, height: 720 } });
     context2 = await browser.newContext({ viewport: { width: 1280, height: 720 } });
     await installFakeEdge(context1);
@@ -257,9 +299,11 @@ const STUDY_ID = 'APULAB-QA-2026';
     assert(new Set(sequences).size === sequences.length, 'lifecycle event_seq duplicate detected');
     for (let i = 1; i < sequences.length; i += 1) assert(sequences[i] === sequences[i - 1] + 1, `lifecycle event_seq gap at ${sequences[i - 1]}→${sequences[i]}`);
 
+    console.log('Demo local-first PASS · Supabase-mode build · zero Edge requests');
     console.log(`Research session guard PASS · parallel browser blocked · resume=${first.sessionId}`);
     console.log(`Research lifecycle PASS · N1→N7 · starts=7 · completes=7 · session_completed=1 · events=${lifecycleEvents.length}`);
   } finally {
+    if (demoContext) await demoContext.close().catch(() => {});
     if (context1) await context1.close().catch(() => {});
     if (context2) await context2.close().catch(() => {});
     if (lifecycleContext) await lifecycleContext.close().catch(() => {});
