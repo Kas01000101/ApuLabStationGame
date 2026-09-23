@@ -22,12 +22,14 @@ export class SyncService {
       this.rerunRequested = true;
       return this.activePromise;
     }
+    if (!this.isOnline()) return Promise.resolve();
+
     this.rerunRequested = false;
     const operation = this.drainUntilStable();
     const wrapped = operation.finally(async () => {
       const rerun = this.rerunRequested;
       this.activePromise = null;
-      if (rerun) {
+      if (rerun && this.isOnline()) {
         this.rerunRequested = false;
         await this.processQueue();
       }
@@ -42,6 +44,7 @@ export class SyncService {
   }
 
   static async syncSession(sessionId: string): Promise<void> {
+    if (!this.isOnline()) return;
     const retry = this.retryBySession.get(sessionId);
     if (retry && Date.now() < retry.nextAttemptAt) return;
 
@@ -56,8 +59,6 @@ export class SyncService {
       : context.study_id === null
         ? getResearchRepository('mock')
         : getResearchRepository();
-    if (repository.mode === 'supabase' && !this.isOnline()) return;
-
     try {
       while (true) {
         const pending = LocalQueueService.getEventsBySession(sessionId);
@@ -98,7 +99,7 @@ export class SyncService {
       this.rerunRequested = false;
       await this.runAllPendingSessions();
       await Promise.resolve();
-    } while (this.rerunRequested);
+    } while (this.rerunRequested && this.isOnline());
   }
 
   private static async runAllPendingSessions(): Promise<void> {
