@@ -1,4 +1,4 @@
-import { RESEARCH_CONFIG } from '../config/researchConfig';
+import { RESEARCH_CONFIG, type DataMode } from '../config/researchConfig';
 import type { ResearchEventType } from '../research/telemetry/events';
 import { sanitizeTelemetryPayload, type TelemetryPayload } from '../research/telemetry/payloads';
 
@@ -25,6 +25,7 @@ export type SessionSyncContext = {
   sync_token: string;
   study_id: string | null;
   participant_id?: string | null;
+  repository_mode?: DataMode;
   event_seq_last?: number;
   saved_at: string;
 };
