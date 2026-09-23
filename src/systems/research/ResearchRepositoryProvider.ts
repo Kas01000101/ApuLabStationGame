@@ -1,8 +1,15 @@
 import { MockResearchRepository } from './MockResearchRepository';
 import { SupabaseResearchRepository } from './SupabaseResearchRepository';
-import { ResearchRepository } from './ResearchRepository';
-let repository: ResearchRepository | undefined;
-export function getResearchRepository(): ResearchRepository {
-  if (!repository) repository = import.meta.env.VITE_DATA_MODE === 'supabase' ? new SupabaseResearchRepository() : new MockResearchRepository();
-  return repository;
+import type { ResearchRepository } from './ResearchRepository';
+import { getDataMode, type DataMode } from '../../config/researchConfig';
+
+const repositories: Partial<Record<DataMode, ResearchRepository>> = {};
+
+export function getResearchRepository(mode: DataMode = getDataMode()): ResearchRepository {
+  if (!repositories[mode]) {
+    repositories[mode] = mode === 'supabase'
+      ? new SupabaseResearchRepository()
+      : new MockResearchRepository();
+  }
+  return repositories[mode]!;
 }

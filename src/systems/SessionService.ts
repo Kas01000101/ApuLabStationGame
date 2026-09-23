@@ -10,7 +10,7 @@ export class SessionService {
     const state = GameState.getInstance();
     const syncToken = createSessionSyncToken();
     state.startNewSession({ mode: 'demo', environment: getResearchEnvironment(), sessionSyncToken: syncToken });
-    const repo = getResearchRepository();
+    const repo = getResearchRepository('mock');
     const created = await repo.createSession(state.getSessionData(), null, syncToken);
     if (!created.success) return false;
     LocalQueueService.registerSessionContext({
@@ -18,6 +18,7 @@ export class SessionService {
       sync_token: syncToken,
       study_id: null,
       participant_id: null,
+      repository_mode: repo.mode,
       event_seq_last: 0,
       saved_at: new Date().toISOString(),
     });
@@ -63,6 +64,7 @@ export class SessionService {
           ...recoverable,
           participant_id: auth.data.participant_id,
           study_id: auth.data.study_id,
+          repository_mode: repo.mode,
           event_seq_last: eventSeqLast,
           saved_at: new Date().toISOString(),
         });
@@ -98,6 +100,7 @@ export class SessionService {
       sync_token: syncToken,
       study_id: state.studyId,
       participant_id: state.participantId,
+      repository_mode: repo.mode,
       event_seq_last: 0,
       saved_at: new Date().toISOString(),
     });

@@ -54,7 +54,11 @@ export class SyncService {
       return;
     }
 
-    const repository = getResearchRepository();
+    const repository = context.repository_mode
+      ? getResearchRepository(context.repository_mode)
+      : context.study_id === null
+        ? getResearchRepository('mock')
+        : getResearchRepository();
     try {
       while (true) {
         const pending = LocalQueueService.getEventsBySession(sessionId);
