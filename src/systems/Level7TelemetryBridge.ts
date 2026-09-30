@@ -12,7 +12,8 @@ const LEVEL7_EVENT_TYPES = new Set([
   'sample_analyzed',
   'instrument_changed',
   'relevant_instrument_selected',
-  'final_point_reached',
+  'communication_point_reached',
+  'data_sent',
   'explore_opened',
   'bitacora_opened',
   // Canonical level completion is parent-owned by Mission01Screen. N7 may keep
@@ -21,6 +22,7 @@ const LEVEL7_EVENT_TYPES = new Set([
   // Compatibility with pre-final N7 previews only.
   'sample_checkpoint_reached',
   'final_checkpoint_reached',
+  'final_point_reached',
   'mission_completed',
   'help_requested',
 ]);
