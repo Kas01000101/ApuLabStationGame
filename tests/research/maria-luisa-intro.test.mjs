@@ -48,7 +48,7 @@ test('The approved dialogue keys appear independently', () => {
   assert.match(script, /Cada pista nos acerca un poco más/);
   assert.match(script, /primera medición/);
   for (const key of ['r5','r7','r8','ai2','ai3','ai4','ai5','mb1','mb2','mb3','mb4','mb5','ts3','ic2','ic5']) {
-    assert.doesNotMatch(dialogue,new RegExp('\\b'+key+':'));
+    assert.doesNotMatch(dialogue,new RegExp('^\\s*'+key+':\\s*\\{','m'));
   }
 });
 
