@@ -202,26 +202,26 @@ export class IntroController {
     }
     const t=this.elapsed;this.station.updateAmbient(this.totalElapsed,1);
     this.scientist.moveBetween(SCIENTIST_WORK,SCIENTIST_TALK,t/1.2);
-    const rise=smooth((t-.1)/.85),fade=1-smooth((t-35)/3.5);
+    const rise=smooth((t-.1)/.85),fade=1-smooth((t-29.8)/3.1);
     this.station.setScientistSpot(rise*fade,this.scientist.group.position);
-    if(t<39.3)this.camera.blend(SHOTS.stationGeneral,SHOTS.scientistPresent,smooth(t/1.18));
-    else if(t<51)this.camera.blend(SHOTS.scientistPresent,SHOTS.scientistMonitorWide,smooth((t-39.3)/1.15));
-    else this.camera.blend(SHOTS.scientistMonitorWide,SHOTS.scientistTeam,smooth((t-51)/1.2));
+    if(t<33.2)this.camera.blend(SHOTS.stationGeneral,SHOTS.scientistPresent,smooth(t/1.18));
+    else if(t<43.1)this.camera.blend(SHOTS.scientistPresent,SHOTS.scientistMonitorWide,smooth((t-33.2)/1.05));
+    else this.camera.blend(SHOTS.scientistMonitorWide,SHOTS.scientistTeam,smooth((t-43.1)/1.05));
     if(t<1.45)this.scientist.greeting(t);else this.scientist.updateIdle(dt);
-    if(t>=12&&t<35){this.scientist.openTeamPose(smooth((t-12)/1.2));this.stationFx.setStemOpacity(t<26?.20:.33,t);}
-    if(t>=39.3){this.stationFx.setStemOpacity(0);this.scientist.lookAtMonitor(smooth((t-39.3)/.7));
+    if(t>=10.5&&t<29.8){this.scientist.openTeamPose(smooth((t-10.5)/1.2));this.stationFx.setStemOpacity(t<22.3?.20:.33,t);}
+    if(t>=33.2){this.stationFx.setStemOpacity(0);this.scientist.lookAtMonitor(smooth((t-39.3)/.7));
       this.stationFx.drawMonitor('YACHAY',['TELEMETRÍA RECIBIDA','UBICACIÓN: MARTE','ESTADO: DETENIDO','CAUSA: DESCONOCIDA']);}
-    if(t<5.0)this.overlay.showDialogue('r1','MARÍA LUISA','¡Hola! Soy una guía digital creada en homenaje a María Luisa Aguilar Hurtado.');
-    else if(t<12)this.overlay.showDialogue('r2','MARÍA LUISA','Ella fue la primera astrónoma profesional del Perú. Su curiosidad la llevó a explorar los misterios del universo.');
-    else if(t<18)this.overlay.showDialogue('r3','MARÍA LUISA','Dedicó su vida a investigar las estrellas y a compartir su pasión por la ciencia.');
-    else if(t<26)this.overlay.showDialogue('r4','MARÍA LUISA','Su historia nos recuerda que los grandes descubrimientos comienzan con una pregunta y el valor de buscar respuestas.');
-    else if(t<35)this.overlay.showDialogue('r5','MARÍA LUISA','Y ahora es tu turno. No necesitas tener todas las respuestas para ser una científica. ¡Solo necesitas atreverte a descubrirlas!');
-    else if(t<39.3)this.overlay.showDialogue('r6','MARÍA LUISA','Y hablando de preguntas… ¡tenemos un misterio que resolver!');
-    else if(t<44.5)this.overlay.showDialogue('r7','MARÍA LUISA','Yachay estaba explorando Marte cuando, de pronto, algo lo obligó a detenerse.');
-    else if(t<51)this.overlay.showDialogue('r8','MARÍA LUISA','Nos envió sus datos. En ellos podrían estar las pistas, pero todavía no sabemos qué ocurrió.');
-    else if(t<57)this.overlay.showDialogue('r9','MARÍA LUISA','¿Nos ayudarás a descubrirlo? Antes de comenzar, ¿cómo te gusta que te llamen?');
+    if(t<4.5)this.overlay.showDialogue('r1','MARÍA LUISA AGUILAR HURTADO','¡Hola! Soy una guía digital creada en homenaje a María Luisa Aguilar Hurtado.');
+    else if(t<10.5)this.overlay.showDialogue('r2','MARÍA LUISA AGUILAR HURTADO','Ella fue la primera astrónoma profesional del Perú. Su curiosidad la llevó a explorar los misterios del universo.');
+    else if(t<15.7)this.overlay.showDialogue('r3','MARÍA LUISA AGUILAR HURTADO','Dedicó su vida a investigar las estrellas y a compartir su pasión por la ciencia.');
+    else if(t<22.3)this.overlay.showDialogue('r4','MARÍA LUISA AGUILAR HURTADO','Su historia nos recuerda que los grandes descubrimientos comienzan con una pregunta y el valor de buscar respuestas.');
+    else if(t<29.8)this.overlay.showDialogue('r5','MARÍA LUISA AGUILAR HURTADO','Y ahora es tu turno. No necesitas tener todas las respuestas para ser una científica. ¡Solo necesitas atreverte a descubrirlas!');
+    else if(t<33.2)this.overlay.showDialogue('r6','MARÍA LUISA AGUILAR HURTADO','Y hablando de preguntas… ¡tenemos un misterio que resolver!');
+    else if(t<37.6)this.overlay.showDialogue('r7','MARÍA LUISA AGUILAR HURTADO','Yachay estaba explorando Marte cuando, de pronto, algo lo obligó a detenerse.');
+    else if(t<43.1)this.overlay.showDialogue('r8','MARÍA LUISA AGUILAR HURTADO','Nos envió sus datos. En ellos podrían estar las pistas, pero todavía no sabemos qué ocurrió.');
+    else if(t<48.1)this.overlay.showDialogue('r9','MARÍA LUISA AGUILAR HURTADO','¿Nos ayudarás a descubrirlo? Antes de comenzar, ¿cómo te gusta que te llamen?');
     else this.overlay.hideDialogue();
-    if(t>=57)this.setState('nickname');
+    if(t>=48.1)this.setState('nickname');
   }
 
   private updateNickname(dt:number):void{if(this.enterState()){this.overlay.hideDialogue();this.overlay.hideBeat();this.station.setScientistSpot(0,this.scientist.group.position);this.overlay.requestNickname((nickname)=>{this.playerNickname=nickname;this.setState('post-nickname');});}this.station.updateAmbient(this.totalElapsed,.72);this.scientist.updateIdle(dt);this.camera.set(SHOTS.scientistPresent);}
@@ -229,21 +229,21 @@ export class IntroController {
   private updatePostNickname(dt:number):void{
     if(this.enterState()){this.scientist.resetPose();this.camera.set(SHOTS.scientistPresent);this.overlay.hideSfx();}
     const t=this.elapsed;this.station.updateAmbient(this.totalElapsed,1);
-    const retreat=smooth((t-9.1)/.85);
+    const retreat=smooth((t-7.7)/.85);
     this.scientist.moveBetween(SCIENTIST_TALK,SCIENTIST_SAFE,retreat);this.scientist.lookUp(retreat);
-    if(t<2.2)this.overlay.showDialogue('post-nick-hello','MARÍA LUISA',`¡Mucho gusto, ${this.playerNickname}!`);
-    else if(t<8.1)this.overlay.showDialogue('post-nick-team','MARÍA LUISA','Desde ahora, formas parte del equipo de ApuLab. Tu curiosidad puede ayudarnos a encontrar nuevas pistas.');
-    else if(t<10.8)this.overlay.showDialogue('post-nick-missing','MARÍA LUISA','Aunque… parece que todavía nos falta alguien.');
+    if(t<1.8)this.overlay.showDialogue('post-nick-hello','MARÍA LUISA AGUILAR HURTADO',`¡Mucho gusto, ${this.playerNickname}!`);
+    else if(t<6.9)this.overlay.showDialogue('post-nick-team','MARÍA LUISA AGUILAR HURTADO','Desde ahora, formas parte del equipo de ApuLab. Tu curiosidad puede ayudarnos a encontrar nuevas pistas.');
+    else if(t<9.2)this.overlay.showDialogue('post-nick-missing','MARÍA LUISA AGUILAR HURTADO','Aunque… parece que todavía nos falta alguien.');
     else this.overlay.hideDialogue();
-    this.cue('ayni-clank',t>=10.1,()=>{this.audio.clank();this.overlay.showSfx('CLANK',.9);});
-    if(t>10.9)this.overlay.hideSfx();
-    if(t>=11.3)this.setState('ayni-entrance');else this.scientist.updateIdle(dt*.2);
+    this.cue('ayni-clank',t>=8.6,()=>{this.audio.clank();this.overlay.showSfx('CLANK',.9);});
+    if(t>9.3)this.overlay.hideSfx();
+    if(t>=9.7)this.setState('ayni-entrance');else this.scientist.updateIdle(dt*.2);
   }
 
   private updateAyniEntrance():void{
     if(this.enterState()){this.ayni.group.visible=false;this.ayni.group.position.set(0,8.25,0);this.ayni.group.rotation.set(0,0,0);this.station.setHatchOpen(0);this.stationFx.setAyniPeek(false);this.scientist.group.position.copy(SCIENTIST_SAFE);this.overlay.hideDialogue();this.overlay.hideSfx();}
     const t=this.elapsed;this.station.updateAmbient(this.totalElapsed,1);
-    if(t<.35){this.station.setHatchOpen(0);this.scientist.lookUp(1);this.camera.set(SHOTS.hatch);}else if(t<1.15){const p=smooth((t-.35)/.8);this.station.setHatchOpen(p);this.camera.blend(SHOTS.scientist,SHOTS.hatch,p);this.scientist.lookUp(p);this.stationFx.setAyniPeek(t>.72,t);}else if(t<1.62){this.station.setHatchOpen(1);this.stationFx.setAyniPeek(true,t);this.camera.set(SHOTS.hatch);this.overlay.hideDialogue();}else if(t<3.15){this.stationFx.setAyniPeek(false);const p=clamp((t-1.62)/1.53),fall=Math.pow(p,1.55);this.ayni.group.visible=true;this.ayni.group.position.set(0,THREE.MathUtils.lerp(8.2,1.8,fall),0);this.camera.blend(SHOTS.hatch,SHOTS.ayniDrop,smooth(p));this.overlay.showDialogue('ayni-permission','AYNI','¡Permisoooooo!');this.overlay.showSfx('¡WOOO!',Math.sin(p*Math.PI));this.cue('ayni-whoosh',true,()=>this.audio.whoosh());}else if(t<3.70){const p=clamp((t-3.15)/.55);this.ayni.group.position.set(0,1.8,0);this.ayni.group.scale.set(1,THREE.MathUtils.lerp(.8,1,smooth(p)),1);this.ayni.group.rotation.z=THREE.MathUtils.lerp(.065,.035,smooth(p));this.station.updateLandingPulse(p);this.camera.set(SHOTS.ayniDrop);this.overlay.hideDialogue();this.overlay.showSfx('BOOM!',1-p*.55);this.cue('ayni-boom',true,()=>this.audio.boom());}else{const p=smooth((t-3.70)/1.7);this.ayni.group.scale.set(1,1,1);this.ayni.group.position.set(0,1.8+Math.sin(p*Math.PI*2.5)*.07*(1-p),0);this.ayni.group.rotation.z=THREE.MathUtils.lerp(.035,0,p);this.camera.set(SHOTS.team);this.overlay.hideSfx();if(t<4.15)this.overlay.hideDialogue();else if(t<4.65)this.overlay.showDialogue('ayni-arrived','AYNI','…¡Llegué!');else if(t<5.10)this.overlay.showDialogue('scientist-noticed','MARÍA LUISA','Eso noté.');else if(t<5.65)this.overlay.showDialogue('ayni-perfect','AYNI','Aterrizaje perfectamente calculado.');else{this.ayni.pointMast(THREE.MathUtils.lerp(0,-.42,smooth((t-5.65)/.32)),.08);const clink=1-clamp((t-5.65)/.28);if(clink>0){this.overlay.showSfx('CLINK',.68*clink);this.cue('ayni-clink',true,()=>this.audio.clink());}else this.overlay.hideSfx();if(t<6.02)this.overlay.hideDialogue();else this.overlay.showDialogue('ayni-almost','AYNI','…casi perfectamente.');}}if(t>=6.50)this.setState('ayni-introduction');
+    if(t<.35){this.station.setHatchOpen(0);this.scientist.lookUp(1);this.camera.set(SHOTS.hatch);}else if(t<1.15){const p=smooth((t-.35)/.8);this.station.setHatchOpen(p);this.camera.blend(SHOTS.scientist,SHOTS.hatch,p);this.scientist.lookUp(p);this.stationFx.setAyniPeek(t>.72,t);}else if(t<1.62){this.station.setHatchOpen(1);this.stationFx.setAyniPeek(true,t);this.camera.set(SHOTS.hatch);this.overlay.hideDialogue();}else if(t<3.15){this.stationFx.setAyniPeek(false);const p=clamp((t-1.62)/1.53),fall=Math.pow(p,1.55);this.ayni.group.visible=true;this.ayni.group.position.set(0,THREE.MathUtils.lerp(8.2,1.8,fall),0);this.camera.blend(SHOTS.hatch,SHOTS.ayniDrop,smooth(p));this.overlay.showDialogue('ayni-permission','AYNI','¡Permisoooooo!');this.overlay.showSfx('¡WOOO!',Math.sin(p*Math.PI));this.cue('ayni-whoosh',true,()=>this.audio.whoosh());}else if(t<3.70){const p=clamp((t-3.15)/.55);this.ayni.group.position.set(0,1.8,0);this.ayni.group.scale.set(1,THREE.MathUtils.lerp(.8,1,smooth(p)),1);this.ayni.group.rotation.z=THREE.MathUtils.lerp(.065,.035,smooth(p));this.station.updateLandingPulse(p);this.camera.set(SHOTS.ayniDrop);this.overlay.hideDialogue();this.overlay.showSfx('BOOM!',1-p*.55);this.cue('ayni-boom',true,()=>this.audio.boom());}else{const p=smooth((t-3.70)/1.7);this.ayni.group.scale.set(1,1,1);this.ayni.group.position.set(0,1.8+Math.sin(p*Math.PI*2.5)*.07*(1-p),0);this.ayni.group.rotation.z=THREE.MathUtils.lerp(.035,0,p);this.camera.set(SHOTS.team);this.overlay.hideSfx();if(t<4.15)this.overlay.hideDialogue();else if(t<4.65)this.overlay.showDialogue('ayni-arrived','AYNI','…¡Llegué!');else if(t<5.10)this.overlay.showDialogue('scientist-noticed','MARÍA LUISA AGUILAR HURTADO','Eso noté.');else if(t<5.65)this.overlay.showDialogue('ayni-perfect','AYNI','Aterrizaje perfectamente calculado.');else{this.ayni.pointMast(THREE.MathUtils.lerp(0,-.42,smooth((t-5.65)/.32)),.08);const clink=1-clamp((t-5.65)/.28);if(clink>0){this.overlay.showSfx('CLINK',.68*clink);this.cue('ayni-clink',true,()=>this.audio.clink());}else this.overlay.hideSfx();if(t<6.02)this.overlay.hideDialogue();else this.overlay.showDialogue('ayni-almost','AYNI','…casi perfectamente.');}}if(t>=6.50)this.setState('ayni-introduction');
   }
 
   private updateAyniIntroduction():void{
@@ -258,13 +258,13 @@ export class IntroController {
     camera.z-=.30*movement;target.z=THREE.MathUtils.lerp(SHOTS.team.target.z,.42,movement);
     this.camera.dynamic(camera,target);
     const nick=this.playerNickname||'compañera';
-    if(t<3.6)this.overlay.showDialogue('ai1','AYNI',`¡Hola, ${nick}! Soy AYNI.`);
-    else if(t<8.3)this.overlay.showDialogue('ai2','AYNI','Yachay es mi hermano gemelo… ¡literalmente nacimos del mismo código!');
-    else if(t<11)this.overlay.showDialogue('ai3','AYNI','Aunque, claro, yo salí más guapo.');
-    else if(t<16.6)this.overlay.showDialogue('ai4','AYNI','Él está en Marte y yo estoy aquí. ¡Y no pienso dejarlo solo con ese misterio!');
-    else if(t<23.5)this.overlay.showDialogue('ai5','AYNI','Con sus datos y tu ayuda, podemos descubrir qué ocurrió y ayudarlo a volver a explorar.');
+    if(t<3.0)this.overlay.showDialogue('ai1','AYNI',`¡Hola, ${nick}! Soy AYNI.`);
+    else if(t<7.0)this.overlay.showDialogue('ai2','AYNI','Yachay es mi hermano gemelo… ¡literalmente nacimos del mismo código!');
+    else if(t<9.4)this.overlay.showDialogue('ai3','AYNI','Aunque, claro, yo salí más guapo.');
+    else if(t<14.0)this.overlay.showDialogue('ai4','AYNI','Él está en Marte y yo estoy aquí. ¡Y no pienso dejarlo solo con ese misterio!');
+    else if(t<19.8)this.overlay.showDialogue('ai5','AYNI','Con sus datos y tu ayuda, podemos descubrir qué ocurrió y ayudarlo a volver a explorar.');
     else this.overlay.hideDialogue();
-    if(t>=24){this.ayni.settleAtTeamPosition();this.setState('mission-briefing');}
+    if(t>=20.2){this.ayni.settleAtTeamPosition();this.setState('mission-briefing');}
   }
 
   private updateMissionBriefing(dt:number):void{
@@ -274,35 +274,35 @@ export class IntroController {
       this.stationFx.drawMonitor('YACHAY',['TELEMETRÍA RECIBIDA','CAUSA: DESCONOCIDA']);
     }
     const t=this.elapsed;this.station.updateAmbient(this.totalElapsed,1);this.scientist.updateIdle(dt);
-    if(t<5)this.overlay.showDialogue('mb1','MARÍA LUISA','Tenemos pistas, pero todavía no sabemos por qué se detuvo Yachay.');
-    else if(t<11)this.overlay.showDialogue('mb2','MARÍA LUISA','En la ciencia no se trata de adivinar, sino de investigar y buscar evidencias.');
-    else if(t<16){
+    if(t<4.1)this.overlay.showDialogue('mb1','MARÍA LUISA AGUILAR HURTADO','Tenemos pistas, pero todavía no sabemos por qué se detuvo Yachay.');
+    else if(t<9.3)this.overlay.showDialogue('mb2','MARÍA LUISA AGUILAR HURTADO','En la ciencia no se trata de adivinar, sino de investigar y buscar evidencias.');
+    else if(t<13.5){
       this.stationFx.drawMonitor('OBSERVAR',['DATOS RECIBIDOS DE MARTE']);
-      this.overlay.showDialogue('mb3','MARÍA LUISA','Primero, observaremos los datos que nos envió.');
-    }else if(t<23){
-      if(t<19.5)this.stationFx.drawMonitor('MEDIR',['OBTENER UNA BUENA MEDICIÓN']);
+      this.overlay.showDialogue('mb3','MARÍA LUISA AGUILAR HURTADO','Primero, observaremos los datos que nos envió.');
+    }else if(t<19.4){
+      if(t<16.5)this.stationFx.drawMonitor('MEDIR',['OBTENER UNA BUENA MEDICIÓN']);
       else this.stationFx.drawMonitor('COMPARAR',['BUSCAR DIFERENCIAS']);
-      this.overlay.showDialogue('mb4','MARÍA LUISA','Después, aprenderemos a medir con cuidado y a comparar los resultados.');
-    }else if(t<29.5){
+      this.overlay.showDialogue('mb4','MARÍA LUISA AGUILAR HURTADO','Después, aprenderemos a medir con cuidado y a comparar los resultados.');
+    }else if(t<24.8){
       this.stationFx.drawMonitor('SEGUIR LAS PISTAS',['CAUSA: AÚN DESCONOCIDA']);
-      this.overlay.showDialogue('mb5','MARÍA LUISA','Cada pista nos acerca un poco más a la respuesta. ¡Vamos a descubrir qué ocurrió!');
+      this.overlay.showDialogue('mb5','MARÍA LUISA AGUILAR HURTADO','Cada pista nos acerca un poco más a la respuesta. ¡Vamos a descubrir qué ocurrió!');
     }else this.overlay.hideDialogue();
-    if(t>=30)this.setState('telemetry-simulation');
+    if(t>=25.3)this.setState('telemetry-simulation');
   }
 
   private updateTelemetrySimulation():void{
     if(this.enterState()){this.overlay.hideSfx();this.camera.set(SHOTS.diagnostic);}
     const t=this.elapsed;this.station.updateAmbient(this.totalElapsed,1);
-    if(t<2.8){
+    if(t<2.4){
       this.stationFx.drawMonitor('TELEMETRÍA DE YACHAY CARGADA',['PREPARANDO SISTEMA DE PRUEBAS']);
       this.overlay.showDialogue('ts1','AYNI','Creo que ya estoy listo.');
-    }else if(t<5.3){
+    }else if(t<4.5){
       this.stationFx.drawMonitor('TELEMETRÍA DE YACHAY CARGADA',['PREPARANDO SISTEMA DE PRUEBAS…']);
       this.overlay.showDialogue('ts2','AYNI','…eso espero.');
-      this.cue('telemetry-sim-beep',t>3,()=>this.audio.telemetry());
-    }else if(t<12)this.overlay.showDialogue('ts3','MARÍA LUISA','Antes de investigar lo que ocurrió en Marte, necesitamos aprender algo importante: medir correctamente.');
+      this.cue('telemetry-sim-beep',t>2.6,()=>this.audio.telemetry());
+    }else if(t<10.2)this.overlay.showDialogue('ts3','MARÍA LUISA AGUILAR HURTADO','Antes de investigar lo que ocurrió en Marte, necesitamos aprender algo importante: medir correctamente.');
     else this.overlay.hideDialogue();
-    if(t>=12.5)this.setState('intro-completed');
+    if(t>=10.6)this.setState('intro-completed');
   }
 
   private updateIntroCompleted():void{
@@ -318,13 +318,13 @@ export class IntroController {
     this.ayni.pointMast(THREE.MathUtils.lerp(0,.34,walk),THREE.MathUtils.lerp(0,.05,walk));
     this.station.setBenchReveal(smooth((t-.35)/.78));
     this.camera.blend(SHOTS.diagnostic,SHOTS.bench,smooth(t/1.55));
-    if(t<.8)this.overlay.hideDialogue();
-    else if(t<3.9)this.overlay.showDialogue('ic1','AYNI','Espera… ¿esa es mi batería?');
-    else if(t<7.1)this.overlay.showDialogue('ic2','MARÍA LUISA','¡No te preocupes, AYNI! Es una batería de práctica.');
-    else if(t<9.5)this.overlay.showDialogue('ic4','AYNI','¡Uf! …menos mal.');
-    else if(t<17.2)this.overlay.showDialogue('ic5','MARÍA LUISA','En la ciencia, cada descubrimiento comienza aprendiendo algo nuevo. ¡Vamos a realizar nuestra primera medición!');
-    else{this.overlay.hideDialogue();this.overlay.markIntroSeen();const p=smooth((t-17.2)/1.3);this.overlay.setTransition(.93*p);this.overlay.showMission();}
-    if(t>=19.7){
+    if(t<.65)this.overlay.hideDialogue();
+    else if(t<3.4)this.overlay.showDialogue('ic1','AYNI','Espera… ¿esa es mi batería?');
+    else if(t<6.2)this.overlay.showDialogue('ic2','MARÍA LUISA AGUILAR HURTADO','¡No te preocupes, AYNI! Es una batería de práctica.');
+    else if(t<8.0)this.overlay.showDialogue('ic4','AYNI','¡Uf! …menos mal.');
+    else if(t<14.3)this.overlay.showDialogue('ic5','MARÍA LUISA AGUILAR HURTADO','En la ciencia, cada descubrimiento comienza aprendiendo algo nuevo. ¡Vamos a realizar nuestra primera medición!');
+    else{this.overlay.hideDialogue();this.overlay.markIntroSeen();const p=smooth((t-14.3)/1.2);this.overlay.setTransition(.93*p);this.overlay.showMission();}
+    if(t>=16.5){
       this.overlay.hideDialogue();this.overlay.markIntroSeen();this.overlay.showMission();
       this.setState('complete');this.options.onComplete?.();
     }

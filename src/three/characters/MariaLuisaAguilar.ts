@@ -31,13 +31,14 @@ function cylinder(radius:number,height:number,material:THREE.Material,parent:THR
 }
 
 function nameTagTexture():THREE.CanvasTexture{
-  const c=document.createElement('canvas');c.width=512;c.height=240;
+  const c=document.createElement('canvas');c.width=640;c.height=240;
   const ctx=c.getContext('2d');if(!ctx)throw new Error('maria_luisa_name_tag_context_missing');
   ctx.fillStyle='#1e345a';ctx.fillRect(0,0,c.width,c.height);
   ctx.lineWidth=7;ctx.strokeStyle='#c6a66c';ctx.strokeRect(8,8,c.width-16,c.height-16);
   ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillStyle='#fff5e1';ctx.font='700 59px Arial';ctx.fillText('MARÍA LUISA',c.width/2,90);
-  ctx.fillStyle='#f2d182';ctx.font='700 36px Arial';ctx.fillText('ASTRONOMÍA',c.width/2,172);
+  ctx.fillStyle='#fff5e1';ctx.font='700 57px Arial';ctx.fillText('MARÍA LUISA',c.width/2,70);
+  ctx.fillStyle='#fff5e1';ctx.font='700 43px Arial';ctx.fillText('AGUILAR HURTADO',c.width/2,137);
+  ctx.fillStyle='#f2d182';ctx.font='700 29px Arial';ctx.fillText('ASTRONOMÍA',c.width/2,204);
   const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;
   t.minFilter=THREE.LinearFilter;t.magFilter=THREE.LinearFilter;return t;
 }

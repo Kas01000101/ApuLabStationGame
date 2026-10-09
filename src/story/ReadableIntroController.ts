@@ -61,10 +61,10 @@ function dialoguePacingScale(state: string, t: number): number {
 
     case 'ayni-entrance':
       if (t >= 1.62 && t < 3.15) return 0.72;   // ¡Permisoooooo!
-      if (t >= 4.15 && t < 4.65) return 0.25;   // …¡Llegué!
-      if (t >= 4.65 && t < 5.10) return 0.225;  // Eso noté.
-      if (t >= 5.10 && t < 5.65) return 0.275;  // Aterrizaje…
-      if (t >= 6.02 && t < 6.50) return 0.24;   // …casi perfectamente.
+      if (t >= 4.15 && t < 4.65) return 0.45;   // …¡Llegué!
+      if (t >= 4.65 && t < 5.10) return 0.50;  // Eso noté.
+      if (t >= 5.10 && t < 5.65) return 0.42;  // Aterrizaje…
+      if (t >= 6.02 && t < 6.50) return 0.45;   // …casi perfectamente.
       return 1;
 
     case 'ayni-introduction':

@@ -27,8 +27,8 @@ Las fotografías se utilizaron como referencias; **ninguna fotografía externa n
 | Lentes | Montura fina oscura, no exagerada |
 | Vestuario | Blazer azul noche, blusa crema, pantalón recto oscuro, zapatos sobrios |
 | Detalles | Broche orbital dorado; sin logos corporativos ni parches técnicos |
-| Credencial 3D | **MARÍA LUISA** / **ASTRONOMÍA** |
-| Nombre en diálogos | **MARÍA LUISA** |
+| Credencial 3D | **MARÍA LUISA** / **AGUILAR HURTADO** / **ASTRONOMÍA** |
+| Nombre en diálogos | **MARÍA LUISA AGUILAR HURTADO** (siempre completo) |
 | Identificación histórica | Nombre completo, años 1938–2015 y mención expresa del homenaje en créditos y primera intervención |
 | Animación | Saludo amable, gestos de explicación, mirada al monitor, reacción sutil a AYNI |
 | Iluminación | Presentación suave con índigo y acentos cálidos, sin cambios en las ópticas globales |
@@ -54,12 +54,12 @@ Los detalles visuales son una **interpretación artística**, no una afirmación
 
 ### C — Bienvenida y entrada de AYNI
 
-- C1 / MARÍA LUISA: ¡Mucho gusto, {apodo}!
-- C2 / MARÍA LUISA: Desde ahora, formas parte del equipo de ApuLab. Tu curiosidad puede ayudarnos a encontrar nuevas pistas.
-- C3 / MARÍA LUISA: Aunque… parece que todavía nos falta alguien.
+- C1 / MARÍA LUISA AGUILAR HURTADO: ¡Mucho gusto, {apodo}!
+- C2 / MARÍA LUISA AGUILAR HURTADO: Desde ahora, formas parte del equipo de ApuLab. Tu curiosidad puede ayudarnos a encontrar nuevas pistas.
+- C3 / MARÍA LUISA AGUILAR HURTADO: Aunque… parece que todavía nos falta alguien.
 - C4 / AYNI: ¡Permisoooooo!
 - C5 / AYNI: …¡Llegué!
-- C6 / MARÍA LUISA: Eso noté.
+- C6 / MARÍA LUISA AGUILAR HURTADO: Eso noté.
 - C7 / AYNI: Aterrizaje perfectamente calculado.
 - C8 / AYNI: …casi perfectamente.
 
@@ -73,11 +73,11 @@ Los detalles visuales son una **interpretación artística**, no una afirmación
 
 ### E — Método científico
 
-- E1 / MARÍA LUISA: Tenemos pistas, pero todavía no sabemos por qué se detuvo Yachay.
-- E2 / MARÍA LUISA: En la ciencia no se trata de adivinar, sino de investigar y buscar evidencias.
-- E3 / MARÍA LUISA: Primero, observaremos los datos que nos envió.
-- E4 / MARÍA LUISA: Después, aprenderemos a medir con cuidado y a comparar los resultados.
-- E5 / MARÍA LUISA: Cada pista nos acerca un poco más a la respuesta. ¡Vamos a descubrir qué ocurrió!
+- E1 / MARÍA LUISA AGUILAR HURTADO: Tenemos pistas, pero todavía no sabemos por qué se detuvo Yachay.
+- E2 / MARÍA LUISA AGUILAR HURTADO: En la ciencia no se trata de adivinar, sino de investigar y buscar evidencias.
+- E3 / MARÍA LUISA AGUILAR HURTADO: Primero, observaremos los datos que nos envió.
+- E4 / MARÍA LUISA AGUILAR HURTADO: Después, aprenderemos a medir con cuidado y a comparar los resultados.
+- E5 / MARÍA LUISA AGUILAR HURTADO: Cada pista nos acerca un poco más a la respuesta. ¡Vamos a descubrir qué ocurrió!
 
 Monitores en secuencia: OBSERVAR → MEDIR → COMPARAR → SEGUIR LAS PISTAS.
 
@@ -85,11 +85,11 @@ Monitores en secuencia: OBSERVAR → MEDIR → COMPARAR → SEGUIR LAS PISTAS.
 
 - F1 / AYNI: Creo que ya estoy listo.
 - F2 / AYNI: …eso espero.
-- F3 / MARÍA LUISA: Antes de investigar lo que ocurrió en Marte, necesitamos aprender algo importante: medir correctamente.
+- F3 / MARÍA LUISA AGUILAR HURTADO: Antes de investigar lo que ocurrió en Marte, necesitamos aprender algo importante: medir correctamente.
 - F4 / AYNI: Espera… ¿esa es mi batería?
-- F5 / MARÍA LUISA: ¡No te preocupes, AYNI! Es una batería de práctica.
+- F5 / MARÍA LUISA AGUILAR HURTADO: ¡No te preocupes, AYNI! Es una batería de práctica.
 - F6 / AYNI: ¡Uf! …menos mal.
-- F7 / MARÍA LUISA: En la ciencia, cada descubrimiento comienza aprendiendo algo nuevo. ¡Vamos a realizar nuestra primera medición!
+- F7 / MARÍA LUISA AGUILAR HURTADO: En la ciencia, cada descubrimiento comienza aprendiendo algo nuevo. ¡Vamos a realizar nuestra primera medición!
 
 Transición final: MISIÓN 01 — 1 / 7 · MEDIR.
 
@@ -114,3 +114,7 @@ Transición final: MISIÓN 01 — 1 / 7 · MEDIR.
 6. La cinemática completa y la ruta OMITIR INTRO conducen a `1 / 7 · MEDIR`.
 7. `npm run build`, la prueba estructural y el E2E del inicio completan sin errores antes de fusionar.
 8. Verificar legibilidad y ausencia de recortes a resolución 1672×941 y en formato horizontal de tablet.
+
+## Revisión de nombre y ritmo
+
+El identificador en cada diálogo es **MARÍA LUISA AGUILAR HURTADO**, escrito completo. El distintivo 3D distribuye su nombre en dos líneas sobre «ASTRONOMÍA». La introducción de la científica se ajustó de 57 a 48,1 segundos (aprox. 16% más rápida), preservando pausas para las líneas largas, especialmente R5. También se agilizan la bienvenida, explicación de AYNI y transiciones a la primera medición sin alterar el texto aprobado. Las pruebas E2E y visuales deben verificarse antes de publicación.

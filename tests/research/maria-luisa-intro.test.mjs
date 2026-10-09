@@ -18,11 +18,15 @@ test('The original scientist is replaced in all active intro modules', () => {
   assert.match(script, /new MariaLuisaAguilar\(\)/);
   assert.match(script, /'scientist-introduction'/);
   assert.match(world, /setScientistSpot/);
-  assert.match(css, /data-speaker="maría luisa"/);
+  assert.match(css, /data-speaker="maría luisa aguilar hurtado"/);
+  assert.doesNotMatch(script, /'MARÍA LUISA'/);
+  assert.match(script, /'MARÍA LUISA AGUILAR HURTADO'/);
+  assert.match(overlay, /MARÍA LUISA AGUILAR HURTADO/);
 });
 
 test('The 3D representation identifies the digital tribute without NASA styling', () => {
   assert.match(avatar, /MARÍA LUISA/);
+  assert.match(avatar, /AGUILAR HURTADO/);
   assert.match(avatar, /ASTRONOMÍA/);
   assert.match(avatar, /blouse/);
   assert.match(avatar, /trousers/);
@@ -58,4 +62,13 @@ test('Nickname remains blocking and both handoffs target Mission 01', () => {
   assert.match(script, /'complete'\);\s*this\.options\.onComplete\?\.\(\)/);
   assert.match(overlay, /apulabIntroSeen/);
   assert.match(overlay, /this\.nicknameInput\.value\.trim/);
+});
+
+
+test('Approved dialogue uses a faster but readable pacing without losing lines', () => {
+  const expected = [4.5,10.5,15.7,22.3,29.8,33.2,37.6,43.1,48.1];
+  const beats = Array.from(script.matchAll(/(?:if|else if)\(t<(\d+(?:\.\d+)?)\)this\.overlay\.showDialogue\('r[1-9]'/g)).map(m=>Number(m[1]));
+  assert.deepEqual(beats,expected);
+  assert.match(script, /t>=48\.1\)this\.setState\('nickname'\)/);
+  assert.match(script, /t>=16\.5\)/);
 });
