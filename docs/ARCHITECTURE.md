@@ -35,7 +35,7 @@ Three.js
   ├─ ThreeEngine
   ├─ IntroController
   ├─ MarsWorld / ApuLabWorld
-  ├─ Yachay / AYNI / Ruth
+  ├─ Yachay / AYNI / María Luisa (digital tribute)
   └─ Visual and audio effects
 ```
 

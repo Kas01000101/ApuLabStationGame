@@ -79,6 +79,14 @@ export class MenuScreen {
 
           <div class="menu-settings-row menu-credits-row">
             <div class="menu-settings-copy menu-credits-copy">
+              <strong>HOMENAJE A MARÍA LUISA AGUILAR HURTADO</strong>
+              <span>1938–2015 · Primera astrónoma profesional del Perú.</span>
+              <span>Personaje y diálogos ficticios, creados como homenaje digital; no representan declaraciones históricas.</span>
+              <span>Referencia: Seminario Permanente de Astronomía y Ciencias Espaciales — UNMSM.</span>
+            </div>
+          </div>
+          <div class="menu-settings-row menu-credits-row">
+            <div class="menu-settings-copy menu-credits-copy">
               <strong>MÚSICA</strong>
               <span class="menu-credits-track">“Specular City” — Vitalezzz</span>
               <span>Música con licencia CC0 1.0.</span>

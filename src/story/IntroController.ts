@@ -3,7 +3,7 @@ import { ThreeEngine } from '../three/ThreeEngine';
 import { MarsWorld } from '../three/worlds/MarsWorld';
 import { ApuLabWorld } from '../three/worlds/ApuLabWorld';
 import { Yachay } from '../three/characters/Yachay';
-import { Ruth } from '../three/characters/Ruth';
+import { MariaLuisaAguilar } from '../three/characters/MariaLuisaAguilar';
 import { Ayni } from '../three/characters/Ayni';
 import { FailureEffects } from '../three/effects/FailureEffects';
 import { TelemetryEffects } from '../three/effects/TelemetryEffects';
@@ -17,7 +17,7 @@ export type IntroState =
   | 'mars-failure'
   | 'telemetry'
   | 'apulab-arrival'
-  | 'ruth-introduction'
+  | 'scientist-introduction'
   | 'nickname'
   | 'post-nickname'
   | 'ayni-entrance'
@@ -29,10 +29,10 @@ export type IntroState =
 
 export interface IntroControllerOptions { onComplete?: () => void; }
 
-const RUTH_TALK = new THREE.Vector3(5.85, 0.02, 0.45);
-const RUTH_WORK = new THREE.Vector3(5.35, 0.02, -0.78);
-const RUTH_SAFE = new THREE.Vector3(6.65, 0.02, 1.10);
-const RUTH_BENCH = new THREE.Vector3(4.35, 0.02, 1.35);
+const SCIENTIST_TALK = new THREE.Vector3(5.85, 0.02, 0.45);
+const SCIENTIST_WORK = new THREE.Vector3(5.35, 0.02, -0.78);
+const SCIENTIST_SAFE = new THREE.Vector3(6.65, 0.02, 1.10);
+const SCIENTIST_BENCH = new THREE.Vector3(4.35, 0.02, 1.35);
 const AYNI_PRESENT_Z0 = 0;
 
 function shot(px:number,py:number,pz:number,tx:number,ty:number,tz:number): CameraShot {
@@ -47,10 +47,10 @@ const SHOTS = {
   marsTelemetry: shot(3.6,5.2,13.8,2.0,2.5,0),
   signal: shot(5.8,6.65,12.5,4.8,5.5,-.40),
   stationGeneral: shot(13.0,7.4,16.2,2.2,3.2,0),
-  ruth: shot(10.4,6.8,12.4,5.70,3.72,.22),
-  ruthPresent: shot(13.65,5.95,15.55,5.72,3.08,.30),
-  ruthMonitorWide: shot(13.45,6.15,15.20,3.65,4.15,-6.35),
-  ruthTeam: shot(12.95,6.55,15.05,5.72,3.08,.30),
+  scientist: shot(10.4,6.8,12.4,5.70,3.72,.22),
+  scientistPresent: shot(13.65,5.95,15.55,5.72,3.08,.30),
+  scientistMonitorWide: shot(13.45,6.15,15.20,3.65,4.15,-6.35),
+  scientistTeam: shot(12.95,6.55,15.05,5.72,3.08,.30),
   hatch: shot(11.5,6.8,14.7,.4,7.7,0),
   ayniDrop: shot(12.0,6.3,14.5,2.2,3.5,0),
   team: shot(13.1,7.2,15.1,2.65,3.0,.05),
@@ -76,7 +76,7 @@ export class IntroController {
   private readonly mars = new MarsWorld();
   private readonly station = new ApuLabWorld();
   private readonly yachay = new Yachay();
-  private readonly ruth = new Ruth();
+  private readonly scientist = new MariaLuisaAguilar();
   private readonly ayni = new Ayni();
   private readonly failure = new FailureEffects(this.yachay, this.mars.group);
   private readonly telemetry = new TelemetryEffects(this.yachay);
@@ -129,7 +129,7 @@ export class IntroController {
       case 'mars-failure': this.updateMarsFailure(dt); break;
       case 'telemetry': this.updateTelemetry(); break;
       case 'apulab-arrival': this.updateApuLabArrival(dt); break;
-      case 'ruth-introduction': this.updateRuthIntroduction(dt); break;
+      case 'scientist-introduction': this.updateScientistIntroduction(dt); break;
       case 'nickname': this.updateNickname(dt); break;
       case 'post-nickname': this.updatePostNickname(dt); break;
       case 'ayni-entrance': this.updateAyniEntrance(); break;
@@ -137,7 +137,7 @@ export class IntroController {
       case 'mission-briefing': this.updateMissionBriefing(dt); break;
       case 'telemetry-simulation': this.updateTelemetrySimulation(); break;
       case 'intro-completed': this.updateIntroCompleted(); break;
-      case 'complete': this.station.updateAmbient(this.totalElapsed,.72); this.ruth.updateIdle(dt); this.ayni.update(dt); break;
+      case 'complete': this.station.updateAmbient(this.totalElapsed,.72); this.scientist.updateIdle(dt); this.ayni.update(dt); break;
     }
   }
 
@@ -148,7 +148,7 @@ export class IntroController {
     this.showStation();
     this.station.practiceBench.visible=true;
     this.station.setBenchReveal(1);
-    this.ruth.group.position.copy(RUTH_BENCH);
+    this.scientist.group.position.copy(SCIENTIST_BENCH);
     this.ayni.group.visible=true;
     this.ayni.settleAtTeamPosition();
     this.camera.set(SHOTS.bench);
@@ -189,38 +189,151 @@ export class IntroController {
     if(this.enterState()){this.stationSwitched=false;this.overlay.hideDialogue();this.overlay.hideLocation();this.overlay.setTransition(0);this.stationFx.setMonitorPulse(0);this.camera.set(SHOTS.signal);}
     const t=this.elapsed;
     if(t<1.2){this.showMars();const p=smooth(t/1.2);this.overlay.setTransition(p);const hero=this.telemetry.heroPulse;hero.visible=true;const material=hero.material as THREE.MeshBasicMaterial;material.opacity=THREE.MathUtils.lerp(.92,.15,p);hero.position.set(THREE.MathUtils.lerp(7.2,9,p),THREE.MathUtils.lerp(8.4,9.4,p),THREE.MathUtils.lerp(-1.2,-1.6,p));this.camera.dynamic(SHOTS.signal.position,hero.getWorldPosition(new THREE.Vector3()));}
-    else{if(!this.stationSwitched){this.stationSwitched=true;this.showStation();this.ruth.group.position.copy(RUTH_WORK);this.ruth.resetPose();this.ruth.group.rotation.y=-.40;this.ayni.group.visible=false;this.overlay.showLocation('APULAB STATION · PERÚ',true);this.audio.transition();}const q=smooth((t-1.2)/1.8);this.overlay.setTransition(1-q);this.stationFx.setMonitorPulse(q<.70?1-q:0,THREE.MathUtils.lerp(2.1,.45,q));this.camera.set(SHOTS.stationGeneral);this.ruth.moveBetween(RUTH_TALK,RUTH_WORK,q);this.ruth.group.rotation.y=-.40;this.ruth.headRoot.rotation.y=-.32+.025*Math.sin(t*2.2);this.ruth.headRoot.rotation.x=.02;this.ruth.rightShoulder.rotation.z=.12*Math.sin(t*3.4);this.ruth.rightShoulder.rotation.x=-.08+.04*Math.sin(t*2.7);this.station.updateAmbient(this.totalElapsed,1.15-q*.15);this.stationFx.drawMonitor('YACHAY',['TELEMETRÍA RECIBIDA','UBICACIÓN: MARTE','ESTADO: DETENIDO','CAUSA: DESCONOCIDA']);}
-    if(t>2.25)this.overlay.hideLocation();if(t>=3)this.setState('ruth-introduction');else this.ruth.updateIdle(dt*.15);
+    else{if(!this.stationSwitched){this.stationSwitched=true;this.showStation();this.scientist.group.position.copy(SCIENTIST_WORK);this.scientist.resetPose();this.scientist.group.rotation.y=-.40;this.ayni.group.visible=false;this.overlay.showLocation('APULAB STATION · PERÚ',true);this.audio.transition();}const q=smooth((t-1.2)/1.8);this.overlay.setTransition(1-q);this.stationFx.setMonitorPulse(q<.70?1-q:0,THREE.MathUtils.lerp(2.1,.45,q));this.camera.set(SHOTS.stationGeneral);this.scientist.moveBetween(SCIENTIST_TALK,SCIENTIST_WORK,q);this.scientist.group.rotation.y=-.40;this.scientist.headRoot.rotation.y=-.32+.025*Math.sin(t*2.2);this.scientist.headRoot.rotation.x=.02;this.scientist.rightShoulder.rotation.z=.12*Math.sin(t*3.4);this.scientist.rightShoulder.rotation.x=-.08+.04*Math.sin(t*2.7);this.station.updateAmbient(this.totalElapsed,1.15-q*.15);this.stationFx.drawMonitor('YACHAY',['TELEMETRÍA RECIBIDA','UBICACIÓN: MARTE','ESTADO: DETENIDO','CAUSA: DESCONOCIDA']);}
+    if(t>2.25)this.overlay.hideLocation();if(t>=3)this.setState('scientist-introduction');else this.scientist.updateIdle(dt*.15);
   }
 
-  private updateRuthIntroduction(dt:number):void{
-    if(this.enterState()){this.showStation();this.ayni.group.visible=false;this.station.practiceBench.visible=false;this.camera.set(SHOTS.ruthPresent);this.ruth.resetPose();this.ruth.group.position.copy(RUTH_WORK);this.overlay.hideDialogue();this.overlay.hideBeat();this.stationFx.setStemOpacity(0);}
-    const t=this.elapsed;this.station.updateAmbient(this.totalElapsed,1);this.ruth.moveBetween(RUTH_WORK,RUTH_TALK,t/1.2);const spotRise=smooth((t-.1)/.85),spotFade=1-smooth((t-5.9)/1.35);this.station.setRuthSpot(spotRise*spotFade,this.ruth.group.position);if(t<12.4)this.camera.blend(SHOTS.stationGeneral,SHOTS.ruthPresent,smooth(t/1.18));else if(t<17.8)this.camera.blend(SHOTS.ruthPresent,SHOTS.ruthMonitorWide,smooth((t-12.4)/.85));else this.camera.blend(SHOTS.ruthMonitorWide,SHOTS.ruthTeam,smooth((t-17.8)/.8));if(t<1.45)this.ruth.greeting(t);else this.ruth.updateIdle(dt);
-    if(t<2.7)this.overlay.showDialogue('r1','RUTH','¡Hola! Soy Ruth Manzanares Grados.');else if(t<5.4)this.overlay.showDialogue('r2','RUTH','Soy ingeniera mecánica, investigadora e inventora peruana.');else if(t<7.2){this.ruth.openTeamPose((t-5.4)/1.2);this.stationFx.setStemOpacity(.16,t);this.overlay.showDialogue('r3','RUTH','Pero yo no soy la única.');}else if(t<10){this.ruth.openTeamPose(1);this.stationFx.setStemOpacity(.32,t);this.overlay.showDialogue('r4','RUTH','En el Perú hay muchas mujeres y niñas investigando, creando tecnología y buscando nuevas soluciones.');}else if(t<12.4){this.ruth.openTeamPose(1);this.stationFx.setStemOpacity(.25,t);this.overlay.showDialogue('r5','RUTH','Y tú también eres parte de esta historia. Porque la ciencia también necesita nuestras ideas.');}else if(t<14.9){this.stationFx.setStemOpacity(0);this.ruth.lookAtMonitor((t-12.4)/.6);this.stationFx.drawMonitor('YACHAY',['TELEMETRÍA RECIBIDA','UBICACIÓN: MARTE','ESTADO: DETENIDO','CAUSA: DESCONOCIDA']);this.overlay.showDialogue('r6','RUTH','Llegaste justo cuando necesitamos investigar algo importante.');}else if(t<17.8){this.stationFx.drawMonitor('YACHAY',['TELEMETRÍA RECIBIDA','UBICACIÓN: MARTE','ESTADO: DETENIDO','CAUSA: DESCONOCIDA']);this.overlay.showDialogue('r7','RUTH','Yachay estaba explorando Marte cuando una anomalía lo obligó a detenerse.');}else if(t<20.4){this.stationFx.drawMonitor('YACHAY',['TELEMETRÍA RECIBIDA','UBICACIÓN: MARTE','ESTADO: DETENIDO','CAUSA: DESCONOCIDA']);this.overlay.showDialogue('r8','RUTH','Nos dejó pistas… pero todavía no sabemos qué ocurrió.');}else if(t<22.9)this.overlay.showDialogue('r9','RUTH','Antes de empezar… ¿cómo te gusta que te llamen?');else this.overlay.hideDialogue();if(t>=22.9)this.setState('nickname');
+  private updateScientistIntroduction(dt:number):void{
+    if(this.enterState()){
+      this.showStation();this.ayni.group.visible=false;this.station.practiceBench.visible=false;
+      this.camera.set(SHOTS.scientistPresent);this.scientist.resetPose();
+      this.scientist.group.position.copy(SCIENTIST_WORK);
+      this.overlay.hideDialogue();this.overlay.hideBeat();this.stationFx.setStemOpacity(0);
+    }
+    const t=this.elapsed;this.station.updateAmbient(this.totalElapsed,1);
+    this.scientist.moveBetween(SCIENTIST_WORK,SCIENTIST_TALK,t/1.2);
+    const rise=smooth((t-.1)/.85),fade=1-smooth((t-29.8)/3.1);
+    this.station.setScientistSpot(rise*fade,this.scientist.group.position);
+    if(t<33.2)this.camera.blend(SHOTS.stationGeneral,SHOTS.scientistPresent,smooth(t/1.18));
+    else if(t<43.1)this.camera.blend(SHOTS.scientistPresent,SHOTS.scientistMonitorWide,smooth((t-33.2)/1.05));
+    else this.camera.blend(SHOTS.scientistMonitorWide,SHOTS.scientistTeam,smooth((t-43.1)/1.05));
+    if(t<1.45)this.scientist.greeting(t);else this.scientist.updateIdle(dt);
+    if(t>=10.5&&t<29.8){this.scientist.openTeamPose(smooth((t-10.5)/1.2));this.stationFx.setStemOpacity(t<22.3?.20:.33,t);}
+    if(t>=33.2){this.stationFx.setStemOpacity(0);this.scientist.lookAtMonitor(smooth((t-39.3)/.7));
+      this.stationFx.drawMonitor('YACHAY',['TELEMETRÍA RECIBIDA','UBICACIÓN: MARTE','ESTADO: DETENIDO','CAUSA: DESCONOCIDA']);}
+    if(t<4.5)this.overlay.showDialogue('r1','MARÍA LUISA AGUILAR HURTADO','¡Hola! Soy una guía digital creada en homenaje a María Luisa Aguilar Hurtado.');
+    else if(t<10.5)this.overlay.showDialogue('r2','MARÍA LUISA AGUILAR HURTADO','Ella fue la primera astrónoma profesional del Perú. Su curiosidad la llevó a explorar los misterios del universo.');
+    else if(t<15.7)this.overlay.showDialogue('r3','MARÍA LUISA AGUILAR HURTADO','Dedicó su vida a investigar las estrellas y a compartir su pasión por la ciencia.');
+    else if(t<22.3)this.overlay.showDialogue('r4','MARÍA LUISA AGUILAR HURTADO','Su historia nos recuerda que los grandes descubrimientos comienzan con una pregunta y el valor de buscar respuestas.');
+    else if(t<29.8)this.overlay.showDialogue('r5','MARÍA LUISA AGUILAR HURTADO','Y ahora es tu turno. No necesitas tener todas las respuestas para ser una científica. ¡Solo necesitas atreverte a descubrirlas!');
+    else if(t<33.2)this.overlay.showDialogue('r6','MARÍA LUISA AGUILAR HURTADO','Y hablando de preguntas… ¡tenemos un misterio que resolver!');
+    else if(t<37.6)this.overlay.showDialogue('r7','MARÍA LUISA AGUILAR HURTADO','Yachay estaba explorando Marte cuando, de pronto, algo lo obligó a detenerse.');
+    else if(t<43.1)this.overlay.showDialogue('r8','MARÍA LUISA AGUILAR HURTADO','Nos envió sus datos. En ellos podrían estar las pistas, pero todavía no sabemos qué ocurrió.');
+    else if(t<48.1)this.overlay.showDialogue('r9','MARÍA LUISA AGUILAR HURTADO','¿Nos ayudarás a descubrirlo? Antes de comenzar, ¿cómo te gusta que te llamen?');
+    else this.overlay.hideDialogue();
+    if(t>=48.1)this.setState('nickname');
   }
 
-  private updateNickname(dt:number):void{if(this.enterState()){this.overlay.hideDialogue();this.overlay.hideBeat();this.station.setRuthSpot(0,this.ruth.group.position);this.overlay.requestNickname((nickname)=>{this.playerNickname=nickname;this.setState('post-nickname');});}this.station.updateAmbient(this.totalElapsed,.72);this.ruth.updateIdle(dt);this.camera.set(SHOTS.ruthPresent);}
+  private updateNickname(dt:number):void{if(this.enterState()){this.overlay.hideDialogue();this.overlay.hideBeat();this.station.setScientistSpot(0,this.scientist.group.position);this.overlay.requestNickname((nickname)=>{this.playerNickname=nickname;this.setState('post-nickname');});}this.station.updateAmbient(this.totalElapsed,.72);this.scientist.updateIdle(dt);this.camera.set(SHOTS.scientistPresent);}
 
-  private updatePostNickname(dt:number):void{if(this.enterState()){this.ruth.resetPose();this.camera.set(SHOTS.ruthPresent);this.overlay.hideSfx();}const t=this.elapsed;this.station.updateAmbient(this.totalElapsed,1);const retreat=smooth((t-2.6)/.85);this.ruth.moveBetween(RUTH_TALK,RUTH_SAFE,retreat);this.ruth.lookUp(retreat);if(t<1.4)this.overlay.showDialogue('post-nick-hello','RUTH',`¡Mucho gusto, ${this.playerNickname}!`);else if(t<3.2)this.overlay.showDialogue('post-nick-team','RUTH','Bienvenida a ApuLab. Desde ahora eres parte del equipo.');else if(t<4.25)this.overlay.showDialogue('post-nick-missing','RUTH','Aunque nos falta alguien…');else this.overlay.hideDialogue();this.cue('ayni-clank',t>=3.9,()=>{this.audio.clank();this.overlay.showSfx('CLANK',.9);});if(t>4.3)this.overlay.hideSfx();if(t>=4.55)this.setState('ayni-entrance');else this.ruth.updateIdle(dt*.2);}
+  private updatePostNickname(dt:number):void{
+    if(this.enterState()){this.scientist.resetPose();this.camera.set(SHOTS.scientistPresent);this.overlay.hideSfx();}
+    const t=this.elapsed;this.station.updateAmbient(this.totalElapsed,1);
+    const retreat=smooth((t-7.7)/.85);
+    this.scientist.moveBetween(SCIENTIST_TALK,SCIENTIST_SAFE,retreat);this.scientist.lookUp(retreat);
+    if(t<1.8)this.overlay.showDialogue('post-nick-hello','MARÍA LUISA AGUILAR HURTADO',`¡Mucho gusto, ${this.playerNickname}!`);
+    else if(t<6.9)this.overlay.showDialogue('post-nick-team','MARÍA LUISA AGUILAR HURTADO','Desde ahora, formas parte del equipo de ApuLab. Tu curiosidad puede ayudarnos a encontrar nuevas pistas.');
+    else if(t<9.2)this.overlay.showDialogue('post-nick-missing','MARÍA LUISA AGUILAR HURTADO','Aunque… parece que todavía nos falta alguien.');
+    else this.overlay.hideDialogue();
+    this.cue('ayni-clank',t>=8.6,()=>{this.audio.clank();this.overlay.showSfx('CLANK',.9);});
+    if(t>9.3)this.overlay.hideSfx();
+    if(t>=9.7)this.setState('ayni-entrance');else this.scientist.updateIdle(dt*.2);
+  }
 
   private updateAyniEntrance():void{
-    if(this.enterState()){this.ayni.group.visible=false;this.ayni.group.position.set(0,8.25,0);this.ayni.group.rotation.set(0,0,0);this.station.setHatchOpen(0);this.stationFx.setAyniPeek(false);this.ruth.group.position.copy(RUTH_SAFE);this.overlay.hideDialogue();this.overlay.hideSfx();}
+    if(this.enterState()){this.ayni.group.visible=false;this.ayni.group.position.set(0,8.25,0);this.ayni.group.rotation.set(0,0,0);this.station.setHatchOpen(0);this.stationFx.setAyniPeek(false);this.scientist.group.position.copy(SCIENTIST_SAFE);this.overlay.hideDialogue();this.overlay.hideSfx();}
     const t=this.elapsed;this.station.updateAmbient(this.totalElapsed,1);
-    if(t<.35){this.station.setHatchOpen(0);this.ruth.lookUp(1);this.camera.set(SHOTS.hatch);}else if(t<1.15){const p=smooth((t-.35)/.8);this.station.setHatchOpen(p);this.camera.blend(SHOTS.ruth,SHOTS.hatch,p);this.ruth.lookUp(p);this.stationFx.setAyniPeek(t>.72,t);}else if(t<1.62){this.station.setHatchOpen(1);this.stationFx.setAyniPeek(true,t);this.camera.set(SHOTS.hatch);this.overlay.hideDialogue();}else if(t<3.15){this.stationFx.setAyniPeek(false);const p=clamp((t-1.62)/1.53),fall=Math.pow(p,1.55);this.ayni.group.visible=true;this.ayni.group.position.set(0,THREE.MathUtils.lerp(8.2,1.8,fall),0);this.camera.blend(SHOTS.hatch,SHOTS.ayniDrop,smooth(p));this.overlay.showDialogue('ayni-permission','AYNI','¡Permisoooooo!');this.overlay.showSfx('¡WOOO!',Math.sin(p*Math.PI));this.cue('ayni-whoosh',true,()=>this.audio.whoosh());}else if(t<3.70){const p=clamp((t-3.15)/.55);this.ayni.group.position.set(0,1.8,0);this.ayni.group.scale.set(1,THREE.MathUtils.lerp(.8,1,smooth(p)),1);this.ayni.group.rotation.z=THREE.MathUtils.lerp(.065,.035,smooth(p));this.station.updateLandingPulse(p);this.camera.set(SHOTS.ayniDrop);this.overlay.hideDialogue();this.overlay.showSfx('BOOM!',1-p*.55);this.cue('ayni-boom',true,()=>this.audio.boom());}else{const p=smooth((t-3.70)/1.7);this.ayni.group.scale.set(1,1,1);this.ayni.group.position.set(0,1.8+Math.sin(p*Math.PI*2.5)*.07*(1-p),0);this.ayni.group.rotation.z=THREE.MathUtils.lerp(.035,0,p);this.camera.set(SHOTS.team);this.overlay.hideSfx();if(t<4.15)this.overlay.hideDialogue();else if(t<4.65)this.overlay.showDialogue('ayni-arrived','AYNI','…¡Llegué!');else if(t<5.10)this.overlay.showDialogue('ruth-noticed','RUTH','Eso noté.');else if(t<5.65)this.overlay.showDialogue('ayni-perfect','AYNI','Aterrizaje perfectamente calculado.');else{this.ayni.pointMast(THREE.MathUtils.lerp(0,-.42,smooth((t-5.65)/.32)),.08);const clink=1-clamp((t-5.65)/.28);if(clink>0){this.overlay.showSfx('CLINK',.68*clink);this.cue('ayni-clink',true,()=>this.audio.clink());}else this.overlay.hideSfx();if(t<6.02)this.overlay.hideDialogue();else this.overlay.showDialogue('ayni-almost','AYNI','…casi perfectamente.');}}if(t>=6.50)this.setState('ayni-introduction');
+    if(t<.35){this.station.setHatchOpen(0);this.scientist.lookUp(1);this.camera.set(SHOTS.hatch);}else if(t<1.15){const p=smooth((t-.35)/.8);this.station.setHatchOpen(p);this.camera.blend(SHOTS.scientist,SHOTS.hatch,p);this.scientist.lookUp(p);this.stationFx.setAyniPeek(t>.72,t);}else if(t<1.62){this.station.setHatchOpen(1);this.stationFx.setAyniPeek(true,t);this.camera.set(SHOTS.hatch);this.overlay.hideDialogue();}else if(t<3.15){this.stationFx.setAyniPeek(false);const p=clamp((t-1.62)/1.53),fall=Math.pow(p,1.55);this.ayni.group.visible=true;this.ayni.group.position.set(0,THREE.MathUtils.lerp(8.2,1.8,fall),0);this.camera.blend(SHOTS.hatch,SHOTS.ayniDrop,smooth(p));this.overlay.showDialogue('ayni-permission','AYNI','¡Permisoooooo!');this.overlay.showSfx('¡WOOO!',Math.sin(p*Math.PI));this.cue('ayni-whoosh',true,()=>this.audio.whoosh());}else if(t<3.70){const p=clamp((t-3.15)/.55);this.ayni.group.position.set(0,1.8,0);this.ayni.group.scale.set(1,THREE.MathUtils.lerp(.8,1,smooth(p)),1);this.ayni.group.rotation.z=THREE.MathUtils.lerp(.065,.035,smooth(p));this.station.updateLandingPulse(p);this.camera.set(SHOTS.ayniDrop);this.overlay.hideDialogue();this.overlay.showSfx('BOOM!',1-p*.55);this.cue('ayni-boom',true,()=>this.audio.boom());}else{const p=smooth((t-3.70)/1.7);this.ayni.group.scale.set(1,1,1);this.ayni.group.position.set(0,1.8+Math.sin(p*Math.PI*2.5)*.07*(1-p),0);this.ayni.group.rotation.z=THREE.MathUtils.lerp(.035,0,p);this.camera.set(SHOTS.team);this.overlay.hideSfx();if(t<4.15)this.overlay.hideDialogue();else if(t<4.65)this.overlay.showDialogue('ayni-arrived','AYNI','…¡Llegué!');else if(t<5.10)this.overlay.showDialogue('scientist-noticed','MARÍA LUISA AGUILAR HURTADO','Eso noté.');else if(t<5.65)this.overlay.showDialogue('ayni-perfect','AYNI','Aterrizaje perfectamente calculado.');else{this.ayni.pointMast(THREE.MathUtils.lerp(0,-.42,smooth((t-5.65)/.32)),.08);const clink=1-clamp((t-5.65)/.28);if(clink>0){this.overlay.showSfx('CLINK',.68*clink);this.cue('ayni-clink',true,()=>this.audio.clink());}else this.overlay.hideSfx();if(t<6.02)this.overlay.hideDialogue();else this.overlay.showDialogue('ayni-almost','AYNI','…casi perfectamente.');}}if(t>=6.50)this.setState('ayni-introduction');
   }
 
-  private updateAyniIntroduction():void{if(this.enterState()){this.ayni.group.visible=true;this.ayni.group.position.set(0,1.8,AYNI_PRESENT_Z0);this.ayni.group.rotation.set(0,0,0);this.station.setHatchOpen(1);this.overlay.hideSfx();this.camera.set(SHOTS.team);}const t=this.elapsed;this.station.updateAmbient(this.totalElapsed,1);this.ayni.updatePresentation(t);const camMove=smooth(t/1.35),cam=SHOTS.team.position.clone(),target=SHOTS.team.target.clone();cam.z-=.30*camMove;target.z=THREE.MathUtils.lerp(SHOTS.team.target.z,.42,camMove);this.camera.dynamic(cam,target);const nick=this.playerNickname||'compañera';if(t<1.6)this.overlay.showDialogue('ai1','AYNI',`¡Hola, ${nick}! Soy Ayni.`);else if(t<3.2)this.overlay.showDialogue('ai2','AYNI','Yachay es mi hermano gemelo.');else if(t<5.2)this.overlay.showDialogue('ai3','AYNI','Compartimos gran parte del mismo diseño y muchos de nuestros sistemas.');else if(t<6.9)this.overlay.showDialogue('ai4','AYNI','¡Nacimos del mismo código!');else if(t<9.2)this.overlay.showDialogue('ai5','AYNI','Con sus datos y conmigo aquí, podemos investigar qué ocurrió.');else if(t<10.6)this.overlay.showDialogue('ai6','AYNI','Quiero ayudarlo a volver a explorar.');else this.overlay.hideDialogue();if(t>=10.9){this.ayni.settleAtTeamPosition();this.setState('mission-briefing');}}
+  private updateAyniIntroduction():void{
+    if(this.enterState()){
+      this.ayni.group.visible=true;this.ayni.group.position.set(0,1.8,AYNI_PRESENT_Z0);
+      this.ayni.group.rotation.set(0,0,0);this.station.setHatchOpen(1);
+      this.overlay.hideSfx();this.camera.set(SHOTS.team);
+    }
+    const t=this.elapsed;this.station.updateAmbient(this.totalElapsed,1);
+    this.ayni.updatePresentation(t);
+    const movement=smooth(t/1.35),camera=SHOTS.team.position.clone(),target=SHOTS.team.target.clone();
+    camera.z-=.30*movement;target.z=THREE.MathUtils.lerp(SHOTS.team.target.z,.42,movement);
+    this.camera.dynamic(camera,target);
+    const nick=this.playerNickname||'compañera';
+    if(t<3.0)this.overlay.showDialogue('ai1','AYNI',`¡Hola, ${nick}! Soy AYNI.`);
+    else if(t<7.0)this.overlay.showDialogue('ai2','AYNI','Yachay es mi hermano gemelo… ¡literalmente nacimos del mismo código!');
+    else if(t<9.4)this.overlay.showDialogue('ai3','AYNI','Aunque, claro, yo salí más guapo.');
+    else if(t<14.0)this.overlay.showDialogue('ai4','AYNI','Él está en Marte y yo estoy aquí. ¡Y no pienso dejarlo solo con ese misterio!');
+    else if(t<19.8)this.overlay.showDialogue('ai5','AYNI','Con sus datos y tu ayuda, podemos descubrir qué ocurrió y ayudarlo a volver a explorar.');
+    else this.overlay.hideDialogue();
+    if(t>=20.2){this.ayni.settleAtTeamPosition();this.setState('mission-briefing');}
+  }
 
-  private updateMissionBriefing(dt:number):void{if(this.enterState()){this.ayni.settleAtTeamPosition();this.ruth.resetPose();this.camera.set(SHOTS.team);this.overlay.hideBeat();this.stationFx.drawMonitor('YACHAY',['TELEMETRÍA RECIBIDA','CAUSA: DESCONOCIDA']);}const t=this.elapsed;this.station.updateAmbient(this.totalElapsed,1);this.ruth.updateIdle(dt);if(t<1.8)this.overlay.showDialogue('mb1','RUTH','Sabemos que Yachay se detuvo.');else if(t<3.6)this.overlay.showDialogue('mb2','RUTH','Lo que todavía no sabemos es por qué.');else if(t<5)this.overlay.showDialogue('mb3','RUTH','Así que no vamos a adivinar.');else if(t<6.8){if(t<5.55)this.stationFx.drawMonitor('OBSERVAR',['MIRAR ANTES DE CONCLUIR']);else if(t<6.10)this.stationFx.drawMonitor('MEDIR',['OBTENER UNA BUENA MEDICIÓN']);else this.stationFx.drawMonitor('COMPARAR',['BUSCAR DIFERENCIAS']);this.overlay.showDialogue('mb4','RUTH','Observar. Medir. Comparar.');}else if(t<8.9){this.stationFx.drawMonitor('SEGUIR LAS PISTAS',['CAUSA: AÚN DESCONOCIDA']);this.overlay.showDialogue('mb5','RUTH','Y seguir las pistas hasta descubrir qué está ocurriendo.');}else this.overlay.hideDialogue();if(t>=9.2)this.setState('telemetry-simulation');}
+  private updateMissionBriefing(dt:number):void{
+    if(this.enterState()){
+      this.ayni.settleAtTeamPosition();this.scientist.resetPose();
+      this.camera.set(SHOTS.team);this.overlay.hideBeat();
+      this.stationFx.drawMonitor('YACHAY',['TELEMETRÍA RECIBIDA','CAUSA: DESCONOCIDA']);
+    }
+    const t=this.elapsed;this.station.updateAmbient(this.totalElapsed,1);this.scientist.updateIdle(dt);
+    if(t<4.1)this.overlay.showDialogue('mb1','MARÍA LUISA AGUILAR HURTADO','Tenemos pistas, pero todavía no sabemos por qué se detuvo Yachay.');
+    else if(t<9.3)this.overlay.showDialogue('mb2','MARÍA LUISA AGUILAR HURTADO','En la ciencia no se trata de adivinar, sino de investigar y buscar evidencias.');
+    else if(t<13.5){
+      this.stationFx.drawMonitor('OBSERVAR',['DATOS RECIBIDOS DE MARTE']);
+      this.overlay.showDialogue('mb3','MARÍA LUISA AGUILAR HURTADO','Primero, observaremos los datos que nos envió.');
+    }else if(t<19.4){
+      if(t<16.5)this.stationFx.drawMonitor('MEDIR',['OBTENER UNA BUENA MEDICIÓN']);
+      else this.stationFx.drawMonitor('COMPARAR',['BUSCAR DIFERENCIAS']);
+      this.overlay.showDialogue('mb4','MARÍA LUISA AGUILAR HURTADO','Después, aprenderemos a medir con cuidado y a comparar los resultados.');
+    }else if(t<24.8){
+      this.stationFx.drawMonitor('SEGUIR LAS PISTAS',['CAUSA: AÚN DESCONOCIDA']);
+      this.overlay.showDialogue('mb5','MARÍA LUISA AGUILAR HURTADO','Cada pista nos acerca un poco más a la respuesta. ¡Vamos a descubrir qué ocurrió!');
+    }else this.overlay.hideDialogue();
+    if(t>=25.3)this.setState('telemetry-simulation');
+  }
 
-  private updateTelemetrySimulation():void{if(this.enterState()){this.overlay.hideSfx();this.camera.set(SHOTS.diagnostic);}const t=this.elapsed,nick=this.playerNickname||'compañera';this.station.updateAmbient(this.totalElapsed,1);if(t<1.4){this.stationFx.drawMonitor('TELEMETRÍA DE YACHAY CARGADA',['PREPARANDO SISTEMA DE PRUEBAS']);this.overlay.showDialogue('ts1','AYNI','Creo que ya estoy listo.');}else if(t<2.5){this.stationFx.drawMonitor('TELEMETRÍA DE YACHAY CARGADA',['PREPARANDO SISTEMA DE PRUEBAS…']);this.overlay.showDialogue('ts2','AYNI','…eso espero.');this.cue('telemetry-sim-beep',t>1.55,()=>this.audio.telemetry());}else if(t<4.9)this.overlay.showDialogue('ts3','RUTH',`${nick}, empezaremos aprendiendo a obtener una buena medición.`);else this.overlay.hideDialogue();if(t>=5.3)this.setState('intro-completed');}
+  private updateTelemetrySimulation():void{
+    if(this.enterState()){this.overlay.hideSfx();this.camera.set(SHOTS.diagnostic);}
+    const t=this.elapsed;this.station.updateAmbient(this.totalElapsed,1);
+    if(t<2.4){
+      this.stationFx.drawMonitor('TELEMETRÍA DE YACHAY CARGADA',['PREPARANDO SISTEMA DE PRUEBAS']);
+      this.overlay.showDialogue('ts1','AYNI','Creo que ya estoy listo.');
+    }else if(t<4.5){
+      this.stationFx.drawMonitor('TELEMETRÍA DE YACHAY CARGADA',['PREPARANDO SISTEMA DE PRUEBAS…']);
+      this.overlay.showDialogue('ts2','AYNI','…eso espero.');
+      this.cue('telemetry-sim-beep',t>2.6,()=>this.audio.telemetry());
+    }else if(t<10.2)this.overlay.showDialogue('ts3','MARÍA LUISA AGUILAR HURTADO','Antes de investigar lo que ocurrió en Marte, necesitamos aprender algo importante: medir correctamente.');
+    else this.overlay.hideDialogue();
+    if(t>=10.6)this.setState('intro-completed');
+  }
 
-  private updateIntroCompleted():void{if(this.enterState()){this.showStation();this.ayni.group.visible=true;this.ruth.group.visible=true;this.station.practiceBench.visible=true;this.station.setBenchReveal(0);this.ruth.resetPose();this.camera.set(SHOTS.diagnostic);this.overlay.hideMission();this.overlay.setTransition(0);this.audio.success();}const t=this.elapsed;this.station.updateAmbient(this.totalElapsed,1);const walk=smooth(t/1.25);this.ruth.moveBetween(RUTH_SAFE,RUTH_BENCH,walk);this.ruth.group.rotation.y=THREE.MathUtils.lerp(-.08,-.24,walk);this.ayni.pointMast(THREE.MathUtils.lerp(0,.34,walk),THREE.MathUtils.lerp(0,.05,walk));this.station.setBenchReveal(smooth((t-.35)/.78));this.camera.blend(SHOTS.diagnostic,SHOTS.bench,smooth(t/1.55));if(t<.8)this.overlay.hideDialogue();else if(t<1.95)this.overlay.showDialogue('ic1','AYNI','¿Esa es mi batería?');else if(t<2.5)this.overlay.showDialogue('ic2','RUTH','No.');else if(t<3.65)this.overlay.showDialogue('ic3','RUTH','Es una batería de práctica.');else if(t<4.6)this.overlay.showDialogue('ic4','AYNI','…menos mal.');else if(t<6.6)this.overlay.showDialogue('ic5','RUTH','Antes de investigar a Yachay, aprenderemos a medir con ella.');else if(t<7.25)this.overlay.hideDialogue();else{this.overlay.markIntroSeen();const p=smooth((t-7.25)/1.05);this.overlay.setTransition(.93*p);this.overlay.showMission();}if(t>=8.65){this.overlay.hideDialogue();this.overlay.markIntroSeen();this.overlay.showMission();this.setState('complete');this.options.onComplete?.();}}
+  private updateIntroCompleted():void{
+    if(this.enterState()){
+      this.showStation();this.ayni.group.visible=true;this.scientist.group.visible=true;
+      this.station.practiceBench.visible=true;this.station.setBenchReveal(0);
+      this.scientist.resetPose();this.camera.set(SHOTS.diagnostic);
+      this.overlay.hideMission();this.overlay.setTransition(0);this.audio.success();
+    }
+    const t=this.elapsed;this.station.updateAmbient(this.totalElapsed,1);
+    const walk=smooth(t/1.25);this.scientist.moveBetween(SCIENTIST_SAFE,SCIENTIST_BENCH,walk);
+    this.scientist.group.rotation.y=THREE.MathUtils.lerp(-.08,-.24,walk);
+    this.ayni.pointMast(THREE.MathUtils.lerp(0,.34,walk),THREE.MathUtils.lerp(0,.05,walk));
+    this.station.setBenchReveal(smooth((t-.35)/.78));
+    this.camera.blend(SHOTS.diagnostic,SHOTS.bench,smooth(t/1.55));
+    if(t<.65)this.overlay.hideDialogue();
+    else if(t<3.4)this.overlay.showDialogue('ic1','AYNI','Espera… ¿esa es mi batería?');
+    else if(t<6.2)this.overlay.showDialogue('ic2','MARÍA LUISA AGUILAR HURTADO','¡No te preocupes, AYNI! Es una batería de práctica.');
+    else if(t<8.0)this.overlay.showDialogue('ic4','AYNI','¡Uf! …menos mal.');
+    else if(t<14.3)this.overlay.showDialogue('ic5','MARÍA LUISA AGUILAR HURTADO','En la ciencia, cada descubrimiento comienza aprendiendo algo nuevo. ¡Vamos a realizar nuestra primera medición!');
+    else{this.overlay.hideDialogue();this.overlay.markIntroSeen();const p=smooth((t-14.3)/1.2);this.overlay.setTransition(.93*p);this.overlay.showMission();}
+    if(t>=16.5){
+      this.overlay.hideDialogue();this.overlay.markIntroSeen();this.overlay.showMission();
+      this.setState('complete');this.options.onComplete?.();
+    }
+  }
 
   private useWheelCloseup(amount:number):void{const target=this.yachay.getWorldWheelPosition(3,new THREE.Vector3());target.y+=.28;const camera=target.clone().add(new THREE.Vector3(4.10,1.55,5.10)),p=smooth(amount);this.camera.dynamic(SHOTS.marsB.position.clone().lerp(camera,p),SHOTS.marsB.target.clone().lerp(target,p));}
   private useEyeCloseup(amount:number):void{const target=this.yachay.getWorldEyePosition(new THREE.Vector3());target.z+=.18;const camera=target.clone().add(new THREE.Vector3(2.45,.30,3.35)),wheelTarget=this.yachay.getWorldWheelPosition(3,new THREE.Vector3());wheelTarget.y+=.28;const wheelCamera=wheelTarget.clone().add(new THREE.Vector3(4.10,1.55,5.10)),p=smooth(amount);this.camera.dynamic(wheelCamera.lerp(camera,p),wheelTarget.lerp(target,p));}
-  private showMars():void{this.engine.clear();this.mars.applySceneEnvironment(this.engine.scene);this.engine.scene.add(this.mars.group,this.yachay.group);this.yachay.group.visible=true;this.ruth.group.visible=false;this.ayni.group.visible=false;}
-  private showStation():void{this.engine.clear();this.station.applySceneEnvironment(this.engine.scene);this.station.reset();this.stationFx.reset();this.engine.scene.add(this.station.group,this.ruth.group,this.ayni.group);this.ruth.group.visible=true;this.ayni.group.visible=false;this.yachay.group.visible=false;}
+  private showMars():void{this.engine.clear();this.mars.applySceneEnvironment(this.engine.scene);this.engine.scene.add(this.mars.group,this.yachay.group);this.yachay.group.visible=true;this.scientist.group.visible=false;this.ayni.group.visible=false;}
+  private showStation():void{this.engine.clear();this.station.applySceneEnvironment(this.engine.scene);this.station.reset();this.stationFx.reset();this.engine.scene.add(this.station.group,this.scientist.group,this.ayni.group);this.scientist.group.visible=true;this.ayni.group.visible=false;this.yachay.group.visible=false;}
   private setState(state:IntroState):void{this.state=state;this.elapsed=0;this.stateEntered=true;this.cues.clear();document.documentElement.dataset.apulabState=state;}
   private enterState():boolean{if(!this.stateEntered)return false;this.stateEntered=false;return true;}
   private cue(key:string,condition:boolean,callback:()=>void):void{if(!condition||this.cues.has(key))return;this.cues.add(key);callback();}

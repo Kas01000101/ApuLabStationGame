@@ -19,15 +19,15 @@ The prototype intro was migrated into real modules:
 1. `Rover.ts`: reusable Spirit/Opportunity-style base with butterfly deck, six wheels, rocker-bogie suspension, mast, main cameras, antenna, dish, lights, and detachable panel.
 2. `Yachay.ts`: exploration, scanning, telemetry, and visual reaction behavior.
 3. `Ayni.ts`: twin rover with presentation movement/bounce and mast gestures.
-4. `Ruth.ts`: block-style voxel character with hair, rectangular eyes, thin glasses, uniform, flags, and RUTH / MANZANARES badge.
+4. `MariaLuisaAguilar.ts`: new enhanced voxel digital homage to the Peruvian astronomer; academic blazer, mature features, glasses and astronomy pin, with no flags or technical suit.
 5. `MarsWorld.ts`: natural APU-07 sector with irregular terrain, rocks, dunes, tracks, target formation, dust, and cyan scanning.
 6. `FailureEffects.ts`: side cover, low-poly smoke, solar-panel detachment, and debris behavior.
 7. `TelemetryEffects.ts`: telemetry pulses and protagonist pulse.
-8. `ApuLabWorld.ts`: bay, walls, roof/gate, lighting, landing area, technical atmosphere, Ruth spotlight, and practice-table reveal.
+8. `ApuLabWorld.ts`: bay, walls, roof/gate, lighting, landing area, technical atmosphere, scientist spotlight, and practice-table reveal.
 9. `CinematicCamera.ts`: shot-based camera and blends.
 10. `IntroAudio.ts`: BIP, PFF, CLANK, CLINK, WOOOSH, BOOM, telemetry, and success WebAudio cues.
 11. `IntroOverlay.ts`: dialog, SFX, location, beats, `SKIP INTRO`, and nickname flow without a timer.
-12. `IntroController.ts`: Mars → failure → telemetry → Ruth → nickname → AYNI → method → Mission 01 timeline.
+12. `IntroController.ts`: Mars → failure → telemetry → María Luisa tribute → nickname → AYNI → method → Mission 01 timeline.
 
 ## Nickname rule
 

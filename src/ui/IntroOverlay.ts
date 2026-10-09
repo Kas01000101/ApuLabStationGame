@@ -71,6 +71,7 @@ export class IntroOverlay {
     if(this.lastDialogueKey!==resolved.key){
       this.lastDialogueKey=resolved.key;
       this.speaker.textContent=resolved.speaker;
+      this.speaker.setAttribute('aria-label', resolved.speaker === 'MARÍA LUISA AGUILAR HURTADO' ? 'María Luisa Aguilar Hurtado, homenaje digital' : resolved.speaker);
       this.dialogueText.textContent=resolved.text;
     }
     this.dialogue.classList.add('show');
