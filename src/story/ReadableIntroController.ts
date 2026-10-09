@@ -12,7 +12,7 @@ type IntroRuntime = {
  * IntroController mantiene la coreografía canónica; aquí reducimos dt solo en
  * ventanas donde una línea necesita más tiempo de lectura. Al ralentizar la
  * ventana completa, texto, cámara e idle permanecen sincronizados.
- * Los niveles 1–8 no usan este controlador.
+ * Los siete niveles no usan este controlador.
  */
 export class ReadableIntroController extends IntroController {
   private ambientElapsed = 0;
@@ -53,21 +53,10 @@ function dialoguePacingScale(state: string, t: number): number {
       if (t >= 1.95 && t < 3.45) return 0.70;   // Espero que descubran…
       return 1;
 
-    case 'ruth-introduction':
-      if (t >= 2.7 && t < 5.4) return 0.80;
-      if (t >= 5.4 && t < 7.2) return 0.85;
-      if (t >= 7.2 && t < 10) return 0.68;
-      if (t >= 10 && t < 12.4) return 0.72;
-      if (t >= 12.4 && t < 14.9) return 0.75;
-      if (t >= 14.9 && t < 17.8) return 0.72;
-      if (t >= 17.8 && t < 20.4) return 0.72;
-      if (t >= 20.4 && t < 22.9) return 0.80;
-      return 1;
-
+    // Las ventanas de lectura de María Luisa y la bienvenida se han
+    // dimensionado en IntroController según la longitud de cada frase.
+    case 'scientist-introduction':
     case 'post-nickname':
-      if (t < 1.4) return 0.65;
-      if (t < 3.2) return 0.80;
-      if (t < 4.25) return 0.50;
       return 1;
 
     case 'ayni-entrance':
@@ -79,18 +68,9 @@ function dialoguePacingScale(state: string, t: number): number {
       return 1;
 
     case 'ayni-introduction':
-      if (t < 1.6) return 0.75;                 // ¡Hola… soy Ayni!
-      return 1;                                 // líneas combinadas ya respiran
-
+    case 'mission-briefing':
     case 'telemetry-simulation':
-      if (t < 1.4) return 0.65;                 // Creo que ya estoy listo.
-      return 1;
-
     case 'intro-completed':
-      if (t >= 0.8 && t < 1.95) return 0.55;    // ¿Esa es mi batería?
-      if (t >= 1.95 && t < 3.65) return 0.80;   // No. Es una batería…
-      if (t >= 3.65 && t < 4.6) return 0.45;    // …menos mal.
-      if (t >= 4.6 && t < 6.6) return 0.80;     // Antes de investigar…
       return 1;
 
     default:

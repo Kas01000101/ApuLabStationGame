@@ -47,7 +47,7 @@ export class ApuLabWorld {
   private readonly serviceJoint1 = new THREE.Group();
   private readonly serviceJoint2 = new THREE.Group();
   private readonly ventRotor = new THREE.Group();
-  private readonly ruthSpot: THREE.SpotLight;
+  private readonly scientistSpot: THREE.SpotLight;
   private readonly benchSpot: THREE.SpotLight;
   private readonly landingPulseMat = new THREE.MeshBasicMaterial({
     color: COLORS.amber,
@@ -194,10 +194,10 @@ export class ApuLabWorld {
     this.buildLandingArea(amberMat, metalMat, violetMat, whiteMat);
     this.buildPracticeBench(panelMat, metalMat, cyanMat, amberMat, whiteMat);
 
-    this.ruthSpot = new THREE.SpotLight(0xdff8ff, 0, 18, Math.PI / 6, 0.42, 1.25);
-    this.ruthSpot.position.set(5.95, 8.6, 1.10);
-    this.ruthSpot.target.position.set(5.85, 1.25, 0.45);
-    this.group.add(this.ruthSpot, this.ruthSpot.target);
+    this.scientistSpot = new THREE.SpotLight(0xdff8ff, 0, 18, Math.PI / 6, 0.42, 1.25);
+    this.scientistSpot.position.set(5.95, 8.6, 1.10);
+    this.scientistSpot.target.position.set(5.85, 1.25, 0.45);
+    this.group.add(this.scientistSpot, this.scientistSpot.target);
 
     this.benchSpot = new THREE.SpotLight(0xfff0d2, 0, 12, Math.PI / 5, 0.46, 1.65);
     this.benchSpot.position.set(-2.9, 7.9, 4.2);
@@ -221,7 +221,7 @@ export class ApuLabWorld {
 
   reset(): void {
     this.setHatchOpen(0);
-    this.setRuthSpot(0, new THREE.Vector3(5.85, 1.25, 0.45));
+    this.setScientistSpot(0, new THREE.Vector3(5.85, 1.25, 0.45));
     this.setBenchReveal(0);
     this.practiceBench.visible = false;
     this.landingPulseMat.opacity = 0;
@@ -235,12 +235,12 @@ export class ApuLabWorld {
     this.hatchDoorRight.position.x = THREE.MathUtils.lerp(this.hatchRightClosed, this.hatchRightOpen, p);
   }
 
-  setRuthSpot(amount: number, targetPosition: THREE.Vector3): void {
+  setScientistSpot(amount: number, targetPosition: THREE.Vector3): void {
     const p = THREE.MathUtils.clamp(amount, 0, 1);
-    this.ruthSpot.intensity = 2.9 * p;
-    this.ruthSpot.position.set(targetPosition.x + 0.18, 8.55, targetPosition.z + 1.05);
-    this.ruthSpot.target.position.set(targetPosition.x, 1.15, targetPosition.z + 0.05);
-    this.ruthSpot.target.updateMatrixWorld();
+    this.scientistSpot.intensity = 2.9 * p;
+    this.scientistSpot.position.set(targetPosition.x + 0.18, 8.55, targetPosition.z + 1.05);
+    this.scientistSpot.target.position.set(targetPosition.x, 1.15, targetPosition.z + 0.05);
+    this.scientistSpot.target.updateMatrixWorld();
   }
 
   setBenchReveal(amount: number): void {
